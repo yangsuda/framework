@@ -72,7 +72,7 @@ class Output implements OutputInterface
     private function promptMsg($code, $para = []): string
     {
         $prompt = $this->prompts();
-        $str = aval($prompt,$code);
+        $str = aval($prompt, $code);
         if ($para) {
             if (is_array($para)) {
                 extract($para);

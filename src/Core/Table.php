@@ -80,13 +80,24 @@ class Table
      */
     protected $orderby = ' order by main.id desc ';
 
-    public function __construct(ContainerInterface $container, string $tableName)
+    protected static $container;
+
+    /**
+     * 请求对象实例
+     * @var Request
+     */
+    protected static $request;
+
+    public function __construct(Request $request, string $tableName)
     {
-        $settings = $container->get('settings');
-        $this->db = $container->get(DatabaseInterface::class);
+        self::$request = $request;
+        self::$container = self::$request->getContainer();
+
+        $settings = self::$container->get('settings');
+        $this->db = self::$container->get(DatabaseInterface::class);
         $this->tablepre = $settings['db']['tablepre'];
         $this->tableName = $this->tablepre . $tableName;
-        $this->redis = $container->get(Redis::class);
+        $this->redis = self::$container->get(Redis::class);
     }
 
     /**
@@ -101,6 +112,17 @@ class Table
     protected static function t(string $name = ''): Table
     {
         return Forms::t($name);
+    }
+
+    /**
+     * 获取外部传入数据
+     * @param $name
+     * @param string $type
+     * @return array|mixed|\都不存在时的默认值|null
+     */
+    protected static function input($name, string $type = 'string')
+    {
+        return self::$request->input($name, $type);
     }
 
     /**

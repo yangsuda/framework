@@ -69,19 +69,4 @@ class File
         }
         return $loggers[$key];
     }
-
-    /**
-     * 日志记录
-     * @param $msg
-     * @param string $dir
-     * @param string $format
-     */
-    public static function log1($msg, $dir = 'log', $format = 'Y-m-d')
-    {
-        $path = CSDATA . trim($dir, '/') . '/';
-        self::mkdir($path);
-        $logurl = $path . date($format, TIMESTAMP) . '.php';
-        !is_file($logurl) && @file_put_contents($logurl, "<?php\n exit();\n?>\n", FILE_APPEND);
-        file_put_contents($logurl, date('Y-m-d H:i:s') . ":\n" . $msg . "\n", FILE_APPEND);
-    }
 }

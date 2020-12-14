@@ -90,5 +90,5 @@ function copyImage($pic, $width = 1000, $height = 1000)
  */
 function ueditor($identifier, $default = '', $config = ['identity' => 'small'])
 {
-    return cs090\helper\Ueditor::ueditor($identifier, $default, $config);
+    return \SlimCMS\Core\Ueditor::ueditor($identifier, $default, $config);
 }

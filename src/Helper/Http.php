@@ -8,10 +8,6 @@ declare(strict_types=1);
 
 namespace SlimCMS\Helper;
 
-use cs090\core\Config;
-use cs090\core\Error;
-use Exception;
-
 class Http
 {
     public static function curlGet(string $url, array $setopt = [])

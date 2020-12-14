@@ -181,7 +181,7 @@ class Wxxcx extends ModelAbstract
         $result = Http::curlPost('https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=' . $res['data'], json_encode($vals));
         $obj = json_decode($result, true);
         if (!empty($obj['errcode'])) {
-            self::log('发送小程序订阅消息', $obj, 'wx/sendTemplateMessage');
+            File::log('wx/sendTemplateMessage')->info('发送小程序订阅消息', $obj);
             return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
         }
         return self::$output->withCode(200);

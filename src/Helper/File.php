@@ -59,7 +59,7 @@ class File
             $dir = trim($dir, '/');
             $config = getConfig();
             $suffix = substr(md5($config['settings']['security']['authkey']), 5, -10);
-            $dir = ($dir ? '_' : '') . $suffix;
+            $dir = ($dir ? $dir . '_' : '') . $suffix;
 
             $path = CSDATA . $dir . '/' . date($format) . '.log';
             $logger = new Logger($logName);

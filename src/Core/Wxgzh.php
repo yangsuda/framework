@@ -207,7 +207,7 @@ class Wxgzh extends ModelAbstract
                 }
                 $str = Http::curlGet($url);
                 $re = json_decode($str, true);
-                self::log('获取api_ticket', $re, 'wx/jsapiTicket');
+                File::log('wx/jsapiTicket')->info('获取api_ticket', $re);
                 if (!empty($re['ticket'])) {
                     self::$redis->set($cachekey, $re['ticket'], 7000);
                     return $re['ticket'];
@@ -225,7 +225,7 @@ class Wxgzh extends ModelAbstract
             } else {
                 $str = Http::curlGet($url);
                 $re = json_decode($str, true);
-                self::log('获取api_ticket', $re, 'wx/jsapiTicket');
+                File::log('wx/jsapiTicket')->info('获取api_ticket', $re);
                 if (!empty($re['ticket'])) {
                     file_put_contents($cacheFile, $re['access_token']);
                     return $re['ticket'];

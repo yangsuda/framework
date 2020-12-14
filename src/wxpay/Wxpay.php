@@ -70,7 +70,7 @@ class Wxpay
     public function notify()
     {
         $xmlStr = @file_get_contents("php://input");
-        File::log('wx/paylog/notify')->info('异步回调', ['uri' => $_SERVER['REQUEST_URI'], 'xml' => $xmlStr]);
+        File::log('wx/paylog/notify')->info('异步回调:' . $_SERVER['REQUEST_URI'], ['xml' => $xmlStr]);
         $msg = "OK";
         return lib\Api::notify(array($this, 'wxNotify'), $msg);
     }
@@ -82,14 +82,15 @@ class Wxpay
      */
     public function wxNotify($data): OutputInterface
     {
+        $notify = aval($this->data, 'notify');
         File::log('wx/paylog/notify')->info('异步回调', $data);
         if ($data['result_code'] == 'SUCCESS' && $data['return_code'] == 'SUCCESS') {
             $msg = "<xml>
                         <return_code><![CDATA[SUCCESS]]></return_code>
                         <return_msg><![CDATA[OK]]></return_msg>
                         </xml>";
-            call_user_func($this->data['notify'], $data);
-            return $this->output->withCode(100, $msg);
+            $notify && call_user_func($notify, $data);
+            return $this->output->withCode(200, $msg);
         }
         $msg = "<xml>
                         <return_code><![CDATA[FAIL]]></return_code>

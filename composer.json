@@ -8,7 +8,7 @@
         "psr7"
     ],
     "homepage": "http://github.com/yangsuda/framework",
-    "license": "GPL",
+    "license": "GPL-3.0-or-later",
     "authors": [
         {
             "name": "zhucy",

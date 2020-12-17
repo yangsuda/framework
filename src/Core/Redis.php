@@ -563,25 +563,6 @@ class Redis
         return self::$redis->scard($key);
     }
 
-    public function sexists($key)
-    {
-        $this->cacheKey($key);
-        if (empty(self::$redis)) {
-            return null;
-        }
-        $res = self::$redis->scard($key);
-        if (empty($res)) {
-            return false;
-        }
-        if ($res == 1) {
-            $res = self::$redis->sinter($key);
-            if (empty($res[0])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /**
      * 返回集合中的所有成员
      * @param $key

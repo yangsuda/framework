@@ -57,12 +57,15 @@ class Forms extends ModelAbstract
      */
     public static function formView(int $fid): OutputInterface
     {
-        $form = self::t('forms')->withWhere($fid)->fetch();
-        if (empty($form)) {
-            return self::$output->withCode(22006);
+        static $vals = [];
+        if(empty($vals[$fid])){
+            $form = self::t('forms')->withWhere($fid)->fetch();
+            if (empty($form)) {
+                return self::$output->withCode(22006);
+            }
+            $vals[$fid] = ['form' => $form, 'fid' => $fid];
         }
-        $data = ['form' => $form, 'fid' => $fid];
-        return self::$output->withCode(200)->withData($data);
+        return self::$output->withCode(200)->withData($vals[$fid]);
     }
 
     /**
@@ -105,7 +108,7 @@ class Forms extends ModelAbstract
             return self::$output->withCode(21002);
         }
         $ids = array_map('intval', $ids);
-        $form = self::t('forms')->withWhere($fid)->fetch();
+        $form = self::formView($fid)->getData()['form'];
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
@@ -141,7 +144,7 @@ class Forms extends ModelAbstract
             return self::$output->withCode(21002);
         }
         $ids = array_map('intval', $ids);
-        $form = self::t('forms')->withWhere($fid)->fetch();
+        $form = self::formView($fid)->getData()['form'];
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
@@ -200,7 +203,7 @@ class Forms extends ModelAbstract
         $cachekey = static::cacheKey('dataView', $fid, $id);
         $data = $cacheTime > 0 ? self::$redis->get($cachekey) : [];
         if (empty($data)) {
-            $form = self::t('forms')->withWhere($fid)->fetch();
+            $form = self::formView($fid)->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }
@@ -426,7 +429,7 @@ class Forms extends ModelAbstract
             $form = $val['form'];
         } else {
             $row = [];
-            $form = self::t('forms')->withWhere($fid)->fetch();
+            $form = self::formView($fid)->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }
@@ -491,7 +494,7 @@ class Forms extends ModelAbstract
             $fields = $val['fields'];
         } else {
             $row = $row ?: [];
-            $form = self::t('forms')->withWhere($fid)->fetch();
+            $form = self::formView($fid)->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }

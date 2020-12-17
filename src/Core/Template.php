@@ -109,7 +109,8 @@ class Template implements TemplateInterface
     protected static function addquote($matches)
     {
         $var = '<?=' . $matches[1] . '?>';
-        return str_replace("\\\"", "\"", preg_replace("/\[([a-zA-Z0-9_\-\.\x7f-\xff]+)\]/s", "['\\1']", $var));
+        $var = preg_replace("/\[([a-zA-Z0-9_\-\.\x7f-\xff]+)\]/s", "['\\1']", $var);
+        return str_replace("\\\"", "\"", $var);
     }
 
     protected static function loadTemplateTag($matches)
@@ -129,7 +130,8 @@ class Template implements TemplateInterface
                 $v = preg_replace('/["\']/', '', $v);
                 list($key, $val) = explode('=', $v);
                 if (strpos($val, '$') !== false) {
-                    $val = str_replace("\\\"", "\"", preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val)));
+                    $val = preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val));
+                    $val = str_replace("\\\"", "\"", $val);
                     $row[trim($key)] = '\'.(isset(' . $val . ')?' . $val . ':\'\').\'';
                 } else {
                     $row[trim($key)] = trim($val);
@@ -241,7 +243,7 @@ class Template implements TemplateInterface
         $listkey = aval($row, 'listKey', 'list');
         $i = count(static::$replacecode['search']);
         static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        static::$replacecode['replace'][$i] = "<?php \$_list = \app\model\main\TagsModel::$func('$data'); ".
+        static::$replacecode['replace'][$i] = "<?php \$_list = \app\model\main\TagsModel::$func('$data'); " .
             "if(!empty(\$_list['$listkey'])){foreach(\$_list['$listkey'] as \${$indexk}=>\${$indexv}){?>";
         return $search;
     }

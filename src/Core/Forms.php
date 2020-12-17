@@ -55,7 +55,7 @@ class Forms extends ModelAbstract
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function formView($fid): OutputInterface
+    public static function formView(int $fid): OutputInterface
     {
         $form = self::t('forms')->withWhere($fid)->fetch();
         if (empty($form)) {

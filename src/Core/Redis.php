@@ -70,6 +70,10 @@ class Redis
         $key = $this->setting['redis']['prefix'] . $key;
     }
 
+    /**
+     * 返回redis信息
+     * @return string|null
+     */
     public function info()
     {
         if (empty(self::$redis)) {
@@ -132,6 +136,12 @@ class Redis
         return $this->del($key);
     }
 
+    /**
+     * 数值递增
+     * @param $key
+     * @param int $ttl
+     * @return int|null
+     */
     public function incr($key, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -145,6 +155,12 @@ class Redis
         return $res;
     }
 
+    /**
+     * 数值递减
+     * @param $key
+     * @param int $ttl
+     * @return int|null
+     */
     public function decr($key, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -158,6 +174,13 @@ class Redis
         return $res;
     }
 
+    /**
+     * 所储存的值减去指定的减量值
+     * @param $key
+     * @param int $num
+     * @param int $ttl
+     * @return int|null
+     */
     public function decrby($key, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -171,6 +194,13 @@ class Redis
         return $res;
     }
 
+    /**
+     * 将 key 中储存的数字加上指定的增量值
+     * @param $key
+     * @param int $num
+     * @param int $ttl
+     * @return int|null
+     */
     public function incrby($key, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -184,6 +214,11 @@ class Redis
         return $res;
     }
 
+    /**
+     * 检查给定 key 是否存在
+     * @param $key
+     * @return int|null
+     */
     public function exists($key)
     {
         $this->cacheKey($key);
@@ -193,6 +228,12 @@ class Redis
         return self::$redis->exists($key);
     }
 
+    /**
+     * 设置 key 的过期时间
+     * @param $key
+     * @param $ttl
+     * @return bool|null
+     */
     public function expire($key, $ttl)
     {
         $this->cacheKey($key);
@@ -211,6 +252,13 @@ class Redis
         return self::$redis->del($key);
     }
 
+    /**
+     * 用于同时将多个 field-value (字段-值)对设置到哈希表中。此命令会覆盖哈希表中已存在的字段。
+     * @param $key
+     * @param $data
+     * @param int $ttl
+     * @return bool|null
+     */
     public function hmset($key, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -224,6 +272,12 @@ class Redis
         return true;
     }
 
+    /**
+     * 返回哈希表中，一个或多个给定字段的值。 如果指定的字段不存在于哈希表，那么返回一个 nil 值
+     * @param $key
+     * @param $hashKeys
+     * @return array|null
+     */
     public function hmget($key, $hashKeys)
     {
         $this->cacheKey($key);
@@ -233,6 +287,14 @@ class Redis
         return self::$redis->hMGet($key, $hashKeys);
     }
 
+    /**
+     * 为哈希表中的字段赋值 。 如果哈希表不存在，一个新的哈希表被创建并进行 HSET 操作
+     * @param $key
+     * @param $field
+     * @param $data
+     * @param int $ttl
+     * @return bool|null
+     */
     public function hset($key, $field, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -246,6 +308,14 @@ class Redis
         return true;
     }
 
+    /**
+     * 为哈希表中不存在的的字段赋值 。如果表不存在，一个新的表被创建并进行 HSET 操作。如果字段已经存在于表中，操作无效。
+     * @param $key
+     * @param $field
+     * @param $data
+     * @param int $ttl
+     * @return bool|null
+     */
     public function hsetnx($key, $field, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -259,6 +329,12 @@ class Redis
         return $res;
     }
 
+    /**
+     * 返回哈希表中指定字段的值
+     * @param $key
+     * @param $field
+     * @return string|null
+     */
     public function hget($key, $field)
     {
         $this->cacheKey($key);
@@ -268,6 +344,14 @@ class Redis
         return self::$redis->hget($key, $field);
     }
 
+    /**
+     * 命令用于为哈希表中的字段值加上指定增量值。 增量也可以为负数，相当于对指定字段进行减法操作。
+     * @param $key
+     * @param $field
+     * @param int $num
+     * @param int $ttl
+     * @return int|null
+     */
     public function hincrby($key, $field, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -281,6 +365,12 @@ class Redis
         return $res;
     }
 
+    /**
+     * 查看哈希表的指定字段是否存在
+     * @param $key
+     * @param $field
+     * @return bool|null
+     */
     public function hexists($key, $field)
     {
         $this->cacheKey($key);
@@ -290,6 +380,11 @@ class Redis
         return self::$redis->hexists($key, $field);
     }
 
+    /**
+     * 用于获取哈希表中字段的数量
+     * @param $key
+     * @return int|null
+     */
     public function hlen($key)
     {
         $this->cacheKey($key);
@@ -299,6 +394,11 @@ class Redis
         return self::$redis->hlen($key);
     }
 
+    /**
+     * 用于返回哈希表中，所有的字段和值
+     * @param $key
+     * @return array|null
+     */
     public function hgetall($key)
     {
         $this->cacheKey($key);
@@ -308,6 +408,12 @@ class Redis
         return self::$redis->hgetall($key);
     }
 
+    /**
+     * 用于删除哈希表 key 中的一个或多个指定字段
+     * @param $key
+     * @param $fields
+     * @return null
+     */
     public function hdel($key, $fields)
     {
         $this->cacheKey($key);
@@ -318,6 +424,14 @@ class Redis
         eval("self::\$redis->hdel(\$key,'" . $keys . "');");
     }
 
+    /**
+     * 将一个或多个成员元素及其分数值加入到有序集当中
+     * @param $key
+     * @param $score
+     * @param $member
+     * @param int $ttl
+     * @return bool|null
+     */
     public function zadd($key, $score, $member, $ttl = 12960000)
     {
         $this->cacheKey($key);
@@ -352,6 +466,12 @@ class Redis
         return true;
     }
 
+    /**
+     * 移除有序集中的一个或多个成员
+     * @param $key
+     * @param $members
+     * @return null
+     */
     public function zrem($key, $members)
     {
         $this->cacheKey($key);
@@ -400,6 +520,14 @@ class Redis
         return self::$redis->zCard($key);
     }
 
+    /**
+     * 返回有序集中，指定区间内的成员。其中成员的位置按分数值递增(从小到大)来排序
+     * @param $key
+     * @param $start
+     * @param $end
+     * @param null $withscores
+     * @return array|null
+     */
     public function zrange($key, $start, $end, $withscores = null)
     {
         $this->cacheKey($key);
@@ -487,6 +615,11 @@ class Redis
         return self::$redis->zCount($key, $start, $end);
     }
 
+    /**
+     * 返回 key 的剩余过期时间
+     * @param $key
+     * @return int|null
+     */
     public function ttl($key)
     {
         $this->cacheKey($key);
@@ -528,6 +661,12 @@ class Redis
         return true;
     }
 
+    /**
+     * 移除集合中的一个或多个成员元素，不存在的成员元素会被忽略
+     * @param $key
+     * @param $member
+     * @return bool|null
+     */
     public function srem($key, $member)
     {
         $this->cacheKey($key);
@@ -561,25 +700,6 @@ class Redis
             return null;
         }
         return self::$redis->scard($key);
-    }
-
-    public function sexists($key)
-    {
-        $this->cacheKey($key);
-        if (empty(self::$redis)) {
-            return null;
-        }
-        $res = self::$redis->scard($key);
-        if (empty($res)) {
-            return false;
-        }
-        if ($res == 1) {
-            $res = self::$redis->sinter($key);
-            if (empty($res[0])) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

@@ -729,7 +729,8 @@ class Table
     public function pageList(int $page = 1, string $fields = '*', int $pagesize = 30, int $cacheTime = 0, string $indexField = ''): array
     {
         $page = max(1, $page);
-        $field = $fields ?: '*';
+        $fields = $fields ?: '*';
+        $pagesize = $pagesize ?: 30;
         $count = $this->count('*', $cacheTime);
         $maxpages = (int)ceil($count / $pagesize);
         $page = $page > $maxpages ? $maxpages : $page;

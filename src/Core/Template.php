@@ -23,7 +23,7 @@ class Template implements TemplateInterface
             $template = @fread($fp, filesize(CSROOT . $tplfile));
             fclose($fp);
         } elseif ($fp = @fopen($filename = substr(CSROOT . $tplfile, 0, -4) . '.php', 'r')) {
-            $template = self::getPHPTemplate(@fread($fp, filesize($filename)));
+            $template = static::getPHPTemplate(@fread($fp, filesize($filename)));
             fclose($fp);
         } else {
             throw new TextException(21052, ['title' => $tplfile]);
@@ -31,7 +31,7 @@ class Template implements TemplateInterface
         if (!@$fp = fopen(CSDATA . $cachefile, 'w')) {
             throw new TextException(21053, ['title' => $cachefile]);
         }
-        $template = self::formatTemplate($template);
+        $template = static::formatTemplate($template);
 
         flock($fp, 2);
         fwrite($fp, $template);
@@ -71,8 +71,8 @@ class Template implements TemplateInterface
         $template = preg_replace("/\{\/for\}/i", "<? } ?>", $template);
 
         $template = preg_replace("/\{$const_regexp\}/s", "<?=\\1?>", $template);
-        if (!empty(self::$replacecode)) {
-            $template = str_replace(self::$replacecode['search'], self::$replacecode['replace'], $template);
+        if (!empty(static::$replacecode)) {
+            $template = str_replace(static::$replacecode['search'], static::$replacecode['replace'], $template);
         }
         $template = preg_replace("/ \?\>[\n\r]*\<\? /s", " ", $template);
 
@@ -86,9 +86,9 @@ class Template implements TemplateInterface
     {
         $php = $matches[1];
         $php = str_replace('\"', '"', $php);
-        $i = count(self::$replacecode['search']);
-        self::$replacecode['search'][$i] = $search = "<!--EVAL_TAG_$i-->";
-        self::$replacecode['replace'][$i] = "<?php $php?>";
+        $i = count(static::$replacecode['search']);
+        static::$replacecode['search'][$i] = $search = "<!--EVAL_TAG_$i-->";
+        static::$replacecode['replace'][$i] = "<?php $php?>";
         return $search;
     }
 
@@ -116,7 +116,7 @@ class Template implements TemplateInterface
     {
         $param = str_replace(['<?=', '?>'], ["'.", ".'"], $matches[1]);
         $expr = '<?php include SlimCMS\Core\Template::loadTemplate(\'' . $param . '\'); ?>';
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function dataTag($matches)
@@ -139,16 +139,16 @@ class Template implements TemplateInterface
         $data = json_encode($row);
         $func = aval($row, 'func');
         $key = aval($row, 'key', 'count');
-        $i = count(self::$replacecode['search']);
-        self::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        self::$replacecode['replace'][$i] = "<?php \$_tagdata = \app\model\main\TagsModel::$func('$data'); echo aval(\$_tagdata,'$key');?>";
+        $i = count(static::$replacecode['search']);
+        static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
+        static::$replacecode['replace'][$i] = "<?php \$_tagdata = \app\model\main\TagsModel::$func('$data'); echo aval(\$_tagdata,'$key');?>";
         return $search;
     }
 
     protected static function echoTag($matches)
     {
         $expr = '<?php echo ' . $matches[1] . '??\'\'; ?>';
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function urlTag($matches)
@@ -160,19 +160,19 @@ class Template implements TemplateInterface
         } else {
             $expr = '<?php echo \SlimCMS\Core\Forms::url("' . $param . '"); ?>';
         }
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function ifTag($matches)
     {
         $expr = $matches[1] . '<?php if(' . $matches[2] . ') { ?>' . $matches[3];
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function elseifTag($matches)
     {
         $expr = $matches[1] . '<?php } elseif(' . $matches[2] . ') { ?>' . $matches[3];
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function loopTag($matches)
@@ -182,13 +182,13 @@ class Template implements TemplateInterface
         } else {
             $expr = '<?php if(!empty(' . $matches[1] . ') && is_array(' . $matches[1] . ')) foreach(' . $matches[1] . ' as ' . $matches[2] . ') { ?>';
         }
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     protected static function forTag($matches)
     {
         $expr = '<?php for($' . $matches[1] . '=' . $matches[2] . ';$' . $matches[1] . '<' . $matches[3] . ';$' . $matches[1] . '++) { ?>';
-        return self::stripvtags($expr);
+        return static::stripvtags($expr);
     }
 
     /**
@@ -208,8 +208,9 @@ class Template implements TemplateInterface
 
     protected static function stripvtags($expr, $statement = '')
     {
-        $expr = str_replace("\\\"", "\"", preg_replace("/\<\?\=(\\\$.+?)\?\>/s", "\\1", $expr));
-        $expr = self::parsePHP($expr);
+        $expr = preg_replace("/\<\?\=(\\\$.+?)\?\>/s", "\\1", $expr);
+        $expr = str_replace("\\\"", "\"", $expr);
+        $expr = static::parsePHP($expr);
         $statement = str_replace("\\\"", "\"", $statement);
         return $expr . $statement;
     }
@@ -224,7 +225,8 @@ class Template implements TemplateInterface
                 $v = preg_replace('/["\']/', '', $v);
                 list($key, $val) = explode('=', $v);
                 if (strpos($val, '$') !== false) {
-                    $val = str_replace("\\\"", "\"", preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val)));
+                    $val = preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val));
+                    $val = str_replace("\\\"", "\"", $val);
                     $row[trim($key)] = '\'.(isset(' . $val . ')?' . $val . ':\'\').\'';
                 } else {
                     $row[trim($key)] = trim($val);
@@ -236,10 +238,11 @@ class Template implements TemplateInterface
 
         $data = json_encode($row);
         $func = aval($row, 'func', 'dataList');
-        $listkey = aval($row, 'listKey', 'infolist');
-        $i = count(self::$replacecode['search']);
-        self::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        self::$replacecode['replace'][$i] = "<?php \$_list = \app\model\main\TagsModel::$func('$data'); if(!empty(\$_list['$listkey'])){foreach(\$_list['$listkey'] as \${$indexk}=>\${$indexv}){?>";
+        $listkey = aval($row, 'listKey', 'list');
+        $i = count(static::$replacecode['search']);
+        static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
+        static::$replacecode['replace'][$i] = "<?php \$_list = \app\model\main\TagsModel::$func('$data'); ".
+            "if(!empty(\$_list['$listkey'])){foreach(\$_list['$listkey'] as \${$indexk}=>\${$indexv}){?>";
         return $search;
     }
 
@@ -267,21 +270,21 @@ class Template implements TemplateInterface
             if (!is_file(CSROOT . $tplfile)) {
                 $tplfile = '/template/default/' . basename($file) . '.htm';
             }
-            self::$cacheFile = 'template/' . CURSCRIPT . '_' . str_replace('/', '_', $file) . '.tpl.php';
+            static::$cacheFile = 'template/' . CURSCRIPT . '_' . str_replace('/', '_', $file) . '.tpl.php';
         } else {
             $tplfile = '/template/' . $file . '.htm';
             if (!is_file(CSROOT . $tplfile)) {
                 $tplfile = '/template/default/' . basename($file) . '.htm';
             }
-            self::$cacheFile = 'template/' . md5($file) . '.tpl.php';
+            static::$cacheFile = 'template/' . md5($file) . '.tpl.php';
         }
 
         if (!is_file(CSROOT . $tplfile)) {
             throw new TextException(21052, ['title' => $tplfile]);
         }
-        if (self::$cacheFile) {
-            self::checktplrefresh($tplfile, self::$cacheFile);
-            return CSDATA . self::$cacheFile;
+        if (static::$cacheFile) {
+            static::checktplrefresh($tplfile, static::$cacheFile);
+            return CSDATA . static::$cacheFile;
         }
     }
 
@@ -289,7 +292,7 @@ class Template implements TemplateInterface
     {
         $ftime = is_file(CSDATA . $cachefile) ? filemtime(CSDATA . $cachefile) : '';
         if (empty($ftime) || @filemtime(CSROOT . $maintpl) > $ftime) {
-            self::parseTemplate($maintpl, $cachefile);
+            static::parseTemplate($maintpl, $cachefile);
             return TRUE;
         }
         return FALSE;

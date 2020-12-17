@@ -139,11 +139,11 @@ class Template implements TemplateInterface
             }
         }
         $data = json_encode($row);
-        $func = aval($row, 'func');
+        $func = aval($row, 'func','dataCount');
         $key = aval($row, 'key', 'count');
         $i = count(static::$replacecode['search']);
         static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        static::$replacecode['replace'][$i] = "<?php \$_tagdata = \app\model\main\TagsModel::$func('$data'); echo aval(\$_tagdata,'$key');?>";
+        static::$replacecode['replace'][$i] = "<?php \$_tagData = \App\Model\main\TagsModel::$func('$data'); echo aval(\$_tagData,'$key');?>";
         return $search;
     }
 
@@ -243,8 +243,8 @@ class Template implements TemplateInterface
         $listkey = aval($row, 'listKey', 'list');
         $i = count(static::$replacecode['search']);
         static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        static::$replacecode['replace'][$i] = "<?php \$_list = \app\model\main\TagsModel::$func('$data'); " .
-            "if(!empty(\$_list['$listkey'])){foreach(\$_list['$listkey'] as \${$indexk}=>\${$indexv}){?>";
+        static::$replacecode['replace'][$i] = "<?php \$_tagList = \App\Model\main\TagsModel::$func('$data'); " .
+            "if(!empty(\$_tagList['$listkey'])){foreach(\$_tagList['$listkey'] as \${$indexk}=>\${$indexv}){?>";
         return $search;
     }
 

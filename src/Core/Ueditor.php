@@ -49,7 +49,7 @@ class Ueditor extends ModelAbstract
         } else {
             $data = $res->getData();
             $result['state'] = 'SUCCESS';
-            $result['url'] = self::$config['basehost'] . $data['fileurl'];
+            $result['url'] = trim(self::$config['attachmentHost'], '/') . $data['fileurl'];
             $result['title'] = basename($data['fileurl']);
             $result['original'] = '';
             $result['type'] = pathinfo($data['fileurl'], PATHINFO_EXTENSION);

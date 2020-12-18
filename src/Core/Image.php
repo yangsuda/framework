@@ -15,13 +15,7 @@ class Image extends ModelAbstract
     private static $imagecreatefromfunc;
     private static $imagefunc;
     private static $attach;
-    private static $animatedgif;
-    private static $watermarkquality;
-    private static $watermarktext;
-    private static $thumbstatus;
     private static $cfg = [];
-    private static $watermarktype = '';
-    private static $watermarktrans = '';
 
     private static function init()
     {
@@ -105,30 +99,27 @@ class Image extends ModelAbstract
 
     private static function watermark_gd($preview = 0)
     {
-        $photo = include CSDATA . 'mark/config.php';
         if (function_exists('imagecopy') && function_exists('imagealphablending') && function_exists('imagecopymerge')) {
             $imagecreatefunc = self::$imagecreatefromfunc;
             $imagefunc = self::$imagefunc;
             list($imagewidth, $imageheight) = self::$attachinfo;
-            if (self::$watermarktype < 2) {
-                $watermark_file = self::$watermarktype == 1 ? CSDATA . 'mark/mark.png' : CSDATA . 'mark/mark.gif';
-                $watermarkinfo = @getimagesize($watermark_file);
-                $watermark_logo = self::$watermarktype == 1 ? @imagecreatefrompng($watermark_file) : @imagecreatefromgif($watermark_file);
-                if (!$watermark_logo) {
-                    return false;
-                }
-                list($logowidth, $logoheight) = $watermarkinfo;
-            } else {
-                $box = @imagettfbbox(self::$watermarktext['size'], self::$watermarktext['angle'], self::$watermarktext['fontpath'], self::$watermarktext['text']);
-                $logowidth = max($box[2], $box[4]) - min($box[0], $box[6]);
-                $logoheight = max($box[1], $box[3]) - min($box[5], $box[7]);
-                $ax = min($box[0], $box[6]) * -1;
-                $ay = min($box[5], $box[7]) * -1;
+            if (empty(self::$config['markimg'])) {
+                return false;
             }
+            $watermark_file = CSPUBLIC . self::$config['markimg'];
+            $watermarkinfo = @getimagesize($watermark_file);
+            $watermark_logo = @imagecreatefrompng($watermark_file);
+            if (!$watermark_logo) {
+                return false;
+            }
+            list($logowidth, $logoheight) = $watermarkinfo;
             $wmwidth = $imagewidth - $logowidth;
             $wmheight = $imageheight - $logoheight;
-            if ((self::$watermarktype < 2 && is_readable($watermark_file) || self::$watermarktype == 2) && $wmwidth > 10 && $wmheight > 10 && !self::$animatedgif) {
-                switch ($photo['waterpos']) {
+            if (is_readable($watermark_file) && $wmwidth > 10 && $wmheight > 10) {
+                if (self::$config['waterpos'] == 0) {
+                    self::$config['waterpos'] = mt_rand(1, 9);
+                }
+                switch (self::$config['waterpos']) {
                     case 1:
 
                         $x = +5;
@@ -175,27 +166,10 @@ class Image extends ModelAbstract
                 $target_photo = $imagecreatefunc(self::$targetfile);
                 self::$attachinfo[2] == 3 && imagesavealpha($target_photo, true);//意思是不要丢了图像的透明色;
                 imagecopy($dst_photo, $target_photo, 0, 0, 0, 0, $imagewidth, $imageheight);
-                if (self::$watermarktype == 1) {
-                    imagecopy($dst_photo, $watermark_logo, $x, $y, 0, 0, $logowidth, $logoheight);
-                } elseif (self::$watermarktype == 2) {
-                    if ((self::$watermarktext['shadowx'] || self::$watermarktext['shadowy']) && self::$watermarktext['shadowcolor']) {
-                        $shadowcolorrgb = explode(',', self::$watermarktext['shadowcolor']);
-                        $shadowcolor = imagecolorallocate($dst_photo, $shadowcolorrgb[0], $shadowcolorrgb[1], $shadowcolorrgb[2]);
-                        imagettftext($dst_photo, self::$watermarktext['size'], self::$watermarktext['angle'],
-                            $x + $ax + self::$watermarktext['shadowx'], $y + $ay + self::$watermarktext['shadowy'], $shadowcolor,
-                            self::$watermarktext['fontpath'], self::$watermarktext['text']);
-                    }
-                    $colorrgb = explode(',', self::$watermarktext['color']);
-                    $color = imagecolorallocate($dst_photo, $colorrgb[0], $colorrgb[1], $colorrgb[2]);
-                    imagettftext($dst_photo, self::$watermarktext['size'], self::$watermarktext['angle'],
-                        $x + $ax, $y + $ay, $color, self::$watermarktext['fontpath'], self::$watermarktext['text']);
-                } else {
-                    imagealphablending($watermark_logo, true);
-                    imagecopymerge($dst_photo, $watermark_logo, $x, $y, 0, 0, $logowidth, $logoheight, self::$watermarktrans);
-                }
+                imagecopy($dst_photo, $watermark_logo, $x, $y, 0, 0, $logowidth, $logoheight);
                 $targetfile = !$preview ? self::$targetfile : './watermark_tmp.jpg';
                 if (self::$attachinfo['mime'] == 'image/jpeg') {
-                    $imagefunc($dst_photo, $targetfile, self::$watermarkquality);
+                    $imagefunc($dst_photo, $targetfile, 100);
                 } else {
                     $imagefunc($dst_photo, $targetfile);
                 }
@@ -317,51 +291,23 @@ class Image extends ModelAbstract
      */
     public static function waterImg($srcFile)
     {
-        if (!is_file(CSDATA . 'mark/config.php')) {
+        if (empty(self::$config['markimg']) || !is_file(CSPUBLIC . self::$config['markimg'])) {
             return false;
         }
-        $photo = include CSDATA . 'mark/config.php';
-        $info = '';
-        $srcInfo = @getimagesize($srcFile, $info);
-        $srcFile_w = $srcInfo[0];
-        $srcFile_h = $srcInfo[1];
-
-        if ($srcFile_w < $photo['wwidth'] || $srcFile_h < $photo['wheight']) {
-            return false;
-        }
-        if ($photo['waterpos'] == 0) {
-            $photo['waterpos'] = rand(1, 9);
-        }
-        $cfg_watermarktext = array();
-        if ($photo['marktype'] == '2') {
-            $cfg_watermarktext['fontpath'] = CSDATA . 'fonts/nokia.ttf';
-        }
-        $cfg_watermarktext['text'] = $photo['watertext'];
-        $cfg_watermarktext['size'] = $photo['fontsize'];
-        $cfg_watermarktext['angle'] = '0';
-        $cfg_watermarktext['color'] = '255,255,255';
-        $cfg_watermarktext['shadowx'] = '0';
-        $cfg_watermarktext['shadowy'] = '0';
-        $cfg_watermarktext['shadowcolor'] = '0,0,0';
-        $photo['marktrans'] = 85;
-
-        self::$thumbstatus = 0;
-        self::$watermarktext = $cfg_watermarktext;
-        self::$watermarkquality = $photo['marktrans'];
-        self::$watermarktype = $photo['marktype'];
-        self::$watermarktrans = $photo['diaphaneity'];
-        self::$animatedgif = 0;
         self::$targetfile = $srcFile;
         self::$attachinfo = @getimagesize($srcFile);
+        if (self::$attachinfo['mime']=='image/gif') {
+            return false;
+        }
+        $markimgInfo = @getimagesize(CSPUBLIC . self::$config['markimg']);
+        if (self::$attachinfo[0] <= $markimgInfo[0] && self::$attachinfo[1] <= $markimgInfo[1]) {
+            return false;
+        }
 
         switch (self::$attachinfo['mime']) {
             case 'image/jpeg':
                 self::$imagecreatefromfunc = function_exists('imagecreatefromjpeg') ? 'imagecreatefromjpeg' : '';
                 self::$imagefunc = function_exists('imagejpeg') ? 'imagejpeg' : '';
-                break;
-            case 'image/gif':
-                self::$imagecreatefromfunc = function_exists('imagecreatefromgif') ? 'imagecreatefromgif' : '';
-                self::$imagefunc = function_exists('imagegif') ? 'imagegif' : '';
                 break;
             case 'image/png':
                 self::$imagecreatefromfunc = function_exists('imagecreatefrompng') ? 'imagecreatefrompng' : '';
@@ -370,16 +316,6 @@ class Image extends ModelAbstract
         }//为空则匹配类型的函数不存在
 
         self::$attach['size'] = empty(self::$attach['size']) ? @filesize($srcFile) : self::$attach['size'];
-        if (self::$attachinfo['mime'] == 'image/gif') {
-            $fp = fopen($srcFile, 'rb');
-            $targetfilecontent = fread($fp, self::$attach['size']);
-            fclose($fp);
-            self::$animatedgif = strpos($targetfilecontent, 'NETSCAPE2.0') === false ? 0 : 1;
-        }
-        if (self::$attachinfo[0] <= $photo['wwidth'] && self::$attachinfo[1] <= $photo['wheight']) {
-            return false;
-        }
-
         return self::watermark_gd(0);
     }
 

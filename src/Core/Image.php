@@ -115,7 +115,7 @@ class Image extends ModelAbstract
                 $watermarkinfo = @getimagesize($watermark_file);
                 $watermark_logo = self::$watermarktype == 1 ? @imagecreatefrompng($watermark_file) : @imagecreatefromgif($watermark_file);
                 if (!$watermark_logo) {
-                    return;
+                    return false;
                 }
                 list($logowidth, $logoheight) = $watermarkinfo;
             } else {
@@ -200,8 +200,10 @@ class Image extends ModelAbstract
                     $imagefunc($dst_photo, $targetfile);
                 }
                 self::$attach['size'] = filesize(self::$targetfile);
+                return true;
             }
         }
+        return false;
     }
 
     /**
@@ -315,6 +317,9 @@ class Image extends ModelAbstract
      */
     public static function waterImg($srcFile)
     {
+        if (!is_file(CSDATA . 'mark/config.php')) {
+            return false;
+        }
         $photo = include CSDATA . 'mark/config.php';
         $info = '';
         $srcInfo = @getimagesize($srcFile, $info);
@@ -322,7 +327,7 @@ class Image extends ModelAbstract
         $srcFile_h = $srcInfo[1];
 
         if ($srcFile_w < $photo['wwidth'] || $srcFile_h < $photo['wheight']) {
-            return;
+            return false;
         }
         if ($photo['waterpos'] == 0) {
             $photo['waterpos'] = rand(1, 9);
@@ -372,10 +377,10 @@ class Image extends ModelAbstract
             self::$animatedgif = strpos($targetfilecontent, 'NETSCAPE2.0') === false ? 0 : 1;
         }
         if (self::$attachinfo[0] <= $photo['wwidth'] && self::$attachinfo[1] <= $photo['wheight']) {
-            return;
+            return false;
         }
 
-        self::watermark_gd(0);
+        return self::watermark_gd(0);
     }
 
 

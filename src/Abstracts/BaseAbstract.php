@@ -158,11 +158,12 @@ abstract class BaseAbstract
             return str_replace('%27', '\'', $url);
         }
 
-        $server = self::$request->getRequest()->getServerParams();
-        $fileName = pathinfo($server['SCRIPT_FILENAME'], PATHINFO_FILENAME);
-
         if (empty($path)) {
+            $server = self::$request->getRequest()->getServerParams();
+            $fileName = pathinfo($server['SCRIPT_FILENAME'], PATHINFO_FILENAME);
             $path = ltrim(dirname($uri->getPath()), '/');
+        }else{
+            $fileName = pathinfo($path, PATHINFO_FILENAME);
         }
         $path = str_replace(self::$config['basehost'], '', $path);
         parse_str($url, $output);
@@ -183,8 +184,8 @@ abstract class BaseAbstract
         if (empty($output['p'])) {
             throw new TextException(21057);
         }
-        $entre = pathinfo(self::$config['entryFileName'], PATHINFO_FILENAME) != $fileName ? $fileName : '';
-        $url = rtrim(self::$config['basehost'], '/') . '/' . $entre . '/' . trim($output['p'], '/') . '/';
+        $entre = pathinfo(self::$config['entryFileName'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
+        $url = rtrim(self::$config['basehost'], '/') . '/' . $entre . trim($output['p'], '/') . '/';
         $jsoncallback = !empty($output['jsoncallback']);
         unset($output['p'], $output['jsoncallback']);
         if (!empty($output)) {

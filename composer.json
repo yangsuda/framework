@@ -36,9 +36,9 @@
         "sort-packages": true
     },
     "autoload": {
-        "classmap": [
-            "src"
-        ],
+        "psr-4": {
+            "SlimCMS\\": "src/"
+        },
         "files": [
             "src/function/Core.php"
         ]

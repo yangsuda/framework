@@ -25,7 +25,13 @@ class Routes implements RouteInterface
      */
     public function route(App $app)
     {
-        $route = function (ServerRequestInterface $req, ResponseInterface $res) use ($app) {
+        $app->get('/[{params:.*}]', $this->routeCallable($app));
+        $app->post('/[{params:.*}]', $this->routeCallable($app));
+    }
+
+    protected function routeCallable(App $app)
+    {
+        return function (ServerRequestInterface $req, ResponseInterface $res) use ($app) {
             $request = new Request($req, $res, $app);
             $response = new Response($req, $res, $app);
             $p = $request->input('p');
@@ -59,7 +65,5 @@ class Routes implements RouteInterface
             }
             return $obj->$method();
         };
-        $app->get('/[{params:.*}]', $route);
-        $app->post('/[{params:.*}]', $route);
     }
 }

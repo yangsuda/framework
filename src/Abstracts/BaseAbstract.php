@@ -145,12 +145,14 @@ abstract class BaseAbstract
             }
             //URL加密
             if (!empty(self::$config['urlEncrypt'])) {
+                $p = $output['p'];
+                unset($output['p']);
                 if (!empty($output['q'])) {
                     $data = Crypt::decrypt($output['q']);
                     unset($output['q']);
                     $output = array_merge($data, $output);
                 }
-                $url = 'q=' . Crypt::encrypt($output);
+                $url = 'p=' . $p . '&q=' . Crypt::encrypt($output);
             } else {
                 $url = http_build_query($output);
             }
@@ -162,7 +164,7 @@ abstract class BaseAbstract
             $server = self::$request->getRequest()->getServerParams();
             $fileName = pathinfo($server['SCRIPT_FILENAME'], PATHINFO_FILENAME);
             $path = ltrim(dirname($uri->getPath()), '/');
-        }else{
+        } else {
             $fileName = pathinfo($path, PATHINFO_FILENAME);
         }
         $path = str_replace(self::$config['basehost'], '', $path);

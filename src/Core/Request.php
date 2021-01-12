@@ -114,7 +114,7 @@ class Request extends MessageAbstract
      * @param $string
      * @return array|string
      */
-    private function addslashes($string)
+    protected function addslashes($string)
     {
         if (is_array($string)) {
             $keys = array_keys($string);
@@ -132,7 +132,7 @@ class Request extends MessageAbstract
      * @param $string
      * @return array|string
      */
-    private static function stripslashes($string)
+    protected static function stripslashes($string)
     {
         if (empty($string)) {
             return $string;

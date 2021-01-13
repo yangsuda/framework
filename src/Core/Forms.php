@@ -1134,21 +1134,21 @@ class Forms extends ModelAbstract
                                 $imgurls[$_k] = $_v;
                             }
                         }
+                        $upload = self::$container->get(UploadInterface::class);
                         if ($cfg['clienttype'] > 0) {
                             for ($i = 0; $i < 10; $i++) {
                                 $picUrl = self::input($identifier . '_' . $i, 'img');
                                 if ($picUrl) {
+                                    $info = $upload->metaInfo($imgurls[$key]['img'],'url,width')->getData();
                                     $key = md5($picUrl);
                                     $imgurls[$key]['img'] = $picUrl;
                                     $imgurls[$key]['text'] = '';
-                                    $imginfos = getimagesize(CSPUBLIC . $imgurls[$key]['img']);
-                                    $imgurls[$key]['width'] = $imginfos[0];
-                                    $imgurls[$key]['height'] = $imginfos[1];
+                                    $imgurls[$key]['width'] = $info['width'];
+                                    $imgurls[$key]['height'] = $info['height'];
                                 }
                             }
                         } else {
                             isset($_SESSION) ? '' : @session_start();
-                            $upload = self::$container->get(UploadInterface::class);
                             $res = $upload->getWebupload();
                             if ($res->getCode() == 200) {
                                 $imgurls += (array)$res->getData();

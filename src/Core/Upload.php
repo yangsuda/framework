@@ -148,7 +148,7 @@ class Upload extends ModelAbstract implements UploadInterface
      * @param int $isfirst
      * @return int
      */
-    public function save(string $url, int $isfirst = 2): int
+    private function save(string $url, int $isfirst = 2): int
     {
         $dirname = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
         $data = [];
@@ -200,7 +200,7 @@ class Upload extends ModelAbstract implements UploadInterface
         }
 
         $file = $result->getData();
-        $img120 = Image::copyImage($file['fileurl'], 120, 120);
+        $img120 = $this->copyImage($file['fileurl'], 120, 120);
         $imagevariable = file_get_contents(CSPUBLIC . str_replace(self::$config['basehost'], '', $img120));
 
         //保存信息到 session
@@ -293,5 +293,73 @@ class Upload extends ModelAbstract implements UploadInterface
         $where = [];
         $where[] = self::t('uploads')->field('url', $url . '%', 'like');
         return self::t('uploads')->withWhere($where)->fetchList();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function metaInfo(string $url, string $info = 'url,size'): OutputInterface
+    {
+        if (empty($url)) {
+            return self::$output->withCode(21002);
+        }
+        $data = [];
+        $arr = explode(',', $info);
+        if (in_array('url', $arr)) {
+            $data['url'] = trim(self::$config['attachmentHost'], '/') . $url;
+        }
+        if (in_array('size', $arr)) {
+            $data['size'] = filesize(CSPUBLIC . $url);
+        }
+        if (in_array('width', $arr) || in_array('height', $arr)) {
+            $info = getimagesize(CSPUBLIC . $url);
+            $data['width'] = $info[0];
+            $data['height'] = $info[1];
+        }
+        return self::$output->withCode(200)->withData($data);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function copyImage(string $pic, int $width = 2000, int $height = 2000, $more = []): string
+    {
+        $nopic = aval($more,'nopic','resources/global/images/nopic/nopic.jpg');
+        $attachmentHost = !empty(self::$config['attachmentHost']) ? self::$config['attachmentHost'] : self::$config['basehost'];
+        $attachmentHost = rtrim($attachmentHost, '/') . '/';
+        if (preg_match('/' . self::$config['domain'] . '/i', $pic)) {
+            $pic = str_replace(rtrim(self::$config['basehost'], '/'), '', $pic);
+        }
+        if (preg_match("/^(https?:\/\/)/i", $pic)) {
+            return $pic;
+        }
+
+        $pic = ltrim($pic, '/');
+        $oldurl = CSPUBLIC . $pic;
+        $ptype = strrchr($pic, '.');
+        //如果有已经生成的图片直接返回
+        $newpic = str_replace($ptype, "_{$width}x{$height}" . $ptype, $pic);
+        if (is_file(CSPUBLIC . $newpic)) {
+            return $attachmentHost . $newpic;
+        }
+        $imgdata = is_file($oldurl) ? @getimagesize($oldurl) : [];
+        if (!$imgdata) {
+            $pic = $nopic;
+            $oldurl = CSPUBLIC . $pic;
+            $ptype = strrchr($pic, '.');
+            $imgdata = @getimagesize($oldurl);
+        }
+        if ($imgdata[0] > $width || $imgdata[1] > $height) {
+            $newpic = str_replace($ptype, "_{$width}x{$height}" . $ptype, $pic);
+            $newurl = CSPUBLIC . $newpic;
+            if (is_file($newurl)) {
+                return $attachmentHost . $newpic;
+            }
+            if (@copy($oldurl, $newurl) && is_file($newurl) && Image::resize($newurl, $width, $height)) {
+                $this->save('/' . $newpic);
+            }
+            return $attachmentHost . $newpic;
+        }
+        return $attachmentHost . $pic;
     }
 }

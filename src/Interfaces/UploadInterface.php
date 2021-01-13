@@ -40,4 +40,20 @@ interface UploadInterface
      */
     public function uploadDel(string $url): OutputInterface;
 
+    /**
+     * 附件信息
+     * @param string $url
+     * @return OutputInterface
+     */
+    public function metaInfo(string $url, string $info = 'url,size'): OutputInterface;
+
+    /**
+     * 复制指定大小图片
+     * @param $pic
+     * @param int $width
+     * @param int $height
+     * @return mixed|string
+     */
+    public function copyImage(string $pic, int $width = 2000, int $height = 2000, $more = []): string;
+
 }

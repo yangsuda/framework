@@ -143,7 +143,10 @@ class Upload extends ModelAbstract implements UploadInterface
     }
 
     /**
-     * @inheritDoc
+     * URL入库
+     * @param string $url
+     * @param int $isfirst
+     * @return int
      */
     public function save(string $url, int $isfirst = 2): int
     {

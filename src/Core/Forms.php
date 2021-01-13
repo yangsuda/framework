@@ -16,6 +16,7 @@ use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\Str;
 use SlimCMS\Helper\Time;
 use SlimCMS\Interfaces\OutputInterface;
+use SlimCMS\Interfaces\UploadInterface;
 
 class Forms extends ModelAbstract
 {
@@ -58,7 +59,7 @@ class Forms extends ModelAbstract
     public static function formView(int $fid): OutputInterface
     {
         static $vals = [];
-        if(empty($vals[$fid])){
+        if (empty($vals[$fid])) {
             $form = self::t('forms')->withWhere($fid)->fetch();
             if (empty($form)) {
                 return self::$output->withCode(22006);
@@ -770,7 +771,8 @@ class Forms extends ModelAbstract
             return self::$output->withCode(21001);
         }
         unset($pics[$key]);
-        Upload::uploadDel($pic);
+        $upload = self::$container->get(UploadInterface::class);
+        $upload->uploadDel($pic);
         return static::dataSave($fid, $id, [$field => serialize($pics)]);
     }
 
@@ -1146,7 +1148,8 @@ class Forms extends ModelAbstract
                             }
                         } else {
                             isset($_SESSION) ? '' : @session_start();
-                            $res = Upload::getWebupload();
+                            $upload = self::$container->get(UploadInterface::class);
+                            $res = $upload->getWebupload();
                             if ($res->getCode() == 200) {
                                 $imgurls += (array)$res->getData();
                             }
@@ -1172,7 +1175,8 @@ class Forms extends ModelAbstract
                                 if (empty($data[$identifier])) {
                                     unset($data[$identifier]);
                                 } else {
-                                    Upload::uploadDel($olddata[$identifier]);
+                                    $upload = self::$container->get(UploadInterface::class);
+                                    $upload->uploadDel($olddata[$identifier]);
                                 }
                             }
                         }
@@ -1210,6 +1214,7 @@ class Forms extends ModelAbstract
             if (empty($data[$v['identifier']])) {
                 continue;
             }
+            $upload = self::$container->get(UploadInterface::class);
             switch ($v['datatype']) {
                 case 'htmltext':
                     //取出文章附件；
@@ -1218,18 +1223,18 @@ class Forms extends ModelAbstract
                     //移出重复附件；
                     $delname = array_unique($delname['1']);
                     foreach ($delname as $var) {
-                        Upload::uploadDel($var);
+                        $upload->uploadDel($var);
                     }
                     break;
                 case 'imgs':
                     foreach (unserialize($data[$v['identifier']]) as $p) {
-                        Upload::uploadDel($p['img']);
+                        $upload->uploadDel($p['img']);
                     }
                     break;
                 case 'media':
                 case 'addon':
                 case 'img':
-                    Upload::uploadDel($data[$v['identifier']]);
+                    $upload->uploadDel($data[$v['identifier']]);
                     break;
             }
         }
@@ -1335,8 +1340,9 @@ class Forms extends ModelAbstract
                     //清除session里的图片信息
                     isset($_SESSION) ? '' : session_start();
                     if (!empty($_SESSION['bigfile_info']) && is_array($_SESSION['bigfile_info'])) {
+                        $upload = self::$container->get(UploadInterface::class);
                         foreach ($_SESSION['bigfile_info'] as $s_v) {
-                            Upload::uploadDel($s_v);
+                            $upload->uploadDel($s_v);
                         }
                     }
                     $_SESSION['bigfile_info'] = [];

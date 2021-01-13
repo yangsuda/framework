@@ -10,18 +10,25 @@ namespace SlimCMS\Core;
 
 use Slim\Psr7\UploadedFile;
 use SlimCMS\Helper\Ipdata;
-use SlimCMS\Abstracts\ModelAbstract;
 use SlimCMS\Helper\File;
 use SlimCMS\Interfaces\OutputInterface;
+use SlimCMS\Interfaces\TableInterface;
+use SlimCMS\Interfaces\UploadInterface;
+use Psr\Container\ContainerInterface;
+use SlimCMS\Abstracts\ModelAbstract;
 
-class Upload extends ModelAbstract
+class Upload extends ModelAbstract implements UploadInterface
 {
+
+    public function __construct()
+    {
+    }
     /**
      * 图片H5上传数据处理
      * @param string $img
      * @return OutputInterface
      */
-    public static function h5(string $img): OutputInterface
+    public function h5(string $img): OutputInterface
     {
         $img = preg_replace('/data:image\/(jpeg|png);base64,/i', '', $img);
         $img = str_replace(' ', '+', $img);
@@ -43,23 +50,15 @@ class Upload extends ModelAbstract
         $post['files']['tmp_name'] = $fileUrl;
         $post['files']['name'] = $file;
         $post['files']['type'] = 'image/jpeg';
-        return self::$output->withCode(200)->withData($post);
+        return $this->upload($post);
     }
 
     /**
-     * 上传附件
      * @param array $post
      * @return OutputInterface
      */
-    public static function upload($post): OutputInterface
+    public function upload(array $post): OutputInterface
     {
-        if (is_string($post)) {
-            $result = self::h5($post);
-            if ($result->getCode() != 200) {
-                return $result;
-            }
-            $post = $result->getData();
-        }
         if (empty($post['files']['tmp_name'])) {
             return self::$output->withCode(23001);
         }
@@ -153,7 +152,7 @@ class Upload extends ModelAbstract
      * @param int $isfirst
      * @return int
      */
-    public static function save(string $url, int $isfirst = 2): int
+    public function save(string $url, int $isfirst = 2): int
     {
         $dirname = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
         $data = [];
@@ -188,7 +187,7 @@ class Upload extends ModelAbstract
      * @param array $post
      * @return OutputInterface
      */
-    public static function webupload(array $post): OutputInterface
+    public function webupload(array $post): OutputInterface
     {
         isset($_SESSION) ? '' : @session_start();
 
@@ -228,7 +227,7 @@ class Upload extends ModelAbstract
      * 获取webupload上传的图片
      * @return OutputInterface
      */
-    public static function getWebupload(): OutputInterface
+    public function getWebupload(): OutputInterface
     {
         $imgurls = [];
         isset($_SESSION) ? '' : @session_start();
@@ -262,7 +261,7 @@ class Upload extends ModelAbstract
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function uploadDel(string $url): OutputInterface
+    public function uploadDel(string $url): OutputInterface
     {
         if (empty($url)) {
             return self::$output->withCode(21002);
@@ -288,7 +287,7 @@ class Upload extends ModelAbstract
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    private static function listByUrl(string $url): array
+    private function listByUrl(string $url): array
     {
         $url = str_replace(self::$config['basehost'], '', $url);
         $ext = self::$config['imgtype'] . '|' . self::$config['softtype'] . '|' . self::$config['mediatype'];
@@ -302,7 +301,7 @@ class Upload extends ModelAbstract
         }
         $url = str_replace("'", '', $url);
         $where = [];
-        $where[] = self::t()->field('url', $url . '%', 'like');
+        $where[] = self::t('uploads')->field('url', $url . '%', 'like');
         return self::t('uploads')->withWhere($where)->fetchList();
     }
 }

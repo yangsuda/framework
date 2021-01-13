@@ -7,6 +7,7 @@
 namespace SlimCMS\Core;
 
 use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Interfaces\UploadInterface;
 
 class Image extends ModelAbstract
 {
@@ -89,8 +90,9 @@ class Image extends ModelAbstract
             if (is_file($newurl)) {
                 return $attachmentHost . $newpic;
             }
-            if (@copy($oldurl, $newurl)) {
-                is_file($newurl) && self::resize($newurl, $width, $height) && Upload::save('/' . $newpic);
+            if (@copy($oldurl, $newurl) && is_file($newurl) && self::resize($newurl, $width, $height)) {
+                $upload = self::$container->get(UploadInterface::class);
+                $upload->save('/' . $newpic);
             }
             return $attachmentHost . $newpic;
         }

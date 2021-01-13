@@ -10,6 +10,7 @@ namespace SlimCMS\Core;
 use App\Core\Upload;
 use SlimCMS\Abstracts\ModelAbstract;
 use SlimCMS\Interfaces\OutputInterface;
+use SlimCMS\Interfaces\UploadInterface;
 
 class Ueditor extends ModelAbstract
 {
@@ -41,8 +42,8 @@ class Ueditor extends ModelAbstract
         } else {
             $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => 1000, 'height' => 1000, 'water' => $water, 'type' => $type];
         }
-
-        $res = Upload::upload($uploadData);
+        $upload = self::$container->get(UploadInterface::class);
+        $res = $upload->upload($uploadData);
         $result = [];
         if ($res->getCode() != 200 && $res->getCode() != 23001) {
             $result['state'] = $res->getMsg();

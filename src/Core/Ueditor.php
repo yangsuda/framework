@@ -54,7 +54,8 @@ class Ueditor extends ModelAbstract
             $result['title'] = basename($data['fileurl']);
             $result['original'] = '';
             $result['type'] = pathinfo($data['fileurl'], PATHINFO_EXTENSION);
-            $result['size'] = filesize(CSPUBLIC . $data['fileurl']);
+            $info = $upload->metaInfo($data['fileurl'])->getData();
+            $result['size'] = aval($info,'size');
         }
         return self::$output->withCode(200)->withData($result);
     }

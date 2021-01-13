@@ -1,4 +1,7 @@
 <?php
+
+use SlimCMS\Interfaces\UploadInterface;
+
 /**
  * 获取数组中某一元素
  * @param $arr 数组
@@ -74,11 +77,13 @@ function versionCheck($ver, $operator = '<=')
  * @param $pic
  * @param int $width
  * @param int $height
+ * @param array $more
  * @return mixed|string
  */
-function copyImage($pic, $width = 1000, $height = 1000)
+function copyImage($pic, $width = 1000, $height = 1000, $more = [])
 {
-    return SlimCMS\Core\Image::copyImage($pic, $width, $height);
+    global $app;
+    return $app->getContainer()->get(UploadInterface::class)->copyImage($pic, $width, $height, $more);
 }
 
 /**

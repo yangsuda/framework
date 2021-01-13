@@ -9,6 +9,7 @@ namespace SlimCMS\Core;
 
 use SlimCMS\Error\TextException;
 use SlimCMS\Abstracts\MessageAbstract;
+use SlimCMS\Interfaces\UploadInterface;
 
 class Request extends MessageAbstract
 {
@@ -176,7 +177,8 @@ class Request extends MessageAbstract
                     list(, $width, $height) = explode(',', $v);
                 }
                 $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
-                $res = Upload::upload($uploadData);
+                $upload = $this->container->get(UploadInterface::class);
+                $res = $upload->upload($uploadData);
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     return $this->output($res);
                 }
@@ -226,7 +228,8 @@ class Request extends MessageAbstract
                 $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
             } elseif ($v == 'media' || $v == 'addon') {
                 $uploadData = ['files' => $_FILES[$k], 'type' => $v];
-                $res = Upload::upload($uploadData);
+                $upload = $this->container->get(UploadInterface::class);
+                $res = $upload->upload($uploadData);
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     return $this->output($res);
                 }

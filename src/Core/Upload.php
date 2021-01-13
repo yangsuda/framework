@@ -12,9 +12,7 @@ use Slim\Psr7\UploadedFile;
 use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\File;
 use SlimCMS\Interfaces\OutputInterface;
-use SlimCMS\Interfaces\TableInterface;
 use SlimCMS\Interfaces\UploadInterface;
-use Psr\Container\ContainerInterface;
 use SlimCMS\Abstracts\ModelAbstract;
 
 class Upload extends ModelAbstract implements UploadInterface
@@ -23,10 +21,9 @@ class Upload extends ModelAbstract implements UploadInterface
     public function __construct()
     {
     }
+
     /**
-     * 图片H5上传数据处理
-     * @param string $img
-     * @return OutputInterface
+     * @inheritDoc
      */
     public function h5(string $img): OutputInterface
     {
@@ -54,8 +51,7 @@ class Upload extends ModelAbstract implements UploadInterface
     }
 
     /**
-     * @param array $post
-     * @return OutputInterface
+     * @inheritDoc
      */
     public function upload(array $post): OutputInterface
     {
@@ -142,12 +138,12 @@ class Upload extends ModelAbstract implements UploadInterface
 
         $fileurl = str_replace(CSPUBLIC, '/', $filename);
         //保存信息到数据库
-        self::save($fileurl, 1);
+        $this->save($fileurl, 1);
         return self::$output->withCode(200)->withData(['fileurl' => $fileurl]);
     }
 
     /**
-     * 上传附件记录入库
+     * URL入库
      * @param string $url
      * @param int $isfirst
      * @return int
@@ -183,9 +179,7 @@ class Upload extends ModelAbstract implements UploadInterface
     }
 
     /**
-     * webupload上传
-     * @param array $post
-     * @return OutputInterface
+     * @inheritDoc
      */
     public function webupload(array $post): OutputInterface
     {
@@ -200,7 +194,7 @@ class Upload extends ModelAbstract implements UploadInterface
         $post['width'] = aval($post, 'width');
         $post['height'] = aval($post, 'height');
         $post['type'] = 'image';
-        $result = self::upload($post);
+        $result = $this->upload($post);
         if ($result->getCode() != 200) {
             return $result;
         }
@@ -224,8 +218,7 @@ class Upload extends ModelAbstract implements UploadInterface
     }
 
     /**
-     * 获取webupload上传的图片
-     * @return OutputInterface
+     * @inheritDoc
      */
     public function getWebupload(): OutputInterface
     {
@@ -235,7 +228,7 @@ class Upload extends ModelAbstract implements UploadInterface
             if (count($_SESSION['bigfile_info']) > 10) {
                 $_SESSION['bigfile_info'] = [];
                 foreach ($_SESSION['bigfile_info'] as $_v) {
-                    self::uploadDel($_v['img']);
+                    $this->uploadDel($_v['img']);
                 }
                 return self::$output->withCode(21045);
             }
@@ -256,17 +249,14 @@ class Upload extends ModelAbstract implements UploadInterface
     }
 
     /**
-     * 删除某一上传附件
-     * @param string $url
-     * @return OutputInterface
-     * @throws \SlimCMS\Error\TextException
+     * @inheritDoc
      */
     public function uploadDel(string $url): OutputInterface
     {
         if (empty($url)) {
             return self::$output->withCode(21002);
         }
-        if ($pics = self::listByUrl($url)) {
+        if ($pics = $this->listByUrl($url)) {
             $ids = [];
             foreach ($pics as $v) {
                 $ids[] = $v['id'];

@@ -1298,7 +1298,7 @@ class Forms extends ModelAbstract
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'int':
-                    if (!empty($v['rules'])) {
+                    if (!empty($v['rules']) && count('rules') == 1) {
                         $v['rules'] = self::getIntRules($v['rules']);
                         !empty($v['rules']) && $template = 'block/fieldshtml/select';
                     }
@@ -1439,7 +1439,7 @@ class Forms extends ModelAbstract
         $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
-                if ($v['datatype'] == 'int' && !empty($v['rules'])) {
+                if ($v['datatype'] == 'int' && !empty($v['rules']) && count('rules') == 1) {
                     $v['rules'] = serialize(self::getIntRules(unserialize($v['rules'])));
                 } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = self::input($v['egroup'], 'int');

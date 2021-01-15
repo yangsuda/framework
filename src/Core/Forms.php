@@ -1059,7 +1059,7 @@ class Forms extends ModelAbstract
                 continue;
             }
             $identifier = &$v['identifier'];
-            if (!empty($v['rules'])) {
+            if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio'])) {
                 $v['rules'] = unserialize($v['rules']);
                 $val = self::input($identifier);
                 if (isset($val)) {
@@ -1140,7 +1140,7 @@ class Forms extends ModelAbstract
                             for ($i = 0; $i < 10; $i++) {
                                 $picUrl = self::input($identifier . '_' . $i, 'img');
                                 if ($picUrl) {
-                                    $info = $upload->metaInfo($imgurls[$key]['img'],'url,width')->getData();
+                                    $info = $upload->metaInfo($imgurls[$key]['img'], 'url,width')->getData();
                                     $key = md5($picUrl);
                                     $imgurls[$key]['img'] = $picUrl;
                                     $imgurls[$key]['text'] = '';
@@ -1285,7 +1285,6 @@ class Forms extends ModelAbstract
                 case 'float':
                 case 'price':
                 case 'tel':
-                case 'int':
                 case 'text':
                 case 'select':
                 case 'radio':
@@ -1296,6 +1295,13 @@ class Forms extends ModelAbstract
                 case 'readonly':
                 case 'addon':
                 case 'password':
+                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
+                    break;
+                case 'int':
+                    if (!empty($v['rules'])) {
+                        $v['rules'] = self::getIntRules($v['rules']);
+                        !empty($v['rules']) && $template = 'block/fieldshtml/select';
+                    }
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'htmltext':
@@ -1374,6 +1380,38 @@ class Forms extends ModelAbstract
     }
 
     /**
+     * 转换查询其它表数据做为字段规则
+     * @param $rules
+     * @throws \SlimCMS\Error\TextException
+     */
+    private static function getIntRules(array $rules): array
+    {
+        if (empty($rules)) {
+            return [];
+        }
+        $table = array_key_first($rules);
+        $tablepre = self::$setting['db']['tablepre'];
+        $db = self::t()->db();
+        $tableName = $tablepre . str_replace($tablepre, '', $table);
+        if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
+            $result = self::$request->htmlspecialchars($rules[$table], 'de');
+            $result = json_decode($result, true);
+            $order = $way = '';
+            aval($result, 'orderby') && list($order, $way) = explode(',', aval($result, 'orderby'));
+            $list = self::t($table)
+                ->withWhere(aval($result, 'condition'))
+                ->withLimit(aval($result, 'limit'))
+                ->withOrderby((string)$order, (string)$way)
+                ->fetchList($result['value'] . ',' . $result['name']);
+            $rules = [];
+            foreach ($list as $v) {
+                $rules[$v[$result['value']]] = $v[$result['name']];
+            }
+        }
+        return $rules;
+    }
+
+    /**
      * 后台列表展示字段
      * @param $fid
      * @param int $limit
@@ -1401,7 +1439,9 @@ class Forms extends ModelAbstract
         $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
-                if ($v['datatype'] == 'stepselect') {
+                if ($v['datatype'] == 'int' && !empty($v['rules'])) {
+                    $v['rules'] = serialize(self::getIntRules(unserialize($v['rules'])));
+                } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = self::input($v['egroup'], 'int');
                     static $loadonce = 0;
                     $loadonce++;

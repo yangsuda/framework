@@ -11,6 +11,7 @@ namespace SlimCMS\Core;
 use App\Core\Upload;
 use App\Core\Ueditor;
 use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Helper\Crypt;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\Str;
@@ -1185,6 +1186,10 @@ class Forms extends ModelAbstract
                         $val = self::input($identifier);
                         $data[$identifier] = is_array($val) ? serialize($val) : self::$request->htmlspecialchars($val, 'de');
                         break;
+                    case 'password':
+                        $val = self::input($identifier);
+                        $val && $data[$identifier] = Crypt::pwd($val);
+                        break;
                     default:
                         $val = self::input($identifier);
                         if (isset($val)) {
@@ -1290,6 +1295,7 @@ class Forms extends ModelAbstract
                 case 'hidden':
                 case 'readonly':
                 case 'addon':
+                case 'password':
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'htmltext':

@@ -1439,7 +1439,7 @@ class Forms extends ModelAbstract
         $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
-                if ($v['datatype'] == 'int' && !empty($v['rules']) && count($v['rules']) == 1) {
+                if ($v['datatype'] == 'int' && !empty($v['rules']) && count(unserialize($v['rules'])) == 1) {
                     $v['rules'] = serialize(self::getIntRules(unserialize($v['rules'])));
                 } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = self::input($v['egroup'], 'int');

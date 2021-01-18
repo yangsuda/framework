@@ -1301,7 +1301,6 @@ class Forms extends ModelAbstract
                 case 'price':
                 case 'tel':
                 case 'text':
-                case 'select':
                 case 'radio':
                 case 'checkbox':
                 case 'multitext':
@@ -1310,6 +1309,12 @@ class Forms extends ModelAbstract
                 case 'readonly':
                 case 'addon':
                 case 'password':
+                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
+                    break;
+                case 'select':
+                    static $isloadSelect2 = 0;
+                    $isloadSelect2++;
+                    $v['isloadSelect2'] = $isloadSelect2;
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'int':

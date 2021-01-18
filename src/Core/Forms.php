@@ -1321,6 +1321,10 @@ class Forms extends ModelAbstract
                     if (!empty($v['rules']) && count($v['rules']) == 1) {
                         $v['rules'] = self::getIntRules($v['rules']);
                         !empty($v['rules']) && $template = 'block/fieldshtml/select';
+
+                        static $isloadSelect2 = 0;
+                        $isloadSelect2++;
+                        $v['isloadSelect2'] = $isloadSelect2;
                     }
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;

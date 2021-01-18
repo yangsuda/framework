@@ -1035,6 +1035,21 @@ class Forms extends ModelAbstract
                 case 'serialize':
                     $v['_' . $identifier] = unserialize($v[$identifier]);
                     break;
+                case 'int':
+                    if (!empty($val['rules'])) {
+                        $rules = unserialize($val['rules']);
+                        $result = self::analysisRules($rules);
+                        if ($result) {
+                            $v['_' . $identifier] = self::t($result['table'])
+                                ->withWhere([$result['value'] => $v[$identifier]])
+                                ->fetch($result['name']);
+                        } else {
+                            $v['_' . $identifier] = (int)$v[$identifier];
+                        }
+                    } else {
+                        $v['_' . $identifier] = (int)$v[$identifier];
+                    }
+                    break;
                 default:
                     $v['_' . $identifier] = self::$request->htmlspecialchars($v[$identifier], 'de');
                     break;
@@ -1380,13 +1395,13 @@ class Forms extends ModelAbstract
     }
 
     /**
-     * 转换查询其它表数据做为字段规则
-     * @param $rules
-     * @throws \SlimCMS\Error\TextException
+     * 解析查询其它表单的规则
+     * @param array $rules
+     * @return array
      */
-    private static function getIntRules(array $rules): array
+    private static function analysisRules(array $rules): array
     {
-        if (empty($rules)) {
+        if (empty($rules) || count($rules) != 1) {
             return [];
         }
         $table = array_key_first($rules);
@@ -1398,10 +1413,35 @@ class Forms extends ModelAbstract
             $result = json_decode($result, true);
             $order = $way = '';
             aval($result, 'orderby') && list($order, $way) = explode(',', aval($result, 'orderby'));
-            $list = self::t($table)
-                ->withWhere(aval($result, 'condition'))
-                ->withLimit(aval($result, 'limit'))
-                ->withOrderby((string)$order, (string)$way)
+            $data = [];
+            $data['table'] = $table;
+            $data['value'] = $result['value'];
+            $data['name'] = $result['name'];
+            $data['condition'] = aval($result, 'condition');
+            $data['limit'] = aval($result, 'limit');
+            $data['order'] = (string)$order;
+            $data['way'] = (string)$way;
+            return $data;
+        }
+        return [];
+    }
+
+    /**
+     * 转换查询其它表数据做为字段规则
+     * @param $rules
+     * @throws \SlimCMS\Error\TextException
+     */
+    private static function getIntRules(array $rules): array
+    {
+        if (empty($rules)) {
+            return [];
+        }
+        $result = self::analysisRules($rules);
+        if ($result) {
+            $list = self::t($result['table'])
+                ->withWhere($result['condition'])
+                ->withLimit($result['limit'])
+                ->withOrderby($result['order'], $result['way'])
                 ->fetchList($result['value'] . ',' . $result['name']);
             $rules = [];
             foreach ($list as $v) {

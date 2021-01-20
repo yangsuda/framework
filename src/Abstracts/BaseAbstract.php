@@ -94,6 +94,37 @@ abstract class BaseAbstract
     }
 
     /**
+     * 获取强转int类型外部传入数据
+     * @param string $name
+     * @return int
+     */
+    protected static function inputInt(string $name): int
+    {
+        return (int)self::$request->input($name, 'int');
+    }
+
+    /**
+     * 获取强转float类型外部传入数据
+     * @param string $name
+     * @return float
+     */
+    protected static function inputFloat(string $name): float
+    {
+        return (float)self::$request->input($name, 'float');
+    }
+
+    /**
+     * 获取强转string类型外部传入数据
+     * @param string $name
+     * @return string
+     *
+     */
+    protected static function inputString(string $name): string
+    {
+        return (string)self::$request->input($name, 'float');
+    }
+
+    /**
      * 数据格式输出
      * @param $result
      * @return array|\Psr\Http\Message\ResponseInterface

@@ -7,11 +7,25 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
+use SlimCMS\Core\Request;
+use SlimCMS\Core\Response;
 use SlimCMS\Helper\Crypt;
 use SlimCMS\Interfaces\OutputInterface;
 
 abstract class ControlAbstract extends BaseAbstract
 {
+    /**
+     * 路由地址
+     * @var string
+     */
+    protected $p = '';
+
+    public function __construct(Request $request, Response $response)
+    {
+        parent::__construct($request, $response);
+        $this->p = trim(self::inputString('p'), '/');
+    }
+
     /**
      * 加载模板输出
      * @param array $result
@@ -19,9 +33,8 @@ abstract class ControlAbstract extends BaseAbstract
      */
     public function view(OutputInterface $output = null, string $template = '')
     {
-        $p = self::input('p');
         $output = $output ?? self::$output;
-        $template = $template ?: $p;
+        $template = $template ?: $this->p;
         if (empty($template)) {
             return self::response($output->withCode(21017));
         }
@@ -34,7 +47,7 @@ abstract class ControlAbstract extends BaseAbstract
             $data['errorMsg'] = Crypt::decrypt($errorMsg);
         }
         $data['currentUrl'] = self::url();
-        $data['p'] = $p;
+        $data['p'] = $this->p;
         $output = $output->withTemplate((string)$template)->withData($data);
 
         //删除操作时临时生成的cookie提示信息

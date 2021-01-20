@@ -121,7 +121,7 @@ abstract class BaseAbstract
      */
     protected static function inputString(string $name): string
     {
-        return (string)self::$request->input($name, 'float');
+        return (string)self::$request->input($name);
     }
 
     /**

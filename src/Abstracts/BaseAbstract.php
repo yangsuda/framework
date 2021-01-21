@@ -195,10 +195,11 @@ abstract class BaseAbstract
             $server = self::$request->getRequest()->getServerParams();
             $fileName = pathinfo($server['SCRIPT_FILENAME'], PATHINFO_FILENAME);
             $path = ltrim(dirname($uri->getPath()), '/');
+            $path = str_replace(self::$config['basehost'], '', $path);
         } else {
+            $path = str_replace(self::$config['basehost'], '', $path);
             $fileName = pathinfo($path, PATHINFO_FILENAME);
         }
-        $path = str_replace(self::$config['basehost'], '', $path);
         parse_str($url, $output);
         $data = Str::QAnalysis(pathinfo($path, PATHINFO_FILENAME));
         $data['p'] = str_replace($fileName, '', dirname($path));
@@ -217,7 +218,7 @@ abstract class BaseAbstract
         if (empty($output['p'])) {
             throw new TextException(21057);
         }
-        $entre = pathinfo(self::$config['entryFileName'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
+        $entre = $fileName && pathinfo(self::$config['entryFileName'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
         $url = rtrim(self::$config['basehost'], '/') . '/' . $entre . trim($output['p'], '/') . '/';
         $jsoncallback = !empty($output['jsoncallback']);
         unset($output['p'], $output['jsoncallback']);

@@ -61,7 +61,7 @@ class Response extends MessageAbstract
      * 获取文本内容类型
      * @return string
      */
-    private function determineContentType(): ?string
+    public function determineContentType(): ?string
     {
         $accept = ['application/json', 'application/xml', 'text/xml', 'text/html', 'text/plain'];
         $acceptHeader = $this->request->getHeaderLine('Accept');

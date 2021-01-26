@@ -1104,7 +1104,10 @@ class Forms extends ModelAbstract
                         break;
                     case 'int':
                         $val = self::input($identifier);
-                        if ($val && strpos((string)$val, '`')) {
+                        if ($val && is_array($val)) {
+                            $val = array_map('intval', $val);
+                            $data[$identifier] = implode(',', $val);
+                        } elseif ($val && strpos((string)$val, '`')) {
                             $arr = explode('`', $val);
                             $val = array_map('intval', $arr);
                             $data[$identifier] = implode(',', $val);
@@ -1316,6 +1319,7 @@ class Forms extends ModelAbstract
                     static $isloadSelect2 = 0;
                     $isloadSelect2++;
                     $v['isloadSelect2'] = $isloadSelect2;
+                    $v['default'] = strpos($v['default'], ',') ? explode(',', $v['default']) : $v['default'];
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'int':
@@ -1326,6 +1330,7 @@ class Forms extends ModelAbstract
                         static $isloadSelect2 = 0;
                         $isloadSelect2++;
                         $v['isloadSelect2'] = $isloadSelect2;
+                        $v['default'] = strpos($v['default'], ',') ? explode(',', $v['default']) : $v['default'];
                     }
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;

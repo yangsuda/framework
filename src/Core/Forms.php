@@ -566,6 +566,7 @@ class Forms extends ModelAbstract
         foreach ($requireds as $v) {
             $msg = $v['errormsg'] ? $v['errormsg'] : $v['title'];
             $val = aval($data, $v['identifier']) ?: self::input($v['identifier']);
+            $val = $val ?: (!empty($v['egroup']) ? self::inputInt($v['egroup']) : '');
             if ($v['datatype'] == 'img' || $v['datatype'] == 'media' || $v['datatype'] == 'addon') {
                 if (empty($row[$v['identifier']]) && empty($_FILES[$v['identifier']]['tmp_name']) && !$val) {
                     return self::$output->withCode(21008, ['msg' => $msg]);

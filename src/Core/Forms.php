@@ -973,6 +973,16 @@ class Forms extends ModelAbstract
                 continue;
             }
             $v[$identifier . '_units'] = $val['units'];
+
+            $rules = [];
+            if (!empty($val['rules'])) {
+                $rules = unserialize($val['rules']);
+
+                //读取由表数据转成的规则
+                if (!empty($rules) && count($rules) == 1) {
+                    $rules = self::tableDataRules($rules);
+                }
+            }
             switch ($val['datatype']) {
                 case 'htmltext':
                     $v['_' . $identifier] = stripslashes($v[$identifier]);
@@ -991,7 +1001,6 @@ class Forms extends ModelAbstract
                     break;
                 case 'checkbox':
                     if (!empty($v[$identifier])) {
-                        $rules = unserialize($val['rules']);
                         $arr = [];
                         foreach (explode(',', $v[$identifier]) as $_v) {
                             if (!empty($_v)) {
@@ -1008,7 +1017,6 @@ class Forms extends ModelAbstract
                     break;
                 case 'select':
                 case 'radio':
-                    $rules = unserialize($val['rules']);
                     $v['_' . $identifier] = aval($rules, $v[$identifier]);
                     break;
                 case 'img':
@@ -1038,7 +1046,6 @@ class Forms extends ModelAbstract
                     break;
                 case 'int':
                     if (!empty($val['rules'])) {
-                        $rules = unserialize($val['rules']);
                         $result = self::analysisRules($rules);
                         if ($result) {
                             $v['_' . $identifier] = self::t($result['table'])
@@ -1075,8 +1082,15 @@ class Forms extends ModelAbstract
                 continue;
             }
             $identifier = &$v['identifier'];
-            if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio'])) {
+            if (!empty($v['rules'])) {
                 $v['rules'] = unserialize($v['rules']);
+            }
+            //读取由表数据转成的规则
+            if (!empty($v['rules']) && count($v['rules']) == 1) {
+                $v['rules'] = self::tableDataRules($v['rules']);
+            }
+
+            if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio'])) {
                 $val = self::input($identifier);
                 if (isset($val)) {
                     if (is_array($val)) {
@@ -1279,6 +1293,12 @@ class Forms extends ModelAbstract
         foreach ($fields as $k => $v) {
             $v['maxlength'] = $maxlength = !empty($v['maxlength']) ? 'maxlength="' . $v['maxlength'] . '"' : '';
             $v['rules'] = !empty($v['rules']) ? unserialize($v['rules']) : array();
+
+            //读取由表数据转成的规则
+            if (!empty($v['rules']) && count($v['rules']) == 1) {
+                $v['rules'] = self::tableDataRules($v['rules']);
+            }
+
             $v['default'] = !empty($row[$v['identifier']]) ? $row[$v['identifier']] : html_entity_decode((string)$v['default']);
 
             //Validform规则设置
@@ -1288,8 +1308,8 @@ class Forms extends ModelAbstract
                 empty($v['nullmsg']) && $v['nullmsg'] = $text . $v['title'];
                 empty($v['tip']) && $v['tip'] = $text . $v['title'];
             }
-            $datatype = !empty($v['checkrule']) ? 'datatype="' . $v['checkrule'] . '" ' : '';
-            if (empty($v['intro']) && $datatype) {
+            $datatypeStr = !empty($v['checkrule']) ? 'datatype="' . $v['checkrule'] . '" ' : '';
+            if (empty($v['intro']) && $datatypeStr) {
                 $v['intro'] = in_array($v['datatype'], array('select', 'radio', 'checkbox')) ? '必选' : '';
             }
             $nullmsg = !empty($v['nullmsg']) ? 'nullmsg="' . $v['nullmsg'] . '" ' : '';
@@ -1297,10 +1317,15 @@ class Forms extends ModelAbstract
             $tip = !empty($v['tip']) ? 'placeholder="' . $v['tip'] . '" ' : '';
             $errormsg = !empty($v['errormsg']) ? 'errormsg="' . $v['errormsg'] . '" ' : '';
             $readonly = !empty($row['id']) && $v['forbidedit'] == 2 ? ' readonly' : '';
-            $v['validform'] = $validform = ' sucmsg="" ' . $datatype . $nullmsg . $tip . $errormsg . $ignore . $readonly;
+            $v['validform'] = $validform = ' sucmsg="" ' . $datatypeStr . $nullmsg . $tip . $errormsg . $ignore . $readonly;
 
-            $template = 'block/fieldshtml/' . $v['datatype'];
-            switch ($v['datatype']) {
+            $datatype = $v['datatype'];
+            if ($datatype == 'int' && !empty($v['rules'])) {
+                $datatype = 'select';
+            }
+            $template = 'block/fieldshtml/' . $datatype;
+            switch ($datatype) {
+                case 'int':
                 case 'float':
                 case 'price':
                 case 'tel':
@@ -1320,18 +1345,6 @@ class Forms extends ModelAbstract
                     $isloadSelect2++;
                     $v['isloadSelect2'] = $isloadSelect2;
                     $v['default'] = strpos($v['default'], ',') ? explode(',', $v['default']) : $v['default'];
-                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
-                    break;
-                case 'int':
-                    if (!empty($v['rules']) && count($v['rules']) == 1) {
-                        $v['rules'] = self::getIntRules($v['rules']);
-                        !empty($v['rules']) && $template = 'block/fieldshtml/select';
-
-                        static $isloadSelect2 = 0;
-                        $isloadSelect2++;
-                        $v['isloadSelect2'] = $isloadSelect2;
-                        $v['default'] = strpos($v['default'], ',') ? explode(',', $v['default']) : $v['default'];
-                    }
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'htmltext':
@@ -1427,7 +1440,12 @@ class Forms extends ModelAbstract
             $result = self::$request->htmlspecialchars($rules[$table], 'de');
             $result = json_decode($result, true);
             $order = $way = '';
-            aval($result, 'orderby') && list($order, $way) = explode(',', aval($result, 'orderby'));
+            $orderby = aval($result, 'orderby');
+            if ($orderby && strpos($orderby, ',')) {
+                list($order, $way) = explode(',', aval($result, 'orderby'));
+            } else {
+                $order = $orderby;
+            }
             $data = [];
             $data['table'] = $table;
             $data['value'] = $result['value'];
@@ -1446,24 +1464,31 @@ class Forms extends ModelAbstract
      * @param $rules
      * @throws \SlimCMS\Error\TextException
      */
-    private static function getIntRules(array $rules): array
+    private static function tableDataRules(array $rules): array
     {
         if (empty($rules)) {
             return [];
         }
-        $result = self::analysisRules($rules);
-        if ($result) {
-            $list = self::t($result['table'])
-                ->withWhere($result['condition'])
-                ->withLimit($result['limit'])
-                ->withOrderby($result['order'], $result['way'])
-                ->fetchList($result['value'] . ',' . $result['name']);
-            $rules = [];
-            foreach ($list as $v) {
-                $rules[$v[$result['value']]] = $v[$result['name']];
+        $cacheTTL = aval(self::$config, 'fieldRelateDataTTL');
+        $cacheKey = self::cacheKey(__FUNCTION__, $rules);
+        $val = $cacheTTL ? self::$redis->get($cacheKey) : [];
+        if (empty($val)) {
+            $result = self::analysisRules($rules);
+            if ($result) {
+                $list = self::t($result['table'])
+                    ->withWhere($result['condition'])
+                    ->withLimit($result['limit'])
+                    ->withOrderby($result['order'], $result['way'])
+                    ->fetchList($result['value'] . ',' . $result['name']);
+                $val = [];
+                foreach ($list as $v) {
+                    $val[$v[$result['value']]] = $v[$result['name']];
+                }
+                $cacheTTL && self::$redis->set($cacheKey, $val, $cacheTTL);
             }
         }
-        return $rules;
+
+        return $val;
     }
 
     /**
@@ -1494,8 +1519,8 @@ class Forms extends ModelAbstract
         $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
-                if ($v['datatype'] == 'int' && !empty($v['rules']) && count(unserialize($v['rules'])) == 1) {
-                    $v['rules'] = serialize(self::getIntRules(unserialize($v['rules'])));
+                if (!empty($v['rules']) && count(unserialize($v['rules'])) == 1) {
+                    $v['rules'] = serialize(self::tableDataRules(unserialize($v['rules'])));
                 } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = self::input($v['egroup'], 'int');
                     static $loadonce = 0;

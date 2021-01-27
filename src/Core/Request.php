@@ -64,7 +64,7 @@ class Request extends MessageAbstract
                 }
                 if (preg_match("/$val/i", $word)) {
                     //过滤掉后台参数设置
-                    if((!defined('MANAGE') || (defined('MANAGE') && MANAGE != '1') || $field != 'value')){
+                    if ((!defined('MANAGE') || (defined('MANAGE') && MANAGE != '1') || $field != 'value')) {
                         throw new TextException(21051, ['title' => $val]);
                     }
                 }
@@ -103,8 +103,8 @@ class Request extends MessageAbstract
                 }
             } elseif ($flags == 'de') {
                 $string = str_replace(
-                    ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;'],
-                    ["'", '"', '*', '"', '“', '”', '&', '(', ')'], $string);
+                    ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;', '&lt;', '&gt;'],
+                    ["'", '"', '*', '"', '“', '”', '&', '(', ')', '<', '>'], $string);
             }
         }
         return $string;

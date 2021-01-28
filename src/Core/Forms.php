@@ -1320,7 +1320,7 @@ class Forms extends ModelAbstract
             $v['validform'] = $validform = ' sucmsg="" ' . $datatypeStr . $nullmsg . $tip . $errormsg . $ignore . $readonly;
 
             $datatype = $v['datatype'];
-            if ($datatype == 'int' && !empty($v['rules'])) {
+            if ($datatype == 'int' && !empty($v['rules']) && count($v['rules']) == 1) {
                 $datatype = 'select';
             }
             $template = 'block/fieldshtml/' . $datatype;

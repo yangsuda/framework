@@ -1294,6 +1294,11 @@ class Forms extends ModelAbstract
             $v['maxlength'] = $maxlength = !empty($v['maxlength']) ? 'maxlength="' . $v['maxlength'] . '"' : '';
             $v['rules'] = !empty($v['rules']) ? unserialize($v['rules']) : array();
 
+            $datatype = $v['datatype'];
+            if ($datatype == 'int' && !empty($v['rules']) && count($v['rules']) == 1) {
+                $datatype = 'select';
+            }
+
             //读取由表数据转成的规则
             if (!empty($v['rules']) && count($v['rules']) == 1) {
                 $v['rules'] = self::tableDataRules($v['rules']);
@@ -1319,10 +1324,6 @@ class Forms extends ModelAbstract
             $readonly = !empty($row['id']) && $v['forbidedit'] == 2 ? ' readonly' : '';
             $v['validform'] = $validform = ' sucmsg="" ' . $datatypeStr . $nullmsg . $tip . $errormsg . $ignore . $readonly;
 
-            $datatype = $v['datatype'];
-            if ($datatype == 'int' && !empty($v['rules']) && count($v['rules']) == 1) {
-                $datatype = 'select';
-            }
             $template = 'block/fieldshtml/' . $datatype;
             switch ($datatype) {
                 case 'int':

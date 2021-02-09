@@ -193,11 +193,12 @@ class Forms extends ModelAbstract
      * 详细数据
      * @param int $fid
      * @param int $id
+     * @param string $fields
      * @param int $cacheTime
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function dataView(int $fid, int $id, int $cacheTime = 0): OutputInterface
+    public static function dataView(int $fid, int $id, string $fields = '*', int $cacheTime = 0): OutputInterface
     {
         if (empty($fid) || empty($id)) {
             return self::$output->withCode(21002);
@@ -215,9 +216,14 @@ class Forms extends ModelAbstract
                     return self::$output->withCode($rs);
                 }
             }
-            $data = self::t($form['table'])->withWhere($id)->fetch();
+            $data = self::t($form['table'])->withWhere($id)->fetch($fields);
             if (empty($data)) {
                 return self::$output->withCode(21001);
+            }
+            if(!is_array($data)){
+                $val = [];
+                $val[$fields] = $data;
+                $data = $val;
             }
             $fields = static::fieldList(['formid' => $fid, 'available' => 1]);
             $fields && $data = static::exchangeFieldValue($fields, $data);

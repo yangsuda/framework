@@ -537,7 +537,6 @@ class Forms extends ModelAbstract
             self::t($form['table'])->withWhere($row['id'])->update($data);
             $data['id'] = $row['id'];
             $data['mngtype'] = 'edit';
-            $row = array_merge($row, $data);
             self::$redis->del(static::cacheKey('dataView', $fid, $row['id']));
         } else {
             $data['createtime'] = TIMESTAMP;

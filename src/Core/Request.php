@@ -176,9 +176,13 @@ class Request extends MessageAbstract
                 if (strpos($v, ',')) {
                     list(, $width, $height) = explode(',', $v);
                 }
-                $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
                 $upload = $this->container->get(UploadInterface::class);
-                $res = $upload->upload($uploadData);
+                if(is_string($val)){
+                    $res = $upload->h5($val);
+                }else{
+                    $uploadData = ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
+                    $res = $upload->upload($uploadData);
+                }
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     return $this->output($res);
                 }

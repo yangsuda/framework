@@ -162,7 +162,8 @@ abstract class MessageAbstract
     public function getFormHash()
     {
         isset($_SESSION) ? '' : session_start();
-        $_SESSION['formHash'] = substr(md5(uniqid()), 8, 8);
+        $timestamp = substr((string)TIMESTAMP,0,-1).'0'.session_id();
+        $_SESSION['formHash'] = substr(md5($timestamp), 8, 8);
         return $_SESSION['formHash'];
     }
 }

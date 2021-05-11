@@ -640,7 +640,7 @@ class Forms extends ModelAbstract
      * @return array|bool|mixed|string|null
      * @throws \SlimCMS\Error\TextException
      */
-    private static function fieldList($where = '', $fields = '*', $limit = '', $order = 'displayorder desc,id')
+    public static function fieldList($where = '', $fields = '*', $limit = '', $order = 'displayorder desc,id')
     {
         $cachekey = static::cacheKey(__FUNCTION__, func_get_args());
         $list = self::$redis->get($cachekey);

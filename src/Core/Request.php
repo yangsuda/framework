@@ -184,7 +184,7 @@ class Request extends MessageAbstract
                     $res = $upload->upload($uploadData);
                 }
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
-                    return $this->output($res);
+                    throw new TextException($res->getCode());
                 }
                 $data[$k] = $res->getData()['fileurl'] ?: '';
             } elseif (preg_match('/^int/i', $v)) {
@@ -235,7 +235,7 @@ class Request extends MessageAbstract
                 $upload = $this->container->get(UploadInterface::class);
                 $res = $upload->upload($uploadData);
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
-                    return $this->output($res);
+                    throw new TextException($res->getCode());
                 }
                 $data[$k] = $res->getData()['fileurl'] ?: '';
             }

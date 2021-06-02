@@ -115,7 +115,7 @@ class Wxxcx extends ModelAbstract
 
     /**
      * 检验数据的真实性，并且获取解密后的明文.
-     * @param $encryptedData string 加密的用户数据
+     * @param $encrypteddata string 加密的用户数据
      * @param $iv string 与用户数据一同返回的初始向量
      * @param $sessionkey string 解密后的原文
      * @return array
@@ -123,7 +123,7 @@ class Wxxcx extends ModelAbstract
     public static function decryptData(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
-        if (empty($data['sessionkey']) || empty($data['iv']) || empty($data['encryptedData'])) {
+        if (empty($data['sessionkey']) || empty($data['iv']) || empty($data['encrypteddata'])) {
             return self::$output->withCode(21003);
         }
         if (strlen($data['sessionkey']) != 24) {
@@ -136,7 +136,7 @@ class Wxxcx extends ModelAbstract
         }
         $aesIV = base64_decode($data['iv']);
 
-        $aesCipher = base64_decode($data['encryptedData']);
+        $aesCipher = base64_decode($data['encrypteddata']);
 
         $result = openssl_decrypt($aesCipher, "AES-128-CBC", $aesKey, 1, $aesIV);
 

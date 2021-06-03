@@ -569,6 +569,9 @@ class Table
             case '<>':
             case '<=':
             case '>=':
+                if (is_int($val) || is_float($val)) {
+                    return $field . $glue . $val;
+                }
                 return $field . $glue . $this->quote($val);
             case 'unlike':
             case 'like':

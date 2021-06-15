@@ -721,6 +721,29 @@ class Table
     }
 
     /**
+     * 某字段平均数
+     * @param string $field
+     * @return string
+     */
+    public function avg(string $field)
+    {
+        $sql = $this->selectSQL('avg(' . $field . ')');
+        return $this->db->fetchColumn($sql);
+    }
+
+    /**
+     * 获取某字段通过某函数处理后的数据
+     * @param string $field
+     * @param string $func
+     * @return string
+     */
+    public function fetchColumn(string $field,string $func)
+    {
+        $sql = $this->selectSQL($func.'(' . $field . ')');
+        return $this->db->fetchColumn($sql);
+    }
+
+    /**
      * 返回分页列表数据
      * @param int $page
      * @param string $fields

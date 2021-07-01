@@ -83,7 +83,7 @@ class Forms extends ModelAbstract
         $db = self::t()->db();
         $tableName = self::$setting['db']['tablepre'] . str_replace(self::$setting['db']['tablepre'], '', $table);
         if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
-            return self::$output->withCode(22004, ['title' => $tableName]);
+            return self::$output->withCode(22004, ['msg' => $tableName]);
         }
         $sql = "CREATE TABLE IF NOT EXISTS `" . $tableName . "`(
 				`id` int(11) NOT NULL AUTO_INCREMENT,
@@ -522,7 +522,7 @@ class Forms extends ModelAbstract
                 self::t($form['table'])->withWhere([$v['identifier'] => $data[$v['identifier']]])->fetch('id')
                 : '';
             if ($exist_id && (empty($row['id']) || $exist_id != aval($row, 'id'))) {
-                return self::$output->withCode(22004, ['title' => $v['title']]);
+                return self::$output->withCode(22004, ['msg' => $v['title']]);
             }
         }
 

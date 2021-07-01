@@ -65,7 +65,7 @@ class Request extends MessageAbstract
                 if (preg_match("/$val/i", $word)) {
                     //过滤掉后台参数设置
                     if ((!defined('MANAGE') || (defined('MANAGE') && MANAGE != '1') || $field != 'value')) {
-                        throw new TextException(21051, ['title' => $val]);
+                        throw new TextException(21051, ['msg' => $val]);
                     }
                 }
             }

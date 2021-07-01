@@ -220,7 +220,7 @@ class Forms extends ModelAbstract
             if (empty($data)) {
                 return self::$output->withCode(21001);
             }
-            if(!is_array($data)){
+            if (!is_array($data)) {
                 $val = [];
                 $val[$fields] = $data;
                 $data = $val;
@@ -364,6 +364,8 @@ class Forms extends ModelAbstract
                 $param['fields'] = 'main.' . str_replace(',', ',main.', $param['fields']) . ',' . $param['joinFields'];
             }
 
+            $param['where'] = !empty($param['where']) ? array_merge($param['where'], $arr['where']) : $arr['where'];
+
             if (is_callable([self::t($form['table']), 'dataListBefore'])) {
                 $rs = self::t($form['table'])->dataListBefore($param);
                 if ($rs != 200) {
@@ -371,7 +373,6 @@ class Forms extends ModelAbstract
                 }
             }
 
-            $where = !empty($param['where']) ? array_merge($param['where'], $arr['where']) : $arr['where'];
             $order = (string)aval($param, 'order');
             $orderForce = (bool)aval($param, 'orderForce');
             $order = static::validOrder($param['fid'], $order, $orderForce);
@@ -383,7 +384,7 @@ class Forms extends ModelAbstract
             $joins = (array)aval($param, 'joins');
             $data = self::t($form['table'])
                 ->withJoin($joins)
-                ->withWhere($where)
+                ->withWhere($param['where'])
                 ->withOrderby($order, $by)
                 ->pageList($page, $fields, $pagesize, 0, $indexField);
             $fields = static::fieldList(['formid' => $param['fid'], 'available' => 1]);
@@ -399,7 +400,7 @@ class Forms extends ModelAbstract
             $data['by'] = $by;
             $data['currenturl'] = self::url($currenturl);
             $data['get'] = $param['get'];
-            $data['where'] = $where;
+            $data['where'] = $param['where'];
 
             if (is_callable([self::t($form['table']), 'dataListAfter'])) {
                 $rs = self::t($form['table'])->dataListAfter($data, $param);
@@ -458,7 +459,7 @@ class Forms extends ModelAbstract
         }
 
         if (is_callable([self::t($form['table']), 'getFormHtmlBefore'])) {
-            $rs = self::t($form['table'])->getFormHtmlBefore($fields, $row, $form);
+            $rs = self::t($form['table'])->getFormHtmlBefore($fields, $row, $form, $options);
             if ($rs != 200) {
                 return self::$output->withCode($rs);
             }
@@ -470,7 +471,7 @@ class Forms extends ModelAbstract
             $fieldshtml = static::formHtml($fid, $fields, $row, $options);
 
             if (is_callable([self::t($form['table']), 'getFormHtmlAfter'])) {
-                $rs = self::t($form['table'])->getFormHtmlAfter($fieldshtml, $fields, $row);
+                $rs = self::t($form['table'])->getFormHtmlAfter($fieldshtml, $fields, $row, $options);
                 if ($rs != 200) {
                     return self::$output->withCode($rs);
                 }

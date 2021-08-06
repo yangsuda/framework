@@ -690,7 +690,7 @@ class Forms extends ModelAbstract
                             $where[] = self::t()->field($v['identifier'], $val1, 'find');
                         }
                     }
-                } elseif ($v['datatype'] == 'text') {
+                } elseif ($v['datatype'] == 'text' || $v['datatype'] == 'multitext' || $v['datatype'] == 'htmltext') {
                     if (!empty($val)) {
                         if (aval($v, 'precisesearch') == 1) {
                             $where[$v['identifier']] = $val;

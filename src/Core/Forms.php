@@ -309,14 +309,14 @@ class Forms extends ModelAbstract
             }
         }
 
-        $currenturl = self::$request->getRequest()->getUri()->getQuery();
+        $param['currenturl'] = self::$request->getRequest()->getUri()->getQuery();
         $param['get'] = [];
         $arr = [];
         $arr['where'] = [];
         if (empty($param['noinput'])) {
             $arr = static::searchCondition($param)->getData();
             $param['get'] = $arr['get'];
-            $currenturl = $arr['currentUrl'];
+            $param['currenturl'] = $arr['currentUrl'];
         }
         if (!empty($param['cacheTime'])) {
             $cachekey = static::cacheKey(__FUNCTION__, $param, $arr['where']);
@@ -330,7 +330,7 @@ class Forms extends ModelAbstract
                     $where = [];
                     $where['ischeck'] = $ischeck == 1 ? 1 : 2;
                     $param['where'] = !empty($param['where']) ? array_merge((array)$param['where'], $where) : $where;
-                    empty($param['noinput']) && $currenturl .= '&ischeck=' . $ischeck;
+                    empty($param['noinput']) && $param['currenturl'] .= '&ischeck=' . $ischeck;
                 }
             }
 
@@ -342,7 +342,7 @@ class Forms extends ModelAbstract
                     $where = [];
                     $where['id'] = $id;
                     $param['where'] = !empty($param['where']) ? array_merge((array)$param['where'], $where) : $where;
-                    empty($param['noinput']) && $currenturl .= '&id=' . (is_array($id) ? implode('`', $id) : $id);
+                    empty($param['noinput']) && $param['currenturl'] .= '&id=' . (is_array($id) ? implode('`', $id) : $id);
                 }
             }
 
@@ -398,7 +398,7 @@ class Forms extends ModelAbstract
             $data['form'] = $form;
             $data['fid'] = $param['fid'];
             $data['by'] = $by;
-            $data['currenturl'] = self::url($currenturl);
+            $data['currenturl'] = self::url($param['currenturl']);
             $data['get'] = $param['get'];
             $data['where'] = $param['where'];
 

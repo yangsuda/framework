@@ -685,11 +685,14 @@ class Table
         $comment = mb_substr($comment, 0, 255, 'utf-8');
         $query = $this->db->query($sql . ' COMMENT \'' . $comment . '\'');
 
-        if (empty($fields[$identifier]['Key']) && aval($data, 'search') == 1) {
-            $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` ADD INDEX (`' . $identifier . '`)');
-        }
-        if (!empty($fields[$identifier]['Key']) && aval($data, 'search') == 2) {
-            $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` DROP INDEX `' . $identifier . '`');
+        //非多行文本才能创建索引
+        if (!in_array($datatype, ['multitext', 'htmltext', 'imgs', 'serialize'])) {
+            if (empty($fields[$identifier]['Key']) && aval($data, 'search') == 1) {
+                $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` ADD INDEX (`' . $identifier . '`)');
+            }
+            if (!empty($fields[$identifier]['Key']) && aval($data, 'search') == 2) {
+                $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` DROP INDEX `' . $identifier . '`');
+            }
         }
         return $this->db->affectedRows($query);
     }

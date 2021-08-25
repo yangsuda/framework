@@ -125,7 +125,7 @@ class Upload extends ModelAbstract implements UploadInterface
             return self::$output->withCode($code);
         }
 
-        $filename = $imgdir . str_replace('.', '', uniqid(Ipdata::getip(), true)) . '.' . $ext;
+        $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip()),20), true)) . '.' . $ext;
         $uploadPost = [];
         $uploadPost['attachment'] = new UploadedFile($post['files']['tmp_name'], $post['files']['name'], $post['files']['type']);
         $upload = self::$request->getRequest()->withUploadedFiles($uploadPost)->getUploadedFiles();

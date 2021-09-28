@@ -390,6 +390,7 @@ class Forms extends ModelAbstract
             $fields = static::fieldList(['formid' => $param['fid'], 'available' => 1]);
             foreach ($data['list'] as &$v) {
                 isset($v['id']) && $v['id'] = (int)$v['id'];
+                isset($v['createtime']) && $v['createtime'] = (int)$v['createtime'];
                 isset($v['ischeck']) && $v['ischeck'] = (int)$v['ischeck'];
                 isset($v['ischeck']) && $v['_ischeck'] = $v['ischeck'] == 1 ? '已审核' : '未审核';
                 $fields && $v = static::exchangeFieldValue($fields, $v);

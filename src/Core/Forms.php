@@ -389,6 +389,9 @@ class Forms extends ModelAbstract
                 ->pageList($page, $fields, $pagesize, 0, $indexField);
             $fields = static::fieldList(['formid' => $param['fid'], 'available' => 1]);
             foreach ($data['list'] as &$v) {
+                isset($v['id']) && $v['id'] = (int)$v['id'];
+                isset($v['createtime']) && $v['createtime'] = (int)$v['createtime'];
+                isset($v['ischeck']) && $v['ischeck'] = (int)$v['ischeck'];
                 isset($v['ischeck']) && $v['_ischeck'] = $v['ischeck'] == 1 ? '已审核' : '未审核';
                 $fields && $v = static::exchangeFieldValue($fields, $v);
             }
@@ -978,7 +981,7 @@ class Forms extends ModelAbstract
             if (!isset($v[$identifier])) {
                 continue;
             }
-            $v[$identifier . '_units'] = $val['units'];
+            !empty($val['units']) && $v[$identifier . '_units'] = $val['units'];
 
             $rules = [];
             if (!empty($val['rules'])) {
@@ -994,16 +997,35 @@ class Forms extends ModelAbstract
                     $v['_' . $identifier] = stripslashes($v[$identifier]);
                     break;
                 case 'price':
-                    $v['_' . $identifier] = $v[$identifier] ? round($v[$identifier], 2) : '';
+                    if ($v[$identifier] && $v[$identifier] != '0.00') {
+                        $v['_' . $identifier] = $v[$identifier] = (float)$v[$identifier];
+                    } else {
+                        $v['_' . $identifier] = $v[$identifier] = '';
+                    }
                     break;
                 case 'date':
-                    $v['_' . $identifier] = $v[$identifier] ? Time::gmdate($v[$identifier]) : '';
+                    if ($v[$identifier]) {
+                        $v[$identifier] = (int)$v[$identifier];
+                        $v['_' . $identifier] = Time::gmdate($v[$identifier]);
+                    } else {
+                        $v['_' . $identifier] = $v[$identifier] = '';
+                    }
+
                     break;
                 case 'datetime':
-                    $v['_' . $identifier] = $v[$identifier] ? Time::gmdate($v[$identifier], 'dt') : '';
+                    if ($v[$identifier]) {
+                        $v[$identifier] = (int)$v[$identifier];
+                        $v['_' . $identifier] = Time::gmdate($v[$identifier], 'dt');
+                    } else {
+                        $v['_' . $identifier] = $v[$identifier] = '';
+                    }
                     break;
                 case 'float':
-                    $v['_' . $identifier] = $v[$identifier] ? round($v[$identifier], 4) : '';
+                    if ($v[$identifier]) {
+                        $v['_' . $identifier] = $v[$identifier] = (float)$v[$identifier];
+                    } else {
+                        $v['_' . $identifier] = $v[$identifier] = '';
+                    }
                     break;
                 case 'checkbox':
                     if (!empty($v[$identifier])) {
@@ -1058,10 +1080,10 @@ class Forms extends ModelAbstract
                                 ->withWhere([$result['value'] => $v[$identifier]])
                                 ->fetch($result['name']);
                         } else {
-                            $v['_' . $identifier] = (int)$v[$identifier];
+                            $v['_' . $identifier] = $v[$identifier] = (int)$v[$identifier];
                         }
                     } else {
-                        $v['_' . $identifier] = (int)$v[$identifier];
+                        $v['_' . $identifier] = $v[$identifier] = (int)$v[$identifier];
                     }
                     break;
                 default:

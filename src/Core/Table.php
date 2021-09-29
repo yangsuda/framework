@@ -291,7 +291,12 @@ class Table
             $list = $this->db->fetchList($sql);
             $arr = [];
             foreach ($list as $k => $v) {
-                $arr[] = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($field) : $v[$field];
+                //如果开启缓存，读取缓存中数据
+                if($cacheTime){
+                    $arr[] = $this->withWhere($v['id'])->fetch($field);
+                }else{
+                    $arr[] = $v[$field];
+                }
             }
             return $arr;
         };

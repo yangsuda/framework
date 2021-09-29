@@ -1106,6 +1106,10 @@ class Forms extends ModelAbstract
         $cfg = &self::$config;
         $data = [];
         foreach ($fields as $k => $v) {
+            //接口请求只有开启前台显示的字段才可以前端获取数据
+            if (CURSCRIPT == 'api' && $v['infront'] != 1) {
+                continue;
+            }
             if (!empty($olddata['id']) && ($v['datatype'] == 'readonly' || $v['forbidedit'] == 2)) {
                 continue;
             }

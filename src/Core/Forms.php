@@ -1377,7 +1377,7 @@ class Forms extends ModelAbstract
                     static $isloadSelect2 = 0;
                     $isloadSelect2++;
                     $v['isloadSelect2'] = $isloadSelect2;
-                    $v['default'] = strpos($v['default'], ',') ? explode(',', $v['default']) : $v['default'];
+                    $v['default'] = strpos((string)$v['default'], ',') ? explode(',', $v['default']) : $v['default'];
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'htmltext':

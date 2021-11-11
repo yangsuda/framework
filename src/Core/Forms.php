@@ -1508,6 +1508,9 @@ class Forms extends ModelAbstract
         if (empty($val)) {
             $result = self::analysisRules($rules);
             if ($result) {
+                if (empty($result['name']) || empty($result['value'])) {
+                    return $rules;
+                }
                 $list = self::t($result['table'])
                     ->withWhere($result['condition'])
                     ->withLimit($result['limit'])

@@ -186,7 +186,7 @@ class Request extends MessageAbstract
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     throw new TextException($res->getCode());
                 }
-                $data[$k] = $res->getData()['fileurl'] ?: '';
+                $data[$k] = aval($res->getData(),'fileurl') ?: '';
             } elseif (preg_match('/^int/i', $v)) {
                 $data[$k] = (int)$val;
                 if (strpos($v, ',')) {

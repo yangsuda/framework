@@ -1205,7 +1205,7 @@ class Forms extends ModelAbstract
                             for ($i = 0; $i < 10; $i++) {
                                 $picUrl = self::input($identifier . '_' . $i, 'img');
                                 if ($picUrl) {
-                                    $info = $upload->metaInfo($imgurls[$key]['img'], 'url,width')->getData();
+                                    $info = $upload->metaInfo($picUrl, 'url,width')->getData();
                                     $key = md5($picUrl);
                                     $imgurls[$key]['img'] = $picUrl;
                                     $imgurls[$key]['text'] = '';

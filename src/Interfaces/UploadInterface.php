@@ -1,4 +1,8 @@
 <?php
+/**
+ * 上传附件接口类
+ */
+
 declare(strict_types=1);
 
 namespace SlimCMS\Interfaces;

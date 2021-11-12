@@ -1,4 +1,7 @@
 <?php
+/**
+ * 模板加载接口类
+ */
 declare(strict_types=1);
 
 namespace SlimCMS\Interfaces;

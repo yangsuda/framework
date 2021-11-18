@@ -270,4 +270,41 @@ class Str
         }
         return trim($str, "\n");
     }
+
+    /**
+     * 判断是否是UTF8编码
+     * @param string $word
+     * @return bool
+     */
+    public static function isUTF8(string $word): bool
+    {
+        $word = preg_replace('/[\w]/i', '', $word);
+        if (preg_match("/^([" . chr(228) . "-" . chr(233) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}){1}/", $word) == true || preg_match("/([" . chr(228) . "-" . chr(233) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}){1}$/", $word) == true || preg_match("/([" . chr(228) . "-" . chr(233) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}[" . chr(128) . "-" . chr(191) . "]{1}){2,}/", $word) == true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 转成UFT8编码
+     * @param $text
+     * @return array|false|string|string[]|null
+     */
+    public static function toUTF8($text)
+    {
+        if (!empty($text) && is_array($text)) {
+            foreach ($text as $k => $v) {
+                $text[$k] = self::toUTF8($v);
+            }
+            return $text;
+        } else {
+            $text = preg_replace('/[\w]/i', '', $text);
+            if (self::isUTF8($text)) {
+                return $text;
+            }
+            $encoding = strtolower(mb_detect_encoding($text, array('UTF-8', 'ASCII', 'GB2312', 'GBK')));
+            return iconv($encoding, 'utf-8', $text);
+        }
+    }
 }

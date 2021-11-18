@@ -303,8 +303,11 @@ class Str
             if (self::isUTF8($text)) {
                 return $text;
             }
-            $encoding = strtolower(mb_detect_encoding($text, array('UTF-8', 'ASCII', 'GB2312', 'GBK')));
-            return iconv($encoding, 'utf-8', $text);
+            $coding = mb_detect_encoding($text, array('GB2312', 'GBK', 'ASCII', 'UTF-8', 'BIG5'));
+            if(empty($coding)){
+                return mb_convert_encoding($text, 'utf-8', 'gbk');
+            }
+            return iconv($coding, 'utf-8', $text);
         }
     }
 }

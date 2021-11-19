@@ -15,7 +15,7 @@ class Time
         static $dformat, $tformat, $dtformat, $offset, $lang;
         if ($dformat === null) {
             $dformat = 'Y-m-d';
-            $tformat = 'H:i';
+            $tformat = 'H:i:s';
             $dtformat = $dformat . ' ' . $tformat;
             $offset = 8;
             $lang = [

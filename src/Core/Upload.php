@@ -77,7 +77,7 @@ class Upload extends ModelAbstract implements UploadInterface
         }
 
         //防止伪装成图片的木马上传
-        $checkWords = aval(self::$setting, 'security/uploadCheckWords', '_GET|_POST|_COOKIE|assert|call_|create_|eval|_SERVER|function|defined|global|base64_');
+        $checkWords = aval(self::$setting, 'security/uploadCheckWords');
         if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', file_get_contents($post['files']['tmp_name']))) {
             @unlink($post['files']['tmp_name']);
             return self::$output->withCode(23005);

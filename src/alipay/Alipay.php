@@ -19,7 +19,7 @@ class Alipay
     {
         $this->output = $output;
         $this->data = $output->getData();
-        lib\Config::set($this->obj->payConfig);
+        lib\Config::set($this->data->payConfig);
         parent::__construct();
     }
 

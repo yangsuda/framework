@@ -238,7 +238,8 @@ class Str
             }
             foreach ($arr as $v) {
                 $i++;
-                list($keys, $value) = explode('=', $v);
+                $value = trim(stristr($v, '='),'=');
+                $keys = trim(stristr($v, '=', true));
                 $keys = trim($keys);
                 if (!empty($row[$keys])) {
                     $row[$i . '#' . $keys] = trim($value);

@@ -1373,6 +1373,12 @@ class Forms extends ModelAbstract
                 case 'password':
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
+                case 'map':
+                    static $isloadMapJs = 0;
+                    $isloadMapJs++;
+                    $v['isloadMapJs'] = $isloadMapJs;
+                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
+                    break;
                 case 'select':
                     static $isloadSelect2 = 0;
                     $isloadSelect2++;

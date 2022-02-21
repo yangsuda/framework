@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use Psr\Http\Message\ResponseInterface;
+use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Crypt;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Abstracts\MessageAbstract;
@@ -111,6 +112,9 @@ class Response extends MessageAbstract
     {
         self::$cookie->set('errorCode', Crypt::encrypt((string)$output->getCode()));
         self::$cookie->set('errorMsg', Crypt::encrypt((string)$output->getMsg()));
+        if(empty($output->getReferer())){
+            throw new TextException(21063);
+        }
         $this->response = $this->response->withHeader('location', $output->getReferer());
         return $this->response;
     }

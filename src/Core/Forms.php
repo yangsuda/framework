@@ -686,7 +686,14 @@ class Forms extends ModelAbstract
 
                 $val = aval($data, $v['identifier']);
                 if (empty($v['rules']) && $val && preg_match('/,/', (string)$val)) {
-                    $where[] = self::t()->field($v['identifier'], $val, 'between');
+                    list($s, $e) = explode(',', $val);
+                    if ($s && $e) {
+                        $where[] = self::t()->field($v['identifier'], $val, 'between');
+                    } elseif ($s) {
+                        $where[] = self::t()->field($v['identifier'], $s, '>');
+                    } elseif ($e) {
+                        $where[] = self::t()->field($v['identifier'], $e, '<');
+                    }
                 } elseif ($v['datatype'] == 'checkbox') {
                     if (!empty($val)) {
                         foreach (explode(',', $val) as $val1) {
@@ -718,19 +725,19 @@ class Forms extends ModelAbstract
                 }
 
                 if (!empty($val)) {
-                    if (strpos((string)$val, ',')) {
+                    if (strpos((string)$val, ',')!==false) {
                         if ($v['datatype'] == 'date') {
                             list($s, $e) = explode(',', $val);
-                            $sdate = Time::gmdate($s);
-                            $edate = Time::gmdate($e);
+                            $sdate = $s ? Time::gmdate($s) : '';
+                            $edate = $e ? Time::gmdate($e) : '';
                             $currenturl .= '&' . $v['identifier'] . '_s' . '=' . $sdate .
                                 '&' . $v['identifier'] . '_e' . '=' . $edate;
                             $data[$v['identifier'] . '_s'] = $sdate;
                             $data[$v['identifier'] . '_e'] = $edate;
                         } elseif ($v['datatype'] == 'datetime') {
                             list($s, $e) = explode(',', $val);
-                            $sdate = Time::gmdate($s, 'dt');
-                            $edate = Time::gmdate($e, 'dt');
+                            $sdate = $s ? Time::gmdate($s, 'dt') : '';
+                            $edate = $e ? Time::gmdate($e, 'dt') : '';
                             $currenturl .= '&' . $v['identifier'] . '_s' . '=' . $sdate .
                                 '&' . $v['identifier'] . '_e' . '=' . $edate;
                             $data[$v['identifier'] . '_s'] = $sdate;
@@ -1182,8 +1189,8 @@ class Forms extends ModelAbstract
                     case 'datetime':
                         $vals = self::input($identifier . '_s');
                         $vale = self::input($identifier . '_e');
-                        if ($vals && $vale) {
-                            $data[$identifier] = strtotime($vals) . ',' . strtotime($vale);
+                        if ($vals || $vale) {
+                            $data[$identifier] = ($vals ? strtotime($vals) : '') . ',' . ($vale ? strtotime($vale) : '');
                         } else {
                             $val = self::input($identifier);
                             if (isset($val)) {

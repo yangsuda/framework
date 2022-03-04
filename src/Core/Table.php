@@ -285,6 +285,9 @@ class Table
                 if ($this->redis->isAvailable()) {
                     foreach ($list as $k => $v) {
                         $data = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($fields) : [];
+                        if (!strpos($fields, ',') && $fields != '*') {
+                            $data = [$fields => $data];
+                        }
                         $list[$k] = $data ?: $v;
                     }
                 }

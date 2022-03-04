@@ -11,6 +11,7 @@ namespace SlimCMS\Core;
 
 use Psr\Container\ContainerInterface;
 use SlimCMS\Error\TextException;
+use SlimCMS\Helper\FileCache;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\DatabaseInterface;
 use App\Core\Redis;
@@ -112,6 +113,35 @@ class Table
     protected static function t(string $name = ''): Table
     {
         return Forms::t($name);
+    }
+
+    /**
+     * 分表操作（在调用父构造函数之前调用）
+     * @param string $tableName 原表名
+     * @param string $index 表名后缀
+     * @return bool
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
+    protected function subtable(string $tableName, string $index): bool
+    {
+        $subTableName = $tableName . $index;
+        $cachekey = __FUNCTION__ . '_' . $subTableName;
+        $data = FileCache::get($cachekey);
+        if (empty($data)) {
+            $db = self::t()->db();
+            $settings = self::$container->get('settings');
+            $tablepre = $settings['db']['tablepre'];
+            if ($db->fetch("SHOW TABLES LIKE '" . $tablepre . $subTableName . "'")) {
+                return false;
+            }
+            $row = $db->fetch("show create table " . $tablepre . $tableName);
+            $sql = str_replace($tablepre . $tableName, $tablepre . $subTableName, $row['Create Table']);
+            $query = $db->query($sql);
+            $db->affectedRows($query);
+            FileCache::set($cachekey, 1, 864000000);
+        }
+        return true;
     }
 
     /**
@@ -292,9 +322,9 @@ class Table
             $arr = [];
             foreach ($list as $k => $v) {
                 //如果开启缓存，读取缓存中数据
-                if($cacheTime){
+                if ($cacheTime) {
                     $arr[] = $this->withWhere($v['id'])->fetch($field);
-                }else{
+                } else {
                     $arr[] = $v[$field];
                 }
             }
@@ -745,9 +775,9 @@ class Table
      * @param string $func
      * @return string
      */
-    public function fetchColumn(string $field,string $func)
+    public function fetchColumn(string $field, string $func)
     {
-        $sql = $this->selectSQL($func.'(' . $field . ')');
+        $sql = $this->selectSQL($func . '(' . $field . ')');
         return $this->db->fetchColumn($sql);
     }
 

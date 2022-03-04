@@ -488,6 +488,7 @@ class Table
      */
     public function withWhere($val): Table
     {
+        $this->whereIsNumber = 0;
         if (empty($val)) {
             $where = '';
         } elseif (is_array($val)) {

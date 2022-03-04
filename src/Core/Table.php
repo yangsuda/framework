@@ -284,8 +284,8 @@ class Table
                 $list = $this->db->fetchList($sql, $indexField);
                 if ($this->redis->isAvailable()) {
                     foreach ($list as $k => $v) {
-                        $data = $this->withWhere($v['id'])->fetch($fields);
-                        $list[$k] = is_array($data) ? $data : [$fields => $data];
+                        $data = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($fields) : [];
+                        $list[$k] = $data ?: $v;
                     }
                 }
             }

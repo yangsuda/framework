@@ -67,7 +67,7 @@ abstract class BaseAbstract
         self::$setting = self::$container->get('settings');
     }
 
-    public static function t(string $name = ''): Table
+    public static function t(string $name = '', string $extendName = null): Table
     {
         static $objs = [];
         $name = $name ?: 'forms';
@@ -77,7 +77,7 @@ abstract class BaseAbstract
             $classname = 'App\Core\Table';
         }
         if (empty($objs[$name])) {
-            $objs[$name] = new $classname(self::$request, $name);
+            $objs[$name] = new $classname(self::$request, $name, $extendName);
         }
         return $objs[$name];
     }

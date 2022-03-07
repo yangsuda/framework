@@ -89,7 +89,7 @@ class Table
      */
     protected static $request;
 
-    public function __construct(Request $request, string $tableName)
+    public function __construct(Request $request, string $tableName, string $extendName = null)
     {
         self::$request = $request;
         self::$container = self::$request->getContainer();
@@ -97,7 +97,7 @@ class Table
         $settings = self::$container->get('settings');
         $this->db = self::$container->get(DatabaseInterface::class);
         $this->tablepre = $settings['db']['tablepre'];
-        $this->tableName = $this->tablepre . $tableName;
+        $this->tableName = $this->tablepre . $tableName . ($extendName ?: '');
         $this->redis = self::$container->get(Redis::class);
     }
 

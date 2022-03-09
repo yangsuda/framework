@@ -45,7 +45,7 @@ function getConfig()
             $cfg['settings']['output']['gzip'] = false;
         }
         $cfg['cfg']['clienttype'] = function (){
-            $agent = $_SERVER['HTTP_USER_AGENT'];
+            $agent = aval($_SERVER, 'HTTP_USER_AGENT');
             $referer = aval($_SERVER, 'HTTP_REFERER');
             $clienttype = 0;
             if (!empty($referer) && strpos($referer, 'servicewechat.com')) {

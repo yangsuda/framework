@@ -1232,6 +1232,7 @@ class Forms extends ModelAbstract
                     case 'img':
                     case 'media':
                     case 'addon':
+                    case 'superfile':
                         $val = self::input($identifier);
                         $rule = '';
                         if (!empty($cfg['whitePicUrl'])) {

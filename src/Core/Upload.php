@@ -11,6 +11,7 @@ namespace SlimCMS\Core;
 use Slim\Psr7\UploadedFile;
 use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\File;
+use SlimCMS\Interfaces\CookieInterface;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\UploadInterface;
 use SlimCMS\Abstracts\ModelAbstract;
@@ -20,6 +21,22 @@ class Upload extends ModelAbstract implements UploadInterface
 
     public function __construct()
     {
+    }
+
+    private function getSaveDir(string $dirrule = null)
+    {
+        $dir = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
+        if (!isset($dirrule)) {
+            if (!empty(self::$setting['attachment']['dirrule'])) {
+                $dirrule = str_replace(
+                    ['{Y}', '{m}', '{d}'],
+                    [date('Y'), date('m'), date('d')],
+                    trim(self::$setting['attachment']['dirrule'], '/'));
+            } else {
+                $dirrule = date('Y/m');
+            }
+        }
+        return $dir . '/' . ($dirrule ? $dirrule . '/' : '');
     }
 
     /**
@@ -34,9 +51,9 @@ class Upload extends ModelAbstract implements UploadInterface
             return self::$output->withCode(23001);
         }
 
-        $dirname = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
+        $dirname = $this->getSaveDir('tmp');
         $file = uniqid() . '.jpg';
-        $tmpPath = CSPUBLIC . $dirname . '/tmp/';
+        $tmpPath = CSPUBLIC . $dirname;
         File::mkdir($tmpPath);
         $fileUrl = $tmpPath . $file;
         $success = file_put_contents($fileUrl, $data);
@@ -60,13 +77,8 @@ class Upload extends ModelAbstract implements UploadInterface
         }
         $post['type'] = empty($post['type']) ? 'image' : $post['type'];
 
-        $dirname = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
-        if (!empty(self::$setting['attachment']['dirrule'])) {
-            $dirrule = str_replace(['{Y}', '{m}', '{d}'], [date('Y'), date('m'), date('d')], trim(self::$setting['attachment']['dirrule'], '/'));
-        } else {
-            $dirrule = date('Y/m');
-        }
-        $imgdir = CSPUBLIC . $dirname . '/' . $dirrule . '/';
+        $dirname = $this->getSaveDir();
+        $imgdir = CSPUBLIC . $dirname;
         File::mkdir($imgdir);
 
         $not_allow = aval(self::$setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
@@ -125,7 +137,7 @@ class Upload extends ModelAbstract implements UploadInterface
             return self::$output->withCode($code);
         }
 
-        $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip()),20), true)) . '.' . $ext;
+        $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip()), 20), true)) . '.' . $ext;
         $uploadPost = [];
         $uploadPost['attachment'] = new UploadedFile($post['files']['tmp_name'], $post['files']['name'], $post['files']['type']);
         $upload = self::$request->getRequest()->withUploadedFiles($uploadPost)->getUploadedFiles();
@@ -150,9 +162,9 @@ class Upload extends ModelAbstract implements UploadInterface
      */
     private function save(string $url, int $isfirst = 2): int
     {
-        $dirname = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
+        $dirname = $this->getSaveDir('');
         $data = [];
-        $data['url'] = preg_replace("'(.*)?(/" . $dirname . "/(.*)){1}'isU", "\\2", $url);
+        $data['url'] = preg_replace("'(.*)?(/" . rtrim($dirname, '/') . "/(.*)){1}'isU", "\\2", $url);
         $p = pathinfo($url);
         if (preg_match("/jpg|jpeg|gif|png/i", $p['extension'])) {
             $data['mediatype'] = 1;
@@ -168,10 +180,12 @@ class Upload extends ModelAbstract implements UploadInterface
             $data['mediatype'] = 6;
         }
         $file = CSPUBLIC . rtrim($url, '/');
-        $p = @getimagesize($file);
-        $data['width'] = $p[0];
-        $data['height'] = $p[1];
-        $data['filesize'] = @filesize($file);
+        if ($data['mediatype'] == 1) {
+            $p = @getimagesize($file);
+            $data['width'] = $p[0];
+            $data['height'] = $p[1];
+        }
+        is_file($file) && $data['filesize'] = @filesize($file);
         $data['isfirst'] = $isfirst == 1 ? 1 : 2;
         $data['createtime'] = TIMESTAMP;
         $data['ip'] = Ipdata::getip();
@@ -324,7 +338,7 @@ class Upload extends ModelAbstract implements UploadInterface
      */
     public function copyImage(string $pic, int $width = 2000, int $height = 2000, $more = []): string
     {
-        $nopic = aval($more,'nopic','resources/global/images/nopic/nopic.jpg');
+        $nopic = aval($more, 'nopic', 'resources/global/images/nopic/nopic.jpg');
         $attachmentHost = !empty(self::$config['attachmentHost']) ? self::$config['attachmentHost'] : self::$config['basehost'];
         $attachmentHost = rtrim($attachmentHost, '/') . '/';
         if (preg_match('/' . self::$config['domain'] . '/i', $pic)) {
@@ -361,5 +375,54 @@ class Upload extends ModelAbstract implements UploadInterface
             return $attachmentHost . $newpic;
         }
         return $attachmentHost . $pic;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function superFileUpload(array $file, int $index, string $filename): OutputInterface
+    {
+        if (empty($file['tmp_name']) || empty($index) || empty($filename)) {
+            return self::$output->withCode(21002);
+        }
+
+        $not_allow = aval(self::$setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
+        if (preg_match("#\.(" . $not_allow . ")$#i", $filename)) {
+            @unlink($file['tmp_name']);
+            return self::$output->withCode(23004);
+        }
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $subject = self::$config['imgtype'] . '|' . self::$config['mediatype'] . '|' . self::$config['softtype'];
+        $allAllowType = str_replace('||', '|', $subject);
+        if (strpos($allAllowType, $ext) === false) {
+            return self::$output->withCode(23009);
+        }
+
+        $cachekey = __FUNCTION__;
+        $cookie = self::$container->get(CookieInterface::class);
+        if ($index == 1) {
+            $cookie->set($cachekey, md5((string)TIMESTAMP), 3600);
+        }
+
+        $md5filename = $cookie->get($cachekey) ?: md5($filename);
+        $dir = $this->getSaveDir();
+        File::mkdir(CSPUBLIC . $dir);
+        $path = CSPUBLIC . $dir . $md5filename . '_' . $index;
+        $json = [];
+        if (!move_uploaded_file($file['tmp_name'], $path)) {
+            $json['src'] = $file;
+        } else {
+            $fileurl = $dir . $md5filename . '.' . $ext;
+            //合并文件file_put_contents，file_get_contents两个函数
+            file_put_contents(CSPUBLIC . $fileurl, file_get_contents($path), FILE_APPEND);
+            unlink($path);//删除合并过的文件
+            $json['fileurl'] = '/' . $fileurl;
+
+            //保存信息到数据库
+            if ($index == 1) {
+                $this->save('/' . $fileurl, 1);
+            }
+        }
+        return self::$output->withCode(200)->withData($json);
     }
 }

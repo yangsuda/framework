@@ -60,4 +60,15 @@ interface UploadInterface
      */
     public function copyImage(string $pic, int $width = 2000, int $height = 2000, $more = []): string;
 
+    /**
+     * 超大文件上传(将大文件切成小文件上传后拼接成大文件)
+     * @param array $file 附件
+     * @param int $index 分片上传索引ID
+     * @param string $filename 自定义文件名称
+     * @return OutputInterface
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
+    public function superFileUpload(array $file, int $index, string $filename): OutputInterface;
+
 }

@@ -167,7 +167,7 @@ class Forms extends ModelAbstract
             //判断删除文章附件变量是否开启；
             if (self::$config['isDelAttachment'] == '1') {
                 //判断属性；
-                $fields = static::fieldList(['formid' => $fid, 'available' => 1, 'datatype' => ['htmltext', 'imgs', 'img', 'media', 'addon']]);
+                $fields = static::fieldList(['formid' => $fid, 'available' => 1, 'datatype' => ['htmltext', 'imgs', 'img', 'media', 'addon', 'superfile']]);
                 if ($fields) {
                     static::delAttachment($fields, $v);
                 }
@@ -1308,9 +1308,7 @@ class Forms extends ModelAbstract
                         $upload->uploadDel($p['img']);
                     }
                     break;
-                case 'media':
-                case 'addon':
-                case 'img':
+                default:
                     $upload->uploadDel($data[$v['identifier']]);
                     break;
             }
@@ -1365,21 +1363,6 @@ class Forms extends ModelAbstract
 
             $template = 'block/fieldshtml/' . $datatype;
             switch ($datatype) {
-                case 'int':
-                case 'float':
-                case 'price':
-                case 'tel':
-                case 'text':
-                case 'radio':
-                case 'checkbox':
-                case 'multitext':
-                case 'media':
-                case 'hidden':
-                case 'readonly':
-                case 'addon':
-                case 'password':
-                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
-                    break;
                 case 'map':
                     static $isloadMapJs = 0;
                     $isloadMapJs++;
@@ -1460,6 +1443,9 @@ class Forms extends ModelAbstract
                 case 'serialize':
                     $val = var_export(unserialize($v['default']), true);
                     $v['val'] = nl2br(str_replace(["array (\n", "),\n", ")"], '', $val));
+                    $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
+                    break;
+                default:
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
             }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * 压缩、解压zip类
+ * 压缩、解压zip工具类
  * @author zhucy
  * @date 2022.03.11
  */
@@ -10,7 +10,12 @@ namespace SlimCMS\Helper;
 
 class Zip
 {
-    public static function pack(array $files)
+    /**
+     * 压缩
+     * @param array $files ,例：['xxx.php','uploads/2022/测试.doc']
+     * @return bool
+     */
+    public static function pack(array $files): bool
     {
         $zip = new \ZipArchive();
         $zipname = uniqid() . '.zip';
@@ -19,7 +24,7 @@ class Zip
             return false;
         }
         foreach ($files as $key => $v) {
-            $v = trim($v,'/');
+            $v = trim($v, '/');
             $file = CSPUBLIC . $v;
             $file_type = pathinfo($file, PATHINFO_EXTENSION);  //文件类型，取后缀
             $file_basename = basename($file);
@@ -49,7 +54,7 @@ class Zip
 
     /**
      * 解压
-     * @param string $file
+     * @param string $file ,例：'XX.zip'
      * @return bool
      */
     public static function unpack(string $file): bool
@@ -61,8 +66,8 @@ class Zip
         if ($zip->open($file) === TRUE) {
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
-                if (is_dir(CSPUBLIC . $filename)) {
-                    File::mkdir(CSPUBLIC . $filename);
+                if (substr($filename, -1) == '/') {
+                    File::mkdir(CSPUBLIC . $filename, 0777, false);
                 } else {
                     $s = $zip->getStream($filename);
                     $data = stream_get_contents($s);

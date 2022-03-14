@@ -69,6 +69,6 @@ interface UploadInterface
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public function superFileUpload(array $file, int $index, string $filename): OutputInterface;
+    public function superFileUpload(array $file, int $index, string $filename, string $diyDir = ''): OutputInterface;
 
 }

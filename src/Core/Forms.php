@@ -101,6 +101,7 @@ class Forms extends ModelAbstract
      * @param int $fid
      * @param array $ids
      * @param int $ischeck
+     * @param array $options 方便接收外部自定义数据
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
@@ -137,6 +138,7 @@ class Forms extends ModelAbstract
      * 删除数据
      * @param int $fid
      * @param array $ids
+     * @param array $options 方便接收外部自定义数据
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
@@ -491,6 +493,7 @@ class Forms extends ModelAbstract
      * @param int $fid 自定义表单对应的ID
      * @param array $row 原来的数据
      * @param array $data 要添加或修改的数据
+     * @param array $options 方便接收外部自定义数据
      */
     public static function dataSave(int $fid, $row = [], array $data = [], array $options = []): OutputInterface
     {

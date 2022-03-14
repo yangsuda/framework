@@ -104,7 +104,7 @@ class Forms extends ModelAbstract
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function dataCheck(int $fid, array $ids, int $ischeck = 1): OutputInterface
+    public static function dataCheck(int $fid, array $ids, int $ischeck = 1, array $options = []): OutputInterface
     {
         if (empty($fid) || empty($ids)) {
             return self::$output->withCode(21002);
@@ -117,7 +117,7 @@ class Forms extends ModelAbstract
         $ischeck = $ischeck == 1 ? 1 : 2;
         //处理前
         if (is_callable([self::t($form['table']), 'dataCheckBefore'])) {
-            $rs = self::t($form['table'])->dataCheckBefore($ids, $ischeck);
+            $rs = self::t($form['table'])->dataCheckBefore($ids, $ischeck, $options);
             if ($rs != 200) {
                 return self::$output->withCode($rs);
             }
@@ -125,7 +125,7 @@ class Forms extends ModelAbstract
         self::t($form['table'])->withWhere(['id' => $ids])->update(['ischeck' => $ischeck]);
         //处理后
         if (is_callable([self::t($form['table']), 'dataCheckAfter'])) {
-            $rs = self::t($form['table'])->dataCheckAfter($ids, $ischeck);
+            $rs = self::t($form['table'])->dataCheckAfter($ids, $ischeck, $options);
             if ($rs != 200) {
                 return self::$output->withCode($rs);
             }
@@ -140,7 +140,7 @@ class Forms extends ModelAbstract
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function dataDel(int $fid, array $ids): OutputInterface
+    public static function dataDel(int $fid, array $ids, array $options = []): OutputInterface
     {
         if (empty($fid) || empty($ids)) {
             return self::$output->withCode(21002);
@@ -156,7 +156,7 @@ class Forms extends ModelAbstract
         }
         foreach ($list as $k => $v) {
             if (is_callable([self::t($form['table']), 'dataDelBefore'])) {
-                $rs = self::t($form['table'])->dataDelBefore($v);
+                $rs = self::t($form['table'])->dataDelBefore($v, $options);
                 if ($rs != 200) {
                     return self::$output->withCode($rs);
                 }
@@ -175,7 +175,7 @@ class Forms extends ModelAbstract
 
             //删除相关数据
             if (is_callable([self::t($form['table']), 'dataDelAfter'])) {
-                $rs = self::t($form['table'])->dataDelAfter($v);
+                $rs = self::t($form['table'])->dataDelAfter($v, $options);
                 if ($rs != 200) {
                     return self::$output->withCode($rs);
                 }
@@ -492,7 +492,7 @@ class Forms extends ModelAbstract
      * @param array $row 原来的数据
      * @param array $data 要添加或修改的数据
      */
-    public static function dataSave(int $fid, $row = [], array $data = []): OutputInterface
+    public static function dataSave(int $fid, $row = [], array $data = [], array $options = []): OutputInterface
     {
         //编辑数据
         if ($row && is_numeric($row)) {
@@ -531,7 +531,7 @@ class Forms extends ModelAbstract
         }
 
         if (is_callable([self::t($form['table']), 'dataSaveBefore'])) {
-            $rs = self::t($form['table'])->dataSaveBefore($data, $row);
+            $rs = self::t($form['table'])->dataSaveBefore($data, $row, $options);
             if ($rs != 200) {
                 return self::$output->withCode($rs);
             }
@@ -551,7 +551,7 @@ class Forms extends ModelAbstract
         }
 
         if (is_callable([self::t($form['table']), 'dataSaveAfter'])) {
-            $rs = self::t($form['table'])->dataSaveAfter($data, $row);
+            $rs = self::t($form['table'])->dataSaveAfter($data, $row, $options);
             if ($rs != 200) {
                 return self::$output->withCode($rs);
             }
@@ -725,7 +725,7 @@ class Forms extends ModelAbstract
                 }
 
                 if (!empty($val)) {
-                    if (strpos((string)$val, ',')!==false) {
+                    if (strpos((string)$val, ',') !== false) {
                         if ($v['datatype'] == 'date') {
                             list($s, $e) = explode(',', $val);
                             $sdate = $s ? Time::gmdate($s) : '';

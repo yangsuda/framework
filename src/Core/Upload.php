@@ -380,7 +380,7 @@ class Upload extends ModelAbstract implements UploadInterface
     /**
      * @inheritDoc
      */
-    public function superFileUpload(array $file, int $index, string $filename): OutputInterface
+    public function superFileUpload(array $file, int $index, string $filename, string $diyDir = ''): OutputInterface
     {
         if (empty($file['tmp_name']) || empty($index) || empty($filename)) {
             return self::$output->withCode(21002);
@@ -405,7 +405,7 @@ class Upload extends ModelAbstract implements UploadInterface
         }
 
         $md5filename = $cookie->get($cachekey) ?: md5($filename);
-        $dir = $this->getSaveDir();
+        $dir = $this->getSaveDir($diyDir);
         File::mkdir(CSPUBLIC . $dir);
         $path = CSPUBLIC . $dir . $md5filename . '_' . $index;
         $json = [];

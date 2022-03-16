@@ -115,7 +115,6 @@ class Forms extends ModelAbstract
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
-        $ischeck = $ischeck == 1 ? 1 : 2;
         //处理前
         if (is_callable([self::t($form['table']), 'dataCheckBefore'])) {
             $rs = self::t($form['table'])->dataCheckBefore($ids, $ischeck, $options);
@@ -330,7 +329,7 @@ class Forms extends ModelAbstract
                 if ($ischeck) {
                     $param['get']['ischeck'] = $ischeck;
                     $where = [];
-                    $where['ischeck'] = $ischeck == 1 ? 1 : 2;
+                    $where['ischeck'] = $ischeck;
                     $param['where'] = !empty($param['where']) ? array_merge((array)$param['where'], $where) : $where;
                     empty($param['noinput']) && $param['currenturl'] .= '&ischeck=' . $ischeck;
                 }

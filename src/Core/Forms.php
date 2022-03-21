@@ -715,7 +715,11 @@ class Forms extends ModelAbstract
                         if (preg_match('/,/', (string)$val)) {
                             $where[$v['identifier']] = explode(',', $val);
                         } else {
-                            $where[$v['identifier']] = $val;
+                            if (aval($v, 'precisesearch') == 1) {
+                                $where[$v['identifier']] = $val;
+                            } else {
+                                $where[] = self::t()->field($v['identifier'], $val, 'like');
+                            }
                         }
                     }
                 }
@@ -834,13 +838,11 @@ class Forms extends ModelAbstract
             return self::$output->withCode(22006);
         }
 
-        $row = [];
-        $row['fid'] = $param['fid'];
-        $row['page'] = aval($param, 'page', 1);
-        $row['by'] = 'desc';
-        $row['pagesize'] = aval($param, 'pagesize', 1000);
-        $row['fields'] = '*';
-        $result = static::dataList($row);
+        $dataListParam = $param;
+        $dataListParam['by'] = 'desc';
+        $dataListParam['pagesize'] = aval($param, 'pagesize', 1000);
+        $dataListParam['fields'] = '*';
+        $result = static::dataList($dataListParam);
         $data = $result->getData();
         foreach ($data['list'] as $k => $v) {
             $v['style'] = 'vnd.ms-excel.numberformat:@;height:30px;';

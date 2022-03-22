@@ -12,10 +12,11 @@ class Zip
 {
     /**
      * 压缩
-     * @param array $files ,例：['xxx.php','uploads/2022/测试.doc']
+     * @param array $files ,例：[['file'=>'xxx.php','name'=>'文件名1'],['file'=>'uploads/2022/测试.doc','name'=>'文件名2']]
+     * @param bool $inroot 是否将文件打包在同一根目录下
      * @return bool
      */
-    public static function pack(array $files): bool
+    public static function pack(array $files, bool $inroot = true): bool
     {
         $zip = new \ZipArchive();
         $zipname = uniqid() . '.zip';
@@ -23,15 +24,30 @@ class Zip
         if ($zip->open($zipname, \ZipArchive::CREATE) !== TRUE) {
             return false;
         }
-        foreach ($files as $key => $v) {
-            $v = trim($v, '/');
-            $file = CSPUBLIC . $v;
-            $file_type = pathinfo($file, PATHINFO_EXTENSION);  //文件类型，取后缀
-            $file_basename = basename($file);
+        $i = 0;
+        $tmpFiles = [];
+        foreach ($files as $v) {
+            $i++;
+            $v['file'] = trim($v['file'], '/');
+            $file = CSPUBLIC . $v['file'];
+            $fileType = pathinfo($file, PATHINFO_EXTENSION);  //文件类型，取后缀
+            $fileBasename = basename($file);
             if (is_file($file)) {
-                $zip->addFile($v);
+                if ($inroot === true) {
+                    if (!empty($v['name'])) {
+                        $v['name'] = preg_match_all('/[\x{4e00}-\x{9fff}\w\(\)-]+/u', $v['name'], $matches);
+                        $v['name'] = join('', $matches[0]);
+                    }
+                    $name = !empty($v['name']) ? $v['name'] : $fileBasename;
+                    $name = $i . '_' . $name . '.' . $fileType;
+                    $tmpFiles[] = $name;
+                    copy($file, CSPUBLIC . $name);
+                    $zip->addFile($name);
+                } else {
+                    $zip->addFile($v['file']);
+                }
             } else {
-                $zip->addFile($file_basename . '_' . '(File_Miss)' . '.' . $file_type);
+                $zip->addFile($fileBasename . '_' . '(File_Miss)' . '.' . $fileType);
             }
         }
 
@@ -48,6 +64,10 @@ class Zip
         //每一次下载后删除旧压缩包
         if (is_file($zipname)) {
             @unlink($zipname);
+        }
+        //删除临时复制的文件
+        foreach ($tmpFiles as $v) {
+            @unlink(CSPUBLIC . $v);
         }
         return true;
     }

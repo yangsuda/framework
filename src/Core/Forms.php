@@ -752,6 +752,8 @@ class Forms extends ModelAbstract
                             $val = str_replace(',', '`', $val);
                             $currenturl .= '&' . $v['identifier'] . '=' . $val;
                         }
+                    } elseif ($v['datatype'] == 'stepselect') {
+                        $currenturl .= '&' . $v['egroup'] . '=' . $val;
                     } else {
                         $currenturl .= '&' . $v['identifier'] . '=' . $val;
                     }

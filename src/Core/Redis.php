@@ -1057,4 +1057,36 @@ class Redis
         }
         return self::$redis->georadiusbymember($key, $member, $radius, $units, $options);
     }
+
+    /**
+     * 消息发布
+     * @param $value
+     * @param int $ttl
+     * @return bool
+     */
+    public function MQPublish($value, $ttl = 864000)
+    {
+        $queueKey = 'messageQueue';
+        $this->cacheKey($queueKey);
+        $value = serialize($value);
+        $this->rpush($queueKey, $value, $ttl);
+        return true;
+    }
+
+    /**
+     * 消息消费
+     * @param $callback
+     * @return bool
+     */
+    public function MQConsume($callback)
+    {
+        $queueKey = 'messageQueue';
+        $this->cacheKey($queueKey);
+        $data = $this->lpop($queueKey);
+        if (!empty($data)) {
+            $data = unserialize($data);
+            return $callback($data);
+        }
+        return false;
+    }
 }

@@ -75,7 +75,7 @@ class Forms extends ModelAbstract
      * @param string $table
      * @return OutputInterface
      */
-    public static function createTable(string $table): OutputInterface
+    public static function createTable(string $table, string $name = ''): OutputInterface
     {
         if (empty($table)) {
             return self::$output->withCode(200);
@@ -90,7 +90,7 @@ class Forms extends ModelAbstract
 				`ischeck` tinyint(1) NOT NULL default '2' COMMENT '是否审核(1=已审核，2=未审核)',
 				`createtime` int(11) NOT NULL default '0' COMMENT '创建时间',
 				`ip` varchar(20) NOT NULL default '' COMMENT '创建IP',
-				PRIMARY KEY  (`id`)\r\n) ENGINE=MyISAM DEFAULT CHARSET=" . self::$setting['db']['dbcharset'] . "; ";
+				PRIMARY KEY  (`id`)\r\n) ENGINE=MyISAM DEFAULT CHARSET=" . self::$setting['db']['dbcharset'] . " COMMENT='" . $name . "'; ";
         $query = $db->query($sql);
         $db->affectedRows($query);
         return self::$output->withCode(200);

@@ -34,6 +34,12 @@ class Output implements OutputInterface
     private $template = 'prompt';
 
     /**
+     * 额外提示信息
+     * @var array
+     */
+    private $extraPrompt = [];
+
+    /**
      * 容器
      * @var \DI\Container|mixed
      */
@@ -83,7 +89,7 @@ class Output implements OutputInterface
                 $str = $para;
             }
         }
-        return $str;
+        return (string)$str;
     }
 
     /**
@@ -96,7 +102,7 @@ class Output implements OutputInterface
             $prompt = require CSROOT . 'config/prompt.php';
             $prompt += require dirname(dirname(__FILE__)) . '/Config/prompt.php';
         }
-        return $prompt;
+        return $prompt + $this->extraPrompt;
     }
 
     /**
@@ -178,6 +184,16 @@ class Output implements OutputInterface
     {
         $clone = clone $this;
         $clone->referer = $url;
+        return $clone;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function withPrompt(array $prompt): OutputInterface
+    {
+        $clone = clone $this;
+        $clone->extraPrompt = $prompt;
         return $clone;
     }
 

@@ -86,6 +86,13 @@ interface OutputInterface extends JsonSerializable
     public function withReferer(string $url): self;
 
     /**
+     * 设置额外的提示信息（如插件中）
+     * @param array $prompt
+     * @return OutputInterface
+     */
+    public function withPrompt(array $prompt): self;
+
+    /**
      * 解析模板
      * @return mixed
      */

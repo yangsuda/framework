@@ -72,8 +72,8 @@ class File
 
     /**
      * 文件夹复制
-     * @param string $sourceDir 源文件夹
-     * @param string $targetDir 目标文件夹
+     * @param string $sourceDir
+     * @param string $targetDir
      * @return bool
      */
     public static function copyDir(string $sourceDir, string $targetDir): bool
@@ -84,7 +84,7 @@ class File
         $dh = @dir($sourceDir);
         self::mkdir($targetDir);
         while (($file = $dh->read()) !== false) {
-            if ($file != "." && $file != "..") {
+            if ($file != '.' && $file != '..') {
                 if (is_dir($sourceDir . '/' . $file)) {
                     self::copyDir($sourceDir . '/' . $file, $targetDir . '/' . $file);
                 } else {
@@ -93,6 +93,49 @@ class File
             }
         }
         $dh->close();
+        return true;
+    }
+
+    /**
+     * 删除文件或文件夹
+     * @param $file
+     * @return bool
+     */
+    public static function delFiles(string $file): bool
+    {
+        if (empty($file)) {
+            return false;
+        }
+        if (is_file($file)) {
+            return unlink($file);
+        } elseif (is_dir($file)) {
+            return self::delDir($file);
+        }
+        return false;
+    }
+
+    /**
+     * 删除文件夹
+     * @param $dir
+     * @return bool
+     */
+    private static function delDir(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return false;
+        }
+        $dh = dir($dir);
+        while ($filename = $dh->read()) {
+            if ($filename == '.' || $filename == '..') {
+                continue;
+            } elseif (is_file($dir . '/' . $filename)) {
+                unlink($dir . '/' . $filename);
+            } elseif (is_dir($dir . '/' . $filename)) {
+                self::delDir($dir . '/' . $filename);
+            }
+        }
+        $dh->close();
+        @rmdir($dir);
         return true;
     }
 }

@@ -69,4 +69,30 @@ class File
         }
         return $loggers[$key];
     }
+
+    /**
+     * 文件夹复制
+     * @param string $sourceDir 源文件夹
+     * @param string $targetDir 目标文件夹
+     * @return bool
+     */
+    public static function copyDir(string $sourceDir, string $targetDir): bool
+    {
+        if (!is_dir($sourceDir)) {
+            return false;
+        }
+        $dh = @dir($sourceDir);
+        self::mkdir($targetDir);
+        while (($file = $dh->read()) !== false) {
+            if ($file != "." && $file != "..") {
+                if (is_dir($sourceDir . '/' . $file)) {
+                    self::copyDir($sourceDir . '/' . $file, $targetDir . '/' . $file);
+                } else {
+                    @copy($sourceDir . '/' . $file, $targetDir . '/' . $file);
+                }
+            }
+        }
+        $dh->close();
+        return true;
+    }
 }

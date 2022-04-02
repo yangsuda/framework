@@ -74,24 +74,26 @@ class Zip
 
     /**
      * 解压
-     * @param string $file ,例：'XX.zip'
+     * @param string $file 压缩包文件地址，只能为zip格式
+     * @param string $path 解压到目录
      * @return bool
      */
-    public static function unpack(string $file): bool
+    public static function unpack(string $file, string $path = null): bool
     {
         if (empty($file)) {
             return false;
         }
+        $path = $path ?: CSPUBLIC;
         $zip = new \ZipArchive;
         if ($zip->open($file) === TRUE) {
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
                 if (substr($filename, -1) == '/') {
-                    File::mkdir(CSPUBLIC . $filename, 0777, false);
+                    File::mkdir($path . $filename, 0777, false);
                 } else {
                     $s = $zip->getStream($filename);
                     $data = stream_get_contents($s);
-                    file_put_contents(CSPUBLIC . $filename, $data);
+                    file_put_contents($path . $filename, $data);
                 }
             }
             $zip->close();

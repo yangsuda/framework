@@ -74,7 +74,8 @@ class Zip
 
     /**
      * 解压
-     * @param string $file ,例：'XX.zip'
+     * @param string $file 压缩包文件地址，只能为zip格式
+     * @param string $path 解压到目录
      * @return bool
      */
     public static function unpack(string $file, string $path = null): bool

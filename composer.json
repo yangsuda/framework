@@ -23,7 +23,7 @@
         "php-di/php-di": "^6.1",
         "slim/psr7": "^1.1",
         "slim/slim": "^4.5",
-        "dapphp/securimage": "^4.0"
+        "dapphp/securimage": "3.6.7"
     },
     "repositories": {
         "packagist": {

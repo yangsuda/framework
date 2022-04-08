@@ -238,7 +238,7 @@ class Str
             }
             foreach ($arr as $v) {
                 $i++;
-                $value = trim(stristr($v, '='),'=');
+                $value = trim(stristr($v, '='), '=');
                 $keys = trim(stristr($v, '=', true));
                 $keys = trim($keys);
                 if (!empty($row[$keys])) {
@@ -305,10 +305,79 @@ class Str
                 return $text;
             }
             $coding = mb_detect_encoding($text, array('GB2312', 'GBK', 'ASCII', 'UTF-8', 'BIG5'));
-            if(empty($coding)){
+            if (empty($coding)) {
                 return mb_convert_encoding($text, 'utf-8', 'gbk');
             }
             return iconv($coding, 'utf-8', $text);
         }
+    }
+
+    /**
+     * 用户提交数据过滤
+     * @param $string
+     * @param null $flags
+     * @return array|mixed|null|string|string[]
+     */
+    public static function htmlspecialchars($string, $flags = null)
+    {
+        if (is_array($string)) {
+            foreach ($string as $key => $val) {
+                $string[$key] = self::htmlspecialchars($val, $flags);
+            }
+        } else {
+            if (empty($flags)) {
+                $string = str_replace(
+                    ['&', '"', '<', '>', '\'', '||', '*', '$', '(', ')'],
+                    ['&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'], $string);
+                if (strpos($string, '&amp;#') !== false) {
+                    $string = preg_replace('/&amp;((#(\d{3,5}|x[a-fA-F0-9]{4}));)/', '&\\1', $string);
+                }
+            } elseif ($flags == 'en') {
+                $string = str_replace(array('&', '"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'), array('&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#040;null&#041;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'), $string);
+            } elseif ($flags == 'de') {
+                $string = str_replace(
+                    ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;', '&lt;', '&gt;'],
+                    ["'", '"', '*', '"', '“', '”', '&', '(', ')', '<', '>'], $string);
+            }
+        }
+        return $string;
+    }
+
+    /**
+     * 对富文本进行转译
+     * @param $string
+     * @return array|string
+     */
+    public static function addslashes($string)
+    {
+        if (is_array($string)) {
+            $keys = array_keys($string);
+            foreach ($keys as $key) {
+                $string[addslashes($key)] = self::addslashes($string[$key]);
+            }
+        } else {
+            $string = addslashes($string);
+        }
+        return $string;
+    }
+
+    /**
+     * 对转译过的富文本还原
+     * @param $string
+     * @return array|string
+     */
+    public static function stripslashes($string)
+    {
+        if (empty($string)) {
+            return $string;
+        }
+        if (is_array($string)) {
+            foreach ($string as $key => $val) {
+                $string[$key] = self::stripslashes($val);
+            }
+        } else {
+            $string = stripslashes($string);
+        }
+        return $string;
     }
 }

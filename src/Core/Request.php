@@ -9,6 +9,7 @@ namespace SlimCMS\Core;
 
 use SlimCMS\Error\TextException;
 use SlimCMS\Abstracts\MessageAbstract;
+use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\UploadInterface;
 
 class Request extends MessageAbstract
@@ -82,73 +83,6 @@ class Request extends MessageAbstract
     }
 
     /**
-     * 用户提交数据过滤
-     * @param $string
-     * @param null $flags
-     * @return array|mixed|null|string|string[]
-     */
-    public function htmlspecialchars($string, $flags = null)
-    {
-        if (is_array($string)) {
-            foreach ($string as $key => $val) {
-                $string[$key] = $this->htmlspecialchars($val, $flags);
-            }
-        } else {
-            if (empty($flags)) {
-                $string = str_replace(
-                    ['&', '"', '<', '>', '\'', '||', '*', '$', '(', ')'],
-                    ['&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'], $string);
-                if (strpos($string, '&amp;#') !== false) {
-                    $string = preg_replace('/&amp;((#(\d{3,5}|x[a-fA-F0-9]{4}));)/', '&\\1', $string);
-                }
-            } elseif ($flags == 'de') {
-                $string = str_replace(
-                    ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;', '&lt;', '&gt;'],
-                    ["'", '"', '*', '"', '“', '”', '&', '(', ')', '<', '>'], $string);
-            }
-        }
-        return $string;
-    }
-
-    /**
-     * 对富文本进行转译
-     * @param $string
-     * @return array|string
-     */
-    protected function addslashes($string)
-    {
-        if (is_array($string)) {
-            $keys = array_keys($string);
-            foreach ($keys as $key) {
-                $string[addslashes($key)] = $this->addslashes($string[$key]);
-            }
-        } else {
-            $string = addslashes($string);
-        }
-        return $string;
-    }
-
-    /**
-     * 对转译过的富文本还原
-     * @param $string
-     * @return array|string
-     */
-    protected static function stripslashes($string)
-    {
-        if (empty($string)) {
-            return $string;
-        }
-        if (is_array($string)) {
-            foreach ($string as $key => $val) {
-                $string[$key] = self::stripslashes($val);
-            }
-        } else {
-            $string = stripslashes($string);
-        }
-        return $string;
-    }
-
-    /**
      * 获取外部提交的数据
      * @param $param
      * @return array
@@ -162,9 +96,9 @@ class Request extends MessageAbstract
                 continue;
             }
             if ($v == 'htmltext') {
-                $data[$k] = (string)$this->addslashes($val);
+                $data[$k] = (string)Str::addslashes($val);
             } elseif ($v == 'string') {
-                $data[$k] = $this->htmlspecialchars($val);
+                $data[$k] = Str::htmlspecialchars($val);
             } elseif ($v == 'float') {
                 $data[$k] = (float)$val;
             } elseif ($v == 'price') {
@@ -177,16 +111,16 @@ class Request extends MessageAbstract
                     list(, $width, $height) = explode(',', $v);
                 }
                 $upload = $this->container->get(UploadInterface::class);
-                if(is_string($val)){
+                if (is_string($val)) {
                     $res = $upload->h5($val);
-                }else{
+                } else {
                     $uploadData = ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
                     $res = $upload->upload($uploadData);
                 }
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     throw new TextException($res->getCode());
                 }
-                $data[$k] = aval($res->getData(),'fileurl') ?: '';
+                $data[$k] = aval($res->getData(), 'fileurl') ?: '';
             } elseif (preg_match('/^int/i', $v)) {
                 $data[$k] = (int)$val;
                 if (strpos($v, ',')) {
@@ -198,7 +132,7 @@ class Request extends MessageAbstract
                     }
                 }
             } elseif (preg_match('/^isset/i', $v) && isset($_GET[$k])) {
-                $data[$k] = self::htmlspecialchars($val);
+                $data[$k] = Str::htmlspecialchars($val);
                 if (strpos($v, ',')) {
                     list($v, $val1, $val2) = explode(',', $v);
                     if (strpos($v, '==')) {
@@ -212,10 +146,10 @@ class Request extends MessageAbstract
                     list(, $func) = explode(',', $v);
                     $data[$k] = implode(',', array_map($func, $val));
                 } else {
-                    $data[$k] = self::htmlspecialchars(implode(',', $val));
+                    $data[$k] = Str::htmlspecialchars(implode(',', $val));
                 }
             } elseif ($v == 'serialize') {
-                $data[$k] = $val ? serialize(self::htmlspecialchars($val)) : '';
+                $data[$k] = $val ? serialize(Str::htmlspecialchars($val)) : '';
             } elseif ($v == 'url') {
                 $data[$k] = str_replace(['"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'], ['&quot;', '&lt;', '&gt;', '&#039;', '', '&#124;&#124;', '&#042;', '&#036;', '&#040;', ' &#041;'], $val);
             } elseif ($v == 'tel') {

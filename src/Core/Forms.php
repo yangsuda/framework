@@ -1100,7 +1100,7 @@ class Forms extends ModelAbstract
                     }
                     break;
                 default:
-                    $v['_' . $identifier] = self::$request->htmlspecialchars($v[$identifier], 'de');
+                    $v['_' . $identifier] = Str::htmlspecialchars($v[$identifier], 'de');
                     break;
             }
         }
@@ -1263,7 +1263,7 @@ class Forms extends ModelAbstract
                         break;
                     case 'serialize':
                         $val = self::input($identifier);
-                        $data[$identifier] = is_array($val) ? serialize($val) : self::$request->htmlspecialchars($val, 'de');
+                        $data[$identifier] = is_array($val) ? serialize($val) : Str::htmlspecialchars($val, 'de');
                         break;
                     case 'password':
                         $val = self::input($identifier);
@@ -1476,7 +1476,7 @@ class Forms extends ModelAbstract
         $db = self::t()->db();
         $tableName = $tablepre . str_replace($tablepre, '', $table);
         if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
-            $result = self::$request->htmlspecialchars($rules[$table], 'de');
+            $result = Str::htmlspecialchars($rules[$table], 'de');
             $result = json_decode($result, true);
             $order = $way = '';
             $orderby = aval($result, 'orderby');

@@ -710,6 +710,10 @@ class Forms extends ModelAbstract
                             $where[] = self::t()->field($v['identifier'], $val, 'like');
                         }
                     }
+                } elseif ($v['datatype'] == 'stepselect') {
+                    if (!empty($val)) {
+                        $where[$v['identifier']] = self::_enumSubids($v['egroup'], $val);
+                    }
                 } else {
                     if (!empty($val)) {
                         if (preg_match('/,/', (string)$val)) {
@@ -762,6 +766,31 @@ class Forms extends ModelAbstract
         }
         $data = ['tags' => $tags, 'fields' => $fields, 'where' => $where, 'currentUrl' => $currenturl, 'get' => $data];
         return self::$output->withCode(200)->withData($data);
+    }
+
+    private static function _enumSubids($egroup, $evalue = 0)
+    {
+        $list = self::t('sysenum')->withWhere(['egroup' => $egroup, 'reid' => $evalue])->onefieldList('evalue');
+        foreach ($list as $v) {
+            $list = array_merge($list,self::_enumSubids($egroup, $v));
+        }
+        $list[] = $evalue;
+        return array_unique($list);
+    }
+
+    /**
+     * 联动数据某ID下的所有子ID
+     * @param $egroup
+     * @param int $evalue
+     * @return OutputInterface
+     */
+    public static function enumSubids($egroup, $evalue = 0)
+    {
+        if (empty($egroup)) {
+            return self::$output->withCode(21002);
+        }
+        $list = self::_enumSubids($egroup, $evalue);
+        return self::$output->withCode(200)->withData(['ids' => $list]);
     }
 
     /**

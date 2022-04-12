@@ -84,6 +84,7 @@ class Zip
             return false;
         }
         $path = $path ?: CSPUBLIC;
+        $path = ltrim($path, '/') . '/';
         $zip = new \ZipArchive;
         if ($zip->open($file) === TRUE) {
             for ($i = 0; $i < $zip->numFiles; $i++) {

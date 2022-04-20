@@ -196,10 +196,11 @@ class Forms extends ModelAbstract
      * @param int $id
      * @param string $fields
      * @param int $cacheTime
+     * @param array $options 方便接收外部自定义数据
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public static function dataView(int $fid, int $id, string $fields = '*', int $cacheTime = 0): OutputInterface
+    public static function dataView(int $fid, int $id, string $fields = '*', int $cacheTime = 0, array $options = []): OutputInterface
     {
         if (empty($fid) || empty($id)) {
             return self::$output->withCode(21002);
@@ -212,7 +213,7 @@ class Forms extends ModelAbstract
                 return self::$output->withCode(22006);
             }
             if (is_callable([self::t($form['table']), 'dataViewBefore'])) {
-                $rs = self::t($form['table'])->dataViewBefore($id);
+                $rs = self::t($form['table'])->dataViewBefore($id, $options);
                 if ($rs != 200) {
                     return self::$output->withCode($rs);
                 }
@@ -231,7 +232,7 @@ class Forms extends ModelAbstract
 
             //获取额外数据
             if (is_callable([self::t($form['table']), 'dataViewAfter'])) {
-                $rs = self::t($form['table'])->dataViewAfter($data);
+                $rs = self::t($form['table'])->dataViewAfter($data, $options);
                 if ($rs != 200) {
                     return self::$output->withCode($rs);
                 }
@@ -508,10 +509,11 @@ class Forms extends ModelAbstract
             $fields = $val['fields'];
         } else {
             $row = $row ?: [];
-            $form = self::formView($fid)->getData()['form'];
-            if (empty($form)) {
+            $formData = self::formView($fid)->getData();
+            if (empty($formData['form'])) {
                 return self::$output->withCode(22006);
             }
+            $form = $formData['form'];
             $fields = static::fieldList(['formid' => $fid, 'available' => 1]);;
         }
         $res = static::requiredCheck($fid, $row, $data);
@@ -772,7 +774,7 @@ class Forms extends ModelAbstract
     {
         $list = self::t('sysenum')->withWhere(['egroup' => $egroup, 'reid' => $evalue])->onefieldList('evalue');
         foreach ($list as $v) {
-            $list = array_merge($list,self::_enumSubids($egroup, $v));
+            $list = array_merge($list, self::_enumSubids($egroup, $v));
         }
         $list[] = $evalue;
         return array_unique($list);

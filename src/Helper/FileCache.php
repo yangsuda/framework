@@ -11,6 +11,7 @@ class FileCache
 {
     private static function getCacheFile($key)
     {
+        $key = md5($key);
         $dir = CSDATA . 'fileCache/' . $key[0].'/';
         File::mkdir($dir);
         return $dir . $key . '.txt';

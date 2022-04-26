@@ -115,17 +115,25 @@ class Wxxcx extends ModelAbstract
 
     /**
      * 检验数据的真实性，并且获取解密后的明文.
-     * @param $encrypteddata string 加密的用户数据
-     * @param $iv string 与用户数据一同返回的初始向量
-     * @param $sessionkey string 解密后的原文
+     * @param $output->getData()[appid] string 小程序appid
+     * @param $output->getData()[appsecret] string 小程序appsecret
+     * @param $output->getData()[encrypteddata] string 加密的用户数据
+     * @param $output->getData()[encrypteddata] string 加密的用户数据
+     * @param $output->getData()[iv] string 与用户数据一同返回的初始向量
+     * @param $output->getData()[code] string 登录时获取的code
      * @return array
      */
     public static function decryptData(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
-        if (empty($data['sessionkey']) || empty($data['iv']) || empty($data['encrypteddata'])) {
+        if (empty($data['code']) || empty($data['iv']) || empty($data['encrypteddata'])) {
             return self::$output->withCode(21003);
         }
+        $res = self::getOpenid($output);
+        if ($res->getCode() != 200) {
+            return $res;
+        }
+        $data['sessionkey'] = $res->getData()['session_key'];
         if (strlen($data['sessionkey']) != 24) {
             return self::$output->withCode(22000);
         }
@@ -140,7 +148,7 @@ class Wxxcx extends ModelAbstract
 
         $result = openssl_decrypt($aesCipher, "AES-128-CBC", $aesKey, 1, $aesIV);
 
-        $dataObj = json_decode($result, true);
+        $dataObj = !empty($result) ? json_decode($result, true) : null;
         if ($dataObj == NULL) {
             return self::$output->withCode(22002);
         }
@@ -185,5 +193,36 @@ class Wxxcx extends ModelAbstract
             return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
         }
         return self::$output->withCode(200);
+    }
+
+    /**
+     * 通过code获取手机号码
+     * @param $output->getData()[appid] string 小程序appid
+     * @param $output->getData()[appsecret] string 小程序appsecret
+     * @param $output->getData()[code] string 登录时获取的code
+     * @return OutputInterface
+     */
+    public static function getuserphonenumber(OutputInterface $output): OutputInterface
+    {
+        if (!self::$accessToken) {
+            $res = Wxxcx::getAccessToken($output);
+            if ($res->getCode() != 200) {
+                return $res;
+            }
+        }
+        $data = $output->getData();
+        if (empty($data['code'])) {
+            return self::$output->withCode(21003);
+        }
+        $val = [];
+        $val['code'] = $data['code'];
+        $url = 'https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=' . self::$accessToken;
+        $result = Http::curlPost($url, json_encode($val));
+        $obj = json_decode($result, true);
+        if (!empty($obj['errcode'])) {
+            File::log('wx/getuserphonenumber')->info('获取手机号码', $obj);
+            return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+        }
+        return self::$output->withCode(200)->withData($obj['phone_info']);
     }
 }

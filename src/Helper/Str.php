@@ -380,4 +380,23 @@ class Str
         }
         return $string;
     }
+
+    /**
+     * emoji表情转换
+     * @param string $str 要转换字符串
+     * @param int $type 转换方式，0过滤掉，1转成Unicode编码
+     * @return string
+     */
+    public static function filterEmoji(string $str, int $type = 0): string
+    {
+        $str = preg_replace_callback(
+            '/./u',
+            function (array $match) use ($type) {
+                $replace = $type == 1 ? "&#" . base_convert(bin2hex(iconv('UTF-8', "UCS-4", $match[0])), 16, 10) . ';' : '';
+                return strlen($match[0]) >= 4 ? $replace : $match[0];
+            },
+            $str);
+        return $str;
+
+    }
 }

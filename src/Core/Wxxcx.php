@@ -118,7 +118,6 @@ class Wxxcx extends ModelAbstract
      * @param $output->getData()[appid] string 小程序appid
      * @param $output->getData()[appsecret] string 小程序appsecret
      * @param $output->getData()[encrypteddata] string 加密的用户数据
-     * @param $output->getData()[encrypteddata] string 加密的用户数据
      * @param $output->getData()[iv] string 与用户数据一同返回的初始向量
      * @param $output->getData()[code] string 登录时获取的code
      * @return array

@@ -878,7 +878,10 @@ class Forms extends ModelAbstract
         $result = static::dataList($dataListParam);
         $data = $result->getData();
         foreach ($data['list'] as $k => $v) {
-            $v['style'] = 'vnd.ms-excel.numberformat:@;height:30px;';
+            foreach ($v as $key => $val) {
+                $format = $val && is_numeric($val) && strlen($val) < 10 ? preg_replace('[\d]', '0', $val) : '@';
+                $v[$key . '_format'] = 'vnd.ms-excel.numberformat:' . $format . ';height:30px;';
+            }
             $data['list'][$k] = $v;
         }
         $result = $result->withData($data);
@@ -981,14 +984,16 @@ class Forms extends ModelAbstract
                         } else {
                             $val = $info['_' . $k1];
                         }
+                        $format = aval($info, '_' . $k1 . '_format', '@');
                     } else {
                         $val = aval($info, $k1);
                         if (empty($val) && in_array($v1['datatype'], ['date', 'datetime'])) {
                             $val = '';
                         }
+                        $format = aval($info, $k1 . '_format', '@');
                     }
 
-                    $item .= "<td style='" . aval($info, 'style') . "'>" . $val . "</td>";
+                    $item .= "<td style='" . $format . "'>" . $val . "</td>";
                 }
                 $item .= "</tr>";
             }

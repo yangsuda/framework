@@ -67,10 +67,70 @@ class Time
         }
     }
 
-    public static function getWeek($time = '')
+    /**
+     * 获取指定时间是星期几汉字
+     * @param string $time
+     * @return mixed
+     */
+    public static function getWeek(int $time = 0): string
     {
         $time = $time > 0 ? $time : TIMESTAMP;
         $arr = array('日', '一', '二', '三', '四', '五', '六');
         return $arr[date('w', $time)];
+    }
+
+    /**
+     * 从指定时间段拆分月份
+     * @param string $start
+     * @param string $end
+     * @return array
+     */
+    public static function getMonths(string $start, string $end): array
+    {
+        $start = strtotime($start);
+        $end = strtotime($end);
+        $dates = [];
+        $sy = date('Y', $start);
+        $ey = date('Y', $end);
+        $sm = date('n', $start);
+        $em = date('n', $end);
+        if ($sy == $ey) {
+            if ($sm == $em) {
+                $s = $sy . '-' . $sm . '-01';
+                $e = $sy . '-' . $sm . '-' . date('d', $end);
+                $dates[] = ['s' => $s, 'e' => $e];
+            } else {
+                for ($i = $sm; $i <= $em; $i++) {
+                    $s = $sy . '-' . $i . '-01';
+                    $d = $i == $em ? date('d', $end) : date('t', strtotime($s));
+                    $e = $sy . '-' . $i . '-' . $d;
+                    $dates[] = ['s' => $s, 'e' => $e];
+                }
+            }
+        } else {
+            for ($i = $sy; $i <= $ey; $i++) {
+                if ($i == $sy) {
+                    for ($j = $sm; $j <= 12; $j++) {
+                        $s = $i . '-' . $j . '-01';
+                        $e = $i . '-' . $j . '-' . date('t', strtotime($s));
+                        $dates[] = ['s' => $s, 'e' => $e];
+                    }
+                } elseif ($i == $ey) {
+                    for ($j = 1; $j <= $em; $j++) {
+                        $s = $i . '-' . $j . '-01';
+                        $d = $j == $em ? date('d', $end) : date('t', strtotime($s));
+                        $e = $i . '-' . $j . '-' . $d;
+                        $dates[] = ['s' => $s, 'e' => $e];
+                    }
+                } else {
+                    for ($j = 1; $j <= 12; $j++) {
+                        $s = $i . '-' . $j . '-01';
+                        $e = $i . '-' . $j . '-' . date('t', strtotime($s));
+                        $dates[] = ['s' => $s, 'e' => $e];
+                    }
+                }
+            }
+        }
+        return $dates;
     }
 }

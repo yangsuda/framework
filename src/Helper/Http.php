@@ -42,4 +42,35 @@ class Http
         curl_close($curl); //关闭curl
         return $result;
     }
+
+    /**
+     * 获取重定向后的链接
+     * @param string $url
+     * @return string
+     */
+    public static function getRedirectUrl(string $url): string
+    {
+        $parts = @parse_url($url);
+        if (empty($parts['host'])) {
+            return '';
+        }
+        if (!isset($parts['path'])) {
+            $parts['path'] = '/';
+        }
+        $port = isset($parts['port']) ? (int)$parts['port'] : 80;
+
+        $sock = fsockopen($parts['host'], $port, $errno, $errstr, 30);
+        if (!$sock) {
+            return '';
+        }
+
+        $request = "HEAD " . $parts['path'] . (isset($parts['query']) ? '?' . $parts['query'] : '') . " HTTP/1.1\r\n";
+        $request .= 'Host: ' . $parts['host'] . "\r\n";
+        $request .= "Connection: Close\r\n\r\n";
+        fwrite($sock, $request);
+        $response = fread($sock, 8192);
+        fclose($sock);
+        preg_match('/^Location: (.+?)$/im', $response, $matches);
+        return trim($matches[1]);
+    }
 }

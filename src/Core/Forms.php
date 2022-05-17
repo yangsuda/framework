@@ -516,6 +516,12 @@ class Forms extends ModelAbstract
             $form = $formData['form'];
             $fields = static::fieldList(['formid' => $fid, 'available' => 1]);;
         }
+        if (is_callable([self::t($form['table']), 'dataSaveInit'])) {
+            $rs = self::t($form['table'])->dataSaveInit($fields, $data, $row, $options);
+            if ($rs != 200) {
+                return self::$output->withCode($rs);
+            }
+        }
         $res = static::requiredCheck($fid, $row, $data);
         if ($res->getCode() != 200) {
             return $res;

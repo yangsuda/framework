@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Error\TextException;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Http;
 use SlimCMS\Interfaces\OutputInterface;
@@ -116,7 +117,7 @@ class Wxgzh extends ModelAbstract
     {
         $data = $output->getData();
         if (!self::$accessToken) {
-            $res = self::getAccessToken();
+            $res = self::getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
@@ -170,15 +171,15 @@ class Wxgzh extends ModelAbstract
         if (empty($ticket)) {
             return self::$output->withCode(23003);
         }
-        $data = [];
-        $data['appid'] = $data['appid'];
-        $data['ticket'] = $ticket;
-        $data['noncestr'] = md5(TIMESTAMP);
-        $data['timestamp'] = TIMESTAMP;
-        $data['url'] = $data['url'];
-        $data['signature'] = sha1('jsapi_ticket=' . $data['ticket'] . '&noncestr=' . $data['noncestr'] .
-            '&timestamp=' . $data['timestamp'] . '&url=' . $data['url']);
-        return self::$output->withCode(200)->withData($data);
+        $val = [];
+        $val['appid'] = $data['appid'];
+        $val['ticket'] = $ticket;
+        $val['noncestr'] = md5((string)TIMESTAMP);
+        $val['timestamp'] = TIMESTAMP;
+        $val['url'] = $data['url'];
+        $val['signature'] = sha1('jsapi_ticket=' . $ticket . '&noncestr=' . $val['noncestr'] .
+            '&timestamp=' . $val['timestamp'] . '&url=' . $val['url']);
+        return self::$output->withCode(200)->withData($val);
     }
 
     /**
@@ -192,9 +193,9 @@ class Wxgzh extends ModelAbstract
     {
         $data = $output->getData();
         if (!self::$accessToken) {
-            $res = self::getAccessToken();
+            $res = self::getAccessToken($output);
             if ($res->getCode() != 200) {
-                return $res;
+                throw new TextException($res->getCode(), ['msg'=>$res->getMsg()], 'wxgzh');
             }
         }
         $url = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' . self::$accessToken . '&type=jsapi';

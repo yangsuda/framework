@@ -689,6 +689,17 @@ class Redis
     }
 
     /**
+     * 大数据通过协程处理
+     */
+    private function yield_slice($data)
+    {
+        for($i=0;$i<100;$i++){
+            $start = $i*50000;
+            yield $slice = array_slice($data, $start,50000);
+        }
+    }
+
+    /**
      * 获取集合的成员数
      * @param $key
      * @return int

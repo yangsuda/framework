@@ -406,4 +406,26 @@ class Str
             $str);
 
     }
+
+    /**
+     * 是否是手机
+     * @param $mobile
+     * @return bool
+     */
+    public static function isMobile($mobile): bool
+    {
+        return preg_match('/^1[23456789][\d]{9}$/', $mobile) || preg_match('/^0[\d]{10,11}$/', $mobile);
+    }
+
+    /**
+     * 过滤手机
+     * @param $mobile
+     * @param int $front
+     * @param int $after
+     * @return string
+     */
+    public static function filterMobile($mobile, int $front = 3, int $after = -4): string
+    {
+        return substr($mobile, 0, $front) . '***' . substr($mobile, $after);
+    }
 }

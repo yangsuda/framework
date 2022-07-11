@@ -979,8 +979,8 @@ class Forms extends ModelAbstract
             $title .= "</tr>\n";
             file_put_contents($filepath, $title, FILE_APPEND);
         }
+        $item = '';
         if (!empty($data['list'])) {
-            $item = '';
             foreach ($data['list'] as $info) {
                 $item .= "<tr>\n";
                 foreach ($heads as $k1 => $v1) {

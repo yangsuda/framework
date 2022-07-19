@@ -135,7 +135,7 @@ class File
             }
         }
         $dh->close();
-        @rmdir($dir);
+        is_dir($dir) && @rmdir($dir);
         return true;
     }
 }

@@ -325,19 +325,21 @@ class Str
                 $string[$key] = self::htmlspecialchars($val, $flags);
             }
         } else {
-            if (empty($flags)) {
-                $string = str_replace(
-                    ['&', '"', '<', '>', '\'', '||', '*', '$', '(', ')'],
-                    ['&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'], $string);
-                if (strpos($string, '&amp;#') !== false) {
-                    $string = preg_replace('/&amp;((#(\d{3,5}|x[a-fA-F0-9]{4}));)/', '&\\1', $string);
+            if (!empty($string)) {
+                if (empty($flags)) {
+                    $string = str_replace(
+                        ['&', '"', '<', '>', '\'', '||', '*', '$', '(', ')'],
+                        ['&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'], $string);
+                    if (strpos($string, '&amp;#') !== false) {
+                        $string = preg_replace('/&amp;((#(\d{3,5}|x[a-fA-F0-9]{4}));)/', '&\\1', $string);
+                    }
+                } elseif ($flags == 'en') {
+                    $string = str_replace(array('&', '"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'), array('&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#040;null&#041;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'), $string);
+                } elseif ($flags == 'de') {
+                    $string = str_replace(
+                        ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;', '&lt;', '&gt;'],
+                        ["'", '"', '*', '"', '“', '”', '&', '(', ')', '<', '>'], $string);
                 }
-            } elseif ($flags == 'en') {
-                $string = str_replace(array('&', '"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'), array('&amp;', '&quot;', '&lt;', '&gt;', '&#039;', '&#040;null&#041;', '&#124;&#124;', '&#042;', '&#036;', '&#040;', '&#041;'), $string);
-            } elseif ($flags == 'de') {
-                $string = str_replace(
-                    ['&#039;', '&#034;', '&#042;', '&quot;', '&ldquo;', '&rdquo;', '&amp;', '&#040;', '&#041;', '&lt;', '&gt;'],
-                    ["'", '"', '*', '"', '“', '”', '&', '(', ')', '<', '>'], $string);
             }
         }
         return $string;

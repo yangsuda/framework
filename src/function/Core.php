@@ -11,7 +11,7 @@ use SlimCMS\Interfaces\UploadInterface;
 function aval($arr, $val, $default = null)
 {
     $arr = empty($arr) ? array() : (array)$arr;
-    if (($pos = strpos($val, '/')) !== false) {
+    if (($pos = strpos((string)$val, '/')) !== false) {
         $str1 = substr($val, 0, $pos);
         $str2 = trim(substr($val, $pos), '/');
         if (!isset($arr[$str1])) {

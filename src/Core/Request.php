@@ -102,7 +102,7 @@ class Request extends MessageAbstract
             } elseif ($v == 'float') {
                 $data[$k] = (float)$val;
             } elseif ($v == 'price') {
-                $data[$k] = round($val, 2);
+                $data[$k] = round((float)$val, 2);
             } elseif ($v == 'time') {
                 $data[$k] = strtotime($val);
             } elseif (preg_match('/^img/i', $v)) {

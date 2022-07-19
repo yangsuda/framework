@@ -1494,6 +1494,10 @@ class Forms extends ModelAbstract
                     $v['val'] = nl2br(str_replace(["array (\n", "),\n", ")"], '', $val));
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
+                case 'int':
+                    $v['default'] = (int)$v['default'];
+                case 'float':
+                    $v['default'] = (float)$v['default'];
                 default:
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;

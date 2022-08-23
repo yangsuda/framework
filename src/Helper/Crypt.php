@@ -66,4 +66,39 @@ class Crypt
         $settings = &$config['settings'];
         return substr(md5($pwd . $settings['security']['authkey']), 5, 20);
     }
+
+    /**
+     * openssl解密(前端加密信息如果是数字要转成字符串后再加密，否则解不出来)
+     * @param string $data 加密信息
+     * @param string $privateKey 私钥URL
+     * @return string
+     */
+    public static function opensslDecrypt(string $data = '', string $privateKey): string
+    {
+        if (empty($data)) {
+            return $data;
+        }
+        $private_key = openssl_get_privatekey(file_get_contents($privateKey));
+        $encrypt_data = base64_decode($data);
+        openssl_private_decrypt($encrypt_data, $result, $private_key);
+        openssl_free_key($private_key);
+        return $result;
+    }
+
+    /**
+     * openssl加密
+     * @param string $data 加密信息
+     * @param string $publicKey 公钥URL
+     * @return string
+     */
+    public static function opensslEncrypt(string $data = '', string $publicKey): string
+    {
+        if (empty($data)) {
+            return $data;
+        }
+        $encrypted = '';
+        openssl_public_encrypt($data, $encrypted, file_get_contents($publicKey));
+        $data = base64_encode($encrypted);
+        return $data;
+    }
 }

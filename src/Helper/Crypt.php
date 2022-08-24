@@ -73,7 +73,7 @@ class Crypt
      * @param string $privateKey 私钥URL
      * @return string
      */
-    public static function opensslDecrypt(string $data = '', string $privateKey): string
+    public static function opensslDecrypt(string $data, string $privateKey): string
     {
         if (empty($data)) {
             return $data;
@@ -91,7 +91,7 @@ class Crypt
      * @param string $publicKey 公钥URL
      * @return string
      */
-    public static function opensslEncrypt(string $data = '', string $publicKey): string
+    public static function opensslEncrypt(string $data, string $publicKey): string
     {
         if (empty($data)) {
             return $data;

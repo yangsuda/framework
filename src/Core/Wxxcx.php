@@ -185,7 +185,7 @@ class Wxxcx extends ModelAbstract
         foreach ($data['data'] as $k => $v) {
             $vals['data'][$k]['value'] = $v;
         }
-        $result = Http::curlPost('https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=' . $res['data'], json_encode($vals));
+        $result = Http::curlPost('https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=' . self::$accessToken, json_encode($vals));
         $obj = json_decode($result, true);
         if (!empty($obj['errcode'])) {
             File::log('wx/sendTemplateMessage')->info('发送小程序订阅消息', $obj);

@@ -76,6 +76,12 @@ class Table
     private $tablepre = '';
 
     /**
+     * 系统参数
+     * @var array|\DI\T|mixed
+     */
+    private $settings = [];
+
+    /**
      * 排序
      * @var string
      */
@@ -94,9 +100,9 @@ class Table
         self::$request = $request;
         self::$container = self::$request->getContainer();
 
-        $settings = self::$container->get('settings');
+        $this->settings = self::$container->get('settings');
         $this->db = self::$container->get(DatabaseInterface::class);
-        $this->tablepre = $settings['db']['tablepre'];
+        $this->tablepre = $this->settings['db']['tablepre'];
         $this->tableName = $this->tablepre . $tableName . ($extendName ?: '');
         $this->redis = self::$container->get(Redis::class);
     }
@@ -563,8 +569,12 @@ class Table
             if (strpos($field, '`') !== false) {
                 $field = str_replace('`', '', $field);
             }
-            if (preg_match('/concat/i', $field)) {
-                return $field;
+            if (
+                !empty($this->settings['security']['querysafe']['exceptFunction']) &&
+                preg_match('/'.$this->settings['security']['querysafe']['exceptFunction'].'/i', $field)
+            ) {
+                //^转,防止参数被当成字段拆分
+                return str_replace('^', ',', $field);
             }
             if (preg_match('/\./', $field)) {
                 list($pre, $field) = explode('.', $field);

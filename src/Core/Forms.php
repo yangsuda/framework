@@ -823,12 +823,13 @@ class Forms extends ModelAbstract
         if (empty($data['row']['_' . $field])) {
             return self::$output->withCode(21001);
         }
-        $pics = $data['row']['_' . $field];
         $pic = str_replace(trim(self::$config['basehost'], '/'), '', $pic);
         preg_match('/(.*)_([\d]+)x([\d]+).(.*)/i', $pic, $match);
         if (!empty($match)) {
             $pic = $match[1] . '.' . $match[4];
         }
+
+        $pics = unserialize($data['row'][$field]);
         $key = md5($pic);
         if (empty($pics[$key])) {
             return self::$output->withCode(21001);
@@ -836,7 +837,8 @@ class Forms extends ModelAbstract
         unset($pics[$key]);
         $upload = self::$container->get(UploadInterface::class);
         $upload->uploadDel($pic);
-        return static::dataSave($fid, $id, [$field => serialize($pics)]);
+        $data = $pics?serialize($pics):'';
+        return static::dataSave($fid, $id, [$field => $data]);
     }
 
     /**

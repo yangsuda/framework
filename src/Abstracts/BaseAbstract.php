@@ -149,10 +149,12 @@ abstract class BaseAbstract
     /**
      * URL处理
      * @param string $url
+     * @param string $host
      * @return string
      */
-    public static function url(string $url = ''): string
+    public static function url(string $url = '', string $host = ''): string
     {
+        $host = $host ?: self::$config['basehost'];
         $uri = self::$request->getRequest()->getUri();
         if (empty($url) || preg_match('/^&/', $url)) {
             $url = $uri->getQuery() . $url;
@@ -187,7 +189,7 @@ abstract class BaseAbstract
             } else {
                 $url = http_build_query($output);
             }
-            $url = (preg_match('/^http/', $path) ? $path : rtrim(self::$config['basehost'], '/') . '/' . $path) . '?' . $url;
+            $url = (preg_match('/^http/', $path) ? $path : rtrim($host, '/') . '/' . $path) . '?' . $url;
             return str_replace('%27', '\'', $url);
         }
 
@@ -218,8 +220,7 @@ abstract class BaseAbstract
         if (empty($output['p'])) {
             throw new TextException(21057);
         }
-        $entre = $fileName && pathinfo(self::$config['scriptname'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
-        $url = rtrim(self::$config['basehost'], '/') . '/' . $entre . trim($output['p'], '/') . '/';
+        $url = rtrim($host, '/') . '/' . trim($output['p'], '/') . '/';
         $jsoncallback = !empty($output['jsoncallback']);
         unset($output['p'], $output['jsoncallback']);
         if (!empty($output)) {

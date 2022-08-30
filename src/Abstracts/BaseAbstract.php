@@ -218,7 +218,7 @@ abstract class BaseAbstract
         if (empty($output['p'])) {
             throw new TextException(21057);
         }
-        $entre = $fileName && pathinfo(self::$config['entryFileName'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
+        $entre = $fileName && pathinfo(self::$config['scriptname'], PATHINFO_FILENAME) != $fileName ? $fileName . '/' : '';
         $url = rtrim(self::$config['basehost'], '/') . '/' . $entre . trim($output['p'], '/') . '/';
         $jsoncallback = !empty($output['jsoncallback']);
         unset($output['p'], $output['jsoncallback']);

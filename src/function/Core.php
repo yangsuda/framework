@@ -60,6 +60,9 @@ function getConfig()
         $cfg['cfg']['referer'] = function (){
             return aval($_SERVER, 'HTTP_REFERER');
         };
+        $cfg['cfg']['scriptname'] = function (){
+            return trim(aval($_SERVER, 'SCRIPT_NAME'),'/');
+        };
     }
     return $cfg;
 }

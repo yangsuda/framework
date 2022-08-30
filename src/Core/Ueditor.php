@@ -156,7 +156,7 @@ class Ueditor extends ModelAbstract
             $ue[] = $k . ':\'' . $v . '\'';
         }
         if (empty($config['serverUrl'])) {
-            $ue[] = 'serverUrl:"' . self::$config['basehost'] . self::$config['entryFileName'] . '?p=ueditor"';
+            $ue[] = 'serverUrl:"' . self::$config['basehost'] . self::$config['scriptname'] . '?p=ueditor"';
         }
         $ue[] = 'pageBreakTag:"#p#副标题#e#"';
         $data = [];

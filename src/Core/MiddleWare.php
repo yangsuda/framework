@@ -30,6 +30,7 @@ class MiddleWare implements MiddlewareInterface
     {
         $param = $request->getQueryParams();
         $data = Str::QAnalysis(aval($param, 'q'));
+        !empty($data['q']) && $data = Str::QAnalysis($data['q']);
         $data && $_GET = array_merge($_GET, $data);
     }
 }

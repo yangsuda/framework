@@ -162,6 +162,41 @@ abstract class BaseAbstract
         if (strpos($url, '?') !== false) {
             list($path, $url) = explode('?', $url);
         }
+        if (!empty(self::$config['urlEncrypt']) && !empty($path) && preg_match('/\.html$/', $path)) {
+            $data = Str::QAnalysis(urldecode(preg_replace('/^q-/', '', pathinfo($path, PATHINFO_FILENAME))));
+            $data['p'] = parse_url(pathinfo($path, PATHINFO_DIRNAME), PHP_URL_PATH);
+            $url = http_build_query($data) . '&' . $url;
+        }
+
+        parse_str($url, $output);
+        if (!empty($output['q'])) {
+            $q = preg_replace('/^q-/', '', $output['q']);
+            $data = Str::QAnalysis($q);
+            unset($output['q']);
+            $output = array_merge($data, $output);
+            $url = http_build_query($output);
+        }
+
+        parse_str($url, $output);
+        foreach ($output as $k => $v) {
+            if ($v === '') {
+                unset($output[$k]);
+            }
+        }
+        if (!empty(self::$config['urlEncrypt'])) {
+            $p = $output['p'];
+            unset($output['p']);
+            if (!empty($output['q'])) {
+                $data = Str::QAnalysis($output['q']);
+                !empty($data['q']) && $data = Crypt::decrypt($data['q']);
+                unset($output['q']);
+                $output = array_merge($data, $output);
+            }
+            $url = 'p=' . $p . '&q=' . Crypt::encrypt($output);
+        } else {
+            $url = http_build_query($output);
+        }
+
         if (empty(self::$config['rewriteUrl'])) {
             if (empty($path)) {
                 $path = ltrim($uri->getPath(), '/');
@@ -169,25 +204,6 @@ abstract class BaseAbstract
                     $server = self::$request->getRequest()->getServerParams();
                     $path = basename($server['SCRIPT_FILENAME']);
                 }
-            }
-            parse_str($url, $output);
-            foreach ($output as $k => $v) {
-                if ($v === '') {
-                    unset($output[$k]);
-                }
-            }
-            //URL加密
-            if (!empty(self::$config['urlEncrypt'])) {
-                $p = $output['p'];
-                unset($output['p']);
-                if (!empty($output['q'])) {
-                    $data = Crypt::decrypt($output['q']);
-                    unset($output['q']);
-                    $output = array_merge($data, $output);
-                }
-                $url = 'p=' . $p . '&q=' . Crypt::encrypt($output);
-            } else {
-                $url = http_build_query($output);
             }
             $url = (preg_match('/^http/', $path) ? $path : rtrim($host, '/') . '/' . $path) . '?' . $url;
             return str_replace('%27', '\'', $url);
@@ -207,7 +223,7 @@ abstract class BaseAbstract
         $data['p'] = str_replace($fileName, '', dirname($path));
         $output = array_merge($data, $output);
 
-        if (!empty($output['q'])) {
+        if (empty(self::$config['urlEncrypt']) && !empty($output['q'])) {
             $data = Str::QAnalysis($output['q']);
             $data && $output = array_merge($data, $output);
             unset($output['q']);
@@ -218,7 +234,7 @@ abstract class BaseAbstract
             }
         }
         if (empty($output['p'])) {
-            throw new TextException(21057);
+            throw new TextException(21009);
         }
         $url = rtrim($host, '/') . '/' . trim($output['p'], '/') . '/';
         $jsoncallback = !empty($output['jsoncallback']);

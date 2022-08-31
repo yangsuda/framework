@@ -742,7 +742,7 @@ class Forms extends ModelAbstract
                     $tags[] = [$v['identifier'], str_replace(',', '-', $val) . $v['units']];
                 }
 
-                if (!empty($val)) {
+                if (isset($val)) {
                     if (strpos((string)$val, ',') !== false) {
                         if ($v['datatype'] == 'date') {
                             list($s, $e) = explode(',', $val);

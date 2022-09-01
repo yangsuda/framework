@@ -154,6 +154,11 @@ abstract class BaseAbstract
      */
     public static function url(string $url = '', string $host = ''): string
     {
+        static $urls = [];
+        $key = md5($url . $host);
+        if (!empty($urls[$key])) {
+            return $urls[$key];
+        }
         $host = $host ?: self::$config['basehost'];
         $uri = self::$request->getRequest()->getUri();
         if (empty($url) || preg_match('/^&/', $url)) {
@@ -254,6 +259,7 @@ abstract class BaseAbstract
                 $url = str_replace(['%2527%2B', '%2B%2527'], ['\'+', '+\''], $url);
             }
         }
-        return $url . ($jsoncallback ? '?jsoncallback=?' : '');
+        $urls[$key] = $url . ($jsoncallback ? '?jsoncallback=?' : '');
+        return $urls[$key];
     }
 }

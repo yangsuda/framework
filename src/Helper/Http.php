@@ -10,7 +10,7 @@ namespace SlimCMS\Helper;
 
 class Http
 {
-    public static function curlGet(string $url, array $setopt = [])
+    public static function curlGet(string $url, array $headers = [], array $setopt = [])
     {
         $ch = curl_init(); //初始化curl模块
         curl_setopt($ch, CURLOPT_URL, $url); //登录页地址
@@ -19,6 +19,7 @@ class Http
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, aval($setopt, 'CURLOPT_FOLLOWLOCATION', 1)); // 使用自动跳转
         //curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_jar);//把返回$cookie_jar来的cookie信息保存在$cookie_jar文件中
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, aval($setopt, 'CURLOPT_RETURNTRANSFER', 1)); //设定返回的数据是否自动显示
+        $headers && curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_HEADER, aval($setopt, 'CURLOPT_HEADER', false)); //设定是否显示头信息
         curl_setopt($ch, CURLOPT_NOBODY, aval($setopt, 'CURLOPT_NOBODY', false)); //设定是否输出页面内容
         $temp = curl_exec($ch);
@@ -26,7 +27,7 @@ class Http
         return $temp;
     }
 
-    public static function curlPost($url, $post, $headers = array(), $setopt = [])
+    public static function curlPost(string $url, $post, array $headers = [], array $setopt = [])
     {
         $curl = curl_init(); //启动一个curl会话
         curl_setopt($curl, CURLOPT_URL, $url); //要访问的地址

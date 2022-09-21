@@ -1572,7 +1572,16 @@ class Forms extends ModelAbstract
                     ->fetchList($result['value'] . ',' . $result['name']);
                 $val = [];
                 foreach ($list as $v) {
-                    $val[$v[$result['value']]] = $v[$result['name']];
+                    //支持对应文字多种参数组合显示
+                    if (strpos($result['name'], ',')) {
+                        $arr = [];
+                        foreach (explode(',', $result['name']) as $field){
+                            $arr[] = $v[$field];
+                        }
+                        $val[$v[$result['value']]] = implode('/',$arr);
+                    } else {
+                        $val[$v[$result['value']]] = $v[$result['name']];
+                    }
                 }
                 $cacheTTL && self::$redis->set($cacheKey, $val, $cacheTTL);
             }

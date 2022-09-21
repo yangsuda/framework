@@ -199,7 +199,7 @@ class Wxxcx extends ModelAbstract
      * @param $output->getData()[appid] string 小程序appid
      * @param $output->getData()[appsecret] string 小程序appsecret
      * @param $output->getData()[code] string 登录时获取的code
-     * @return OutputInterface
+     * @return OutputInterface[phoneNumber用户绑定的手机号,purePhoneNumber没有区号的手机号,countryCode区号]
      */
     public static function getuserphonenumber(OutputInterface $output): OutputInterface
     {

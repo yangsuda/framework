@@ -700,9 +700,9 @@ class Forms extends ModelAbstract
                     if ($s && $e) {
                         $where[] = self::t()->field($v['identifier'], $val, 'between');
                     } elseif ($s) {
-                        $where[] = self::t()->field($v['identifier'], $s, '>');
+                        $where[] = self::t()->field($v['identifier'], $s, '>=');
                     } elseif ($e) {
-                        $where[] = self::t()->field($v['identifier'], $e, '<');
+                        $where[] = self::t()->field($v['identifier'], $e, '=<');
                     }
                 } elseif ($v['datatype'] == 'checkbox') {
                     if (!empty($val)) {

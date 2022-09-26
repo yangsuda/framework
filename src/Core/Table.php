@@ -437,7 +437,7 @@ class Table
      */
     public function update(array $data): int
     {
-        if ($this->where && !empty($data)) {
+        if (!empty($data)) {
             if ($this->redis->isAvailable()) {
                 $row = $this->fetchList('id');
                 foreach ($row as $v) {

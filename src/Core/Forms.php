@@ -883,6 +883,7 @@ class Forms extends ModelAbstract
         $dataListParam['by'] = 'desc';
         $dataListParam['pagesize'] = aval($param, 'pagesize', 1000);
         $dataListParam['fields'] = '*';
+        !empty($param['admin']) && $dataListParam['admin'] = $param['admin'];
         $result = static::dataList($dataListParam);
         $data = $result->getData();
         foreach ($data['list'] as $k => $v) {

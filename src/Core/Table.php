@@ -833,4 +833,18 @@ class Table
         $condition[] = $this->join;
         return Str::md5key($condition);
     }
+
+    /**
+     * 在input方法获取数据前更新获取的数据
+     * @param array $data 要更新的数据
+     */
+    protected function mergeRequestData(array $data)
+    {
+        if (!empty($data)) {
+            $parse = self::$request->getRequest()->getParsedBody();
+            $parse = array_merge($parse, $data);
+            $request = self::$request->getRequest()->withParsedBody($parse);
+            self::$request->withRequest($request);
+        }
+    }
 }

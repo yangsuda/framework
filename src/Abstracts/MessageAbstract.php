@@ -100,6 +100,15 @@ abstract class MessageAbstract
     }
 
     /**
+     * 重置请求对象
+     * @param ServerRequestInterface $request
+     */
+    public function withRequest(ServerRequestInterface $request)
+    {
+        $this->request = $request;
+    }
+
+    /**
      * 返回响应对象
      * @return ResponseInterface
      */

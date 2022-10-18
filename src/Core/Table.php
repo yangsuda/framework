@@ -457,18 +457,15 @@ class Table
      */
     public function delete(): int
     {
-        if ($this->where) {
-            if ($this->redis->isAvailable()) {
-                $row = $this->fetchList('id');
-                foreach ($row as $v) {
-                    $cachekey = $this->cacheKey($v['id']);
-                    $this->redis->del($cachekey);
-                }
+        if ($this->redis->isAvailable()) {
+            $row = $this->fetchList('id');
+            foreach ($row as $v) {
+                $cachekey = $this->cacheKey($v['id']);
+                $this->redis->del($cachekey);
             }
-            $query = $this->db->query('DELETE FROM ' . $this->tableName . $this->where);
-            return $this->db->affectedRows($query);
         }
-        return 0;
+        $query = $this->db->query('DELETE FROM ' . $this->tableName . $this->where);
+        return $this->db->affectedRows($query);
     }
 
     /**
@@ -571,7 +568,7 @@ class Table
             }
             if (
                 !empty($this->settings['security']['querysafe']['exceptFunction']) &&
-                preg_match('/'.$this->settings['security']['querysafe']['exceptFunction'].'/i', $field)
+                preg_match('/' . $this->settings['security']['querysafe']['exceptFunction'] . '/i', $field)
             ) {
                 //^转,防止参数被当成字段拆分
                 return str_replace('^', ',', $field);

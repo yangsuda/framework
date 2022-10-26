@@ -118,8 +118,14 @@ class Forms extends ModelAbstract
         //处理前
         if (is_callable([self::t($form['table']), 'dataCheckBefore'])) {
             $rs = self::t($form['table'])->dataCheckBefore($ids, $ischeck, $options);
-            if ($rs != 200) {
-                return self::$output->withCode($rs);
+            if (is_array($rs)) {
+                if ($rs['code'] != 200) {
+                    return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                }
+            } else {
+                if ($rs != 200) {
+                    return self::$output->withCode($rs);
+                }
             }
         }
         self::t($form['table'])->withWhere(['id' => $ids])->update(['ischeck' => $ischeck]);
@@ -214,8 +220,14 @@ class Forms extends ModelAbstract
             }
             if (is_callable([self::t($form['table']), 'dataViewBefore'])) {
                 $rs = self::t($form['table'])->dataViewBefore($id, $options);
-                if ($rs != 200) {
-                    return self::$output->withCode($rs);
+                if (is_array($rs)) {
+                    if ($rs['code'] != 200) {
+                        return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                    }
+                } else {
+                    if ($rs != 200) {
+                        return self::$output->withCode($rs);
+                    }
                 }
             }
             $data = self::t($form['table'])->withWhere($id)->fetch($fields);
@@ -271,8 +283,14 @@ class Forms extends ModelAbstract
 
             if (is_callable([self::t($form['table']), 'dataCountBefore'])) {
                 $rs = self::t($form['table'])->dataCountBefore($param);
-                if ($rs != 200) {
-                    return self::$output->withCode($rs);
+                if (is_array($rs)) {
+                    if ($rs['code'] != 200) {
+                        return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                    }
+                } else {
+                    if ($rs != 200) {
+                        return self::$output->withCode($rs);
+                    }
                 }
             }
 
@@ -306,8 +324,14 @@ class Forms extends ModelAbstract
 
         if (is_callable([self::t($form['table']), 'dataListInit'])) {
             $rs = self::t($form['table'])->dataListInit($param);
-            if ($rs != 200) {
-                return self::$output->withCode($rs);
+            if (is_array($rs)) {
+                if ($rs['code'] != 200) {
+                    return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                }
+            } else {
+                if ($rs != 200) {
+                    return self::$output->withCode($rs);
+                }
             }
         }
 
@@ -370,8 +394,14 @@ class Forms extends ModelAbstract
 
             if (is_callable([self::t($form['table']), 'dataListBefore'])) {
                 $rs = self::t($form['table'])->dataListBefore($param);
-                if ($rs != 200) {
-                    return self::$output->withCode($rs);
+                if (is_array($rs)) {
+                    if ($rs['code'] != 200) {
+                        return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                    }
+                } else {
+                    if ($rs != 200) {
+                        return self::$output->withCode($rs);
+                    }
                 }
             }
 
@@ -465,8 +495,14 @@ class Forms extends ModelAbstract
 
         if (is_callable([self::t($form['table']), 'getFormHtmlBefore'])) {
             $rs = self::t($form['table'])->getFormHtmlBefore($fields, $row, $form, $options);
-            if ($rs != 200) {
-                return self::$output->withCode($rs);
+            if (is_array($rs)) {
+                if ($rs['code'] != 200) {
+                    return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                }
+            } else {
+                if ($rs != 200) {
+                    return self::$output->withCode($rs);
+                }
             }
         }
 
@@ -542,8 +578,14 @@ class Forms extends ModelAbstract
 
         if (is_callable([self::t($form['table']), 'dataSaveBefore'])) {
             $rs = self::t($form['table'])->dataSaveBefore($data, $row, $options);
-            if ($rs != 200) {
-                return self::$output->withCode($rs);
+            if (is_array($rs)) {
+                if ($rs['code'] != 200) {
+                    return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                }
+            } else {
+                if ($rs != 200) {
+                    return self::$output->withCode($rs);
+                }
             }
         }
 
@@ -766,6 +808,10 @@ class Forms extends ModelAbstract
                         }
                     } elseif ($v['datatype'] == 'stepselect') {
                         $currenturl .= '&' . $v['egroup'] . '=' . $val;
+                    } elseif ($v['datatype'] == 'month') {
+                        $val = $val ? date('Y-m', (int)$val) : '';
+                        $data[$v['identifier']] = $val;
+                        $currenturl .= '&' . $v['identifier'] . '=' . $val;
                     } else {
                         $currenturl .= '&' . $v['identifier'] . '=' . $val;
                     }
@@ -837,7 +883,7 @@ class Forms extends ModelAbstract
         unset($pics[$key]);
         $upload = self::$container->get(UploadInterface::class);
         $upload->uploadDel($pic);
-        $data = $pics?serialize($pics):'';
+        $data = $pics ? serialize($pics) : '';
         return static::dataSave($fid, $id, [$field => $data]);
     }
 
@@ -898,8 +944,14 @@ class Forms extends ModelAbstract
         $condition = ['formid' => $param['fid'], 'available' => 1, 'isexport' => 1];
         if (is_callable([self::t($form['table']), 'dataExportBefore'])) {
             $rs = self::t($form['table'])->dataExportBefore($condition, $result);
-            if ($rs != 200) {
-                return self::$output->withCode($rs);
+            if (is_array($rs)) {
+                if ($rs['code'] != 200) {
+                    return self::$output->withCode($rs['code'], ['msg' => $rs['msg']]);
+                }
+            } else {
+                if ($rs != 200) {
+                    return self::$output->withCode($rs);
+                }
             }
         }
 
@@ -1078,6 +1130,14 @@ class Forms extends ModelAbstract
                         $v['_' . $identifier] = $v[$identifier] = '';
                     }
                     break;
+                case 'month':
+                    if ($v[$identifier]) {
+                        $v[$identifier] = (int)$v[$identifier];
+                        $v['_' . $identifier] = date('Y-m', $v[$identifier]);
+                    } else {
+                        $v['_' . $identifier] = $v[$identifier] = '';
+                    }
+                    break;
                 case 'float':
                     if ($v[$identifier]) {
                         $v['_' . $identifier] = $v[$identifier] = (float)$v[$identifier];
@@ -1236,6 +1296,7 @@ class Forms extends ModelAbstract
                             $data[$identifier] = $val;
                         }
                         break;
+                    case 'month':
                     case 'date':
                     case 'datetime':
                         $vals = self::input($identifier . '_s');
@@ -1447,15 +1508,25 @@ class Forms extends ModelAbstract
                     $v['loadonce'] = $loadonce;
                     $v['field'] = self::$output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
+                case 'month':
                 case 'date':
                 case 'datetime':
-                    $type = $v['datatype'] == 'date' ? 'd' : 'dt';
-                    if (!empty($row[$v['identifier']])) {
-                        $v['default'] = Time::gmdate($row[$v['identifier']], $type);
+                    if ($v['datatype'] == 'month') {
+                        if (!empty($row[$v['identifier']])) {
+                            $v['default'] = date('Y-m', (int)$row[$v['identifier']]);
+                        } else {
+                            $v['default'] = !empty($v['default']) ? $v['default'] :
+                                (empty($row) ? date('Y-m', TIMESTAMP) : '');
+                        }
                     } else {
-                        $v['default'] = !empty($v['default']) ?
-                            Time::gmdate((TIMESTAMP + $v['default'] * 86400), $type) :
-                            (empty($row) ? Time::gmdate(TIMESTAMP, $type) : '');
+                        $type = $v['datatype'] == 'date' ? 'd' : 'dt';
+                        if (!empty($row[$v['identifier']])) {
+                            $v['default'] = Time::gmdate($row[$v['identifier']], $type);
+                        } else {
+                            $v['default'] = !empty($v['default']) ?
+                                Time::gmdate((TIMESTAMP + $v['default'] * 86400), $type) :
+                                (empty($row) ? Time::gmdate(TIMESTAMP, $type) : '');
+                        }
                     }
                     static $isLoadDatetimepicker = 0;
                     $isLoadDatetimepicker++;
@@ -1576,10 +1647,10 @@ class Forms extends ModelAbstract
                     //支持对应文字多种参数组合显示
                     if (strpos($result['name'], ',')) {
                         $arr = [];
-                        foreach (explode(',', $result['name']) as $field){
+                        foreach (explode(',', $result['name']) as $field) {
                             $arr[] = $v[$field];
                         }
-                        $val[$v[$result['value']]] = implode('/',$arr);
+                        $val[$v[$result['value']]] = implode('/', $arr);
                     } else {
                         $val[$v[$result['value']]] = $v[$result['name']];
                     }

@@ -1148,12 +1148,16 @@ class Forms extends ModelAbstract
                 case 'checkbox':
                     if (!empty($v[$identifier])) {
                         $arr = [];
+                        $arrMore = [];
                         foreach (explode(',', $v[$identifier]) as $_v) {
                             if (!empty($_v)) {
-                                $arr[] = aval($rules, $_v);
+                                $name = aval($rules, $_v);
+                                $arr[] = $name;
+                                $arrMore[] = ['id' => $_v, 'name' => $name];
                             }
                         }
                         $v['_' . $identifier] = implode('、', $arr);
+                        $v['__' . $identifier] = $arrMore;
                     }
                     break;
                 case 'stepselect':

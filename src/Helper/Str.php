@@ -212,7 +212,7 @@ class Str
                     $replace[] = '';
                     continue;
                 }
-                if (!preg_match("/(\.gif|\.jpg|\.png)/i", $v, $m)) {
+                if (!preg_match("/(\.gif|\.jpg|\.jpeg|\.png)/i", $v, $m)) {
                     $danger_urls[] = $v;
                     $replace[] = '';
                     continue;

@@ -709,14 +709,22 @@ class Table
             $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ';
         } elseif ($datatype == 'hidden') {
             $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'VARCHAR';
-            $length = $length ?: '250';
-            $default = !empty($data['default']) ? ' DEFAULT  \'' . $data['default'] . '\' ' : '';
-            $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ' . $default;
+            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext'])) {
+                $sql .= $fieldtype . ' NOT NULL ';
+            } else {
+                $length = $length ?: '250';
+                $default = !empty($data['default']) ? ' DEFAULT  \'' . $data['default'] . '\' ' : '';
+                $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ' . $default;
+            }
         } else {
             $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'VARCHAR';
-            $length = $length ?: '250';
-            $default = !empty($data['default']) ? $data['default'] : (strpos($fieldtype, 'int') !== false ? '0' : '');
-            $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL DEFAULT  \'' . $default . '\' ';
+            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext'])) {
+                $sql .= $fieldtype . ' NOT NULL ';
+            } else {
+                $length = $length ?: '250';
+                $default = !empty($data['default']) ? $data['default'] : (strpos($fieldtype, 'int') !== false ? '0' : '');
+                $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL DEFAULT  \'' . $default . '\' ';
+            }
         }
 
         //生成字段注释

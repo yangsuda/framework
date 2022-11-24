@@ -12,7 +12,7 @@ class FileCache
     private static function getCacheFile($key)
     {
         $key = md5($key);
-        $dir = CSDATA . 'fileCache/' . $key[0].'/';
+        $dir = CSDATA . 'fileCache/' . $key[0] . '/';
         File::mkdir($dir);
         return $dir . $key . '.txt';
     }
@@ -52,5 +52,17 @@ class FileCache
             return null;
         }
         return $data['value'];
+    }
+
+    /**
+     * 删除缓存文件
+     * @param $key
+     * @return bool
+     */
+    public static function del($key)
+    {
+        $cacheFile = self::getCacheFile($key);
+        is_file($cacheFile) && unlink($cacheFile);
+        return true;
     }
 }

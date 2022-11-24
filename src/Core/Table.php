@@ -847,7 +847,7 @@ class Table
     {
         if (!empty($data)) {
             $parse = self::$request->getRequest()->getParsedBody();
-            $parse = array_merge($parse, $data);
+            $parse = !empty($parse) ? array_merge($parse, $data) : $data;
             $request = self::$request->getRequest()->withParsedBody($parse);
             self::$request->withRequest($request);
         }

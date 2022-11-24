@@ -31,7 +31,7 @@ class Time
             ];
         }
         $timeoffset = $timeoffset == 9999 ? $offset : $timeoffset;
-        $timestamp += $timeoffset * 3600;
+        $timestamp = (int)$timestamp + $timeoffset * 3600;
         $format = empty($format) || $format == 'dt' ? $dtformat : ($format == 'd' ? $dformat : ($format == 't' ? $tformat : $format));
         if ($format == 'u') {
             $todaytimestamp = TIMESTAMP - (TIMESTAMP + $timeoffset * 3600) % 86400 + $timeoffset * 3600;
@@ -87,6 +87,9 @@ class Time
      */
     public static function getMonths(string $start, string $end): array
     {
+        if (empty($start) || empty($end)) {
+            return [];
+        }
         $start = strtotime($start);
         $end = strtotime($end);
         $dates = [];

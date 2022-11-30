@@ -982,7 +982,7 @@ class Forms extends ModelAbstract
      * 数据导出
      * @param $param
      */
-    protected static function exportData(OutputInterface $output): OutputInterface
+    public static function exportData(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         $filename = md5(serialize($data['where'])) . '.xls';

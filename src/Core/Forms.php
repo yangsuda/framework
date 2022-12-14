@@ -1601,6 +1601,14 @@ class Forms extends ModelAbstract
         $tableName = $tablepre . str_replace($tablepre, '', $table);
         if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
             $result = Str::htmlspecialchars($rules[$table], 'de');
+            //筛选条件支持外部传参
+            preg_match_all('|&#036;(\w+)&#036;|isU',$result,$mat);
+            if(!empty($mat[1])){
+                foreach ($mat[1] as $v){
+                    $val = self::input($v);
+                    $result = str_replace('&#036;'.$v.'&#036;',$val,$result);
+                }
+            }
             $result = json_decode($result, true);
             $order = $way = '';
             $orderby = aval($result, 'orderby');

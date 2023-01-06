@@ -51,6 +51,12 @@ class Upload extends ModelAbstract implements UploadInterface
             return self::$output->withCode(23001);
         }
 
+        //防止伪装成图片的木马上传
+        $checkWords = aval(self::$setting, 'security/uploadCheckWords');
+        if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
+            return self::$output->withCode(23005);
+        }
+
         $dirname = $this->getSaveDir('tmp');
         $file = uniqid() . '.jpg';
         $tmpPath = CSPUBLIC . $dirname;

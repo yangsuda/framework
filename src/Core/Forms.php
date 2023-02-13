@@ -1170,13 +1170,13 @@ class Forms extends ModelAbstract
                     $v['_' . $identifier] = aval($rules, $v[$identifier]);
                     break;
                 case 'img':
-                    $width = aval(self::$config, 'picWidth', 800);
-                    $height = aval(self::$config, 'picHeight', 800);
+                    $width = aval(self::$config, 'imgWidth', 800);
+                    $height = aval(self::$config, 'imgHeight', 800);
                     $v['_' . $identifier] = copyImage($v[$identifier], $width, $height);
                     break;
                 case 'imgs':
-                    $width = aval(self::$config, 'picWidth', 800);
-                    $height = aval(self::$config, 'picHeight', 800);
+                    $width = aval(self::$config, 'imgWidth', 800);
+                    $height = aval(self::$config, 'imgHeight', 800);
                     $img = unserialize($v[$identifier]);
                     if (is_array($img)) {
                         foreach ($img as $k1 => $v1) {

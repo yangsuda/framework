@@ -25,7 +25,7 @@ class Crypt
         }
         $config = getConfig();
         $keys = &$config['settings']['keys'];
-        $str = openssl_encrypt($str, 'des', $keys['key'], 0, $keys['iv']);
+        $str = openssl_encrypt((string)$str, 'des', $keys['key'], 0, $keys['iv']);
         $str = str_replace('+', '.', $str);
         return $str;
     }

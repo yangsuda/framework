@@ -1680,7 +1680,7 @@ class Forms extends ModelAbstract
      * @param int $limit
      * @return OutputInterface
      */
-    public static function listFields(int $fid, $limit = 15, $fieldName = 'inlistcp'): OutputInterface
+    public static function listFields(int $fid, $limit = 30, $fieldName = 'inlistcp'): OutputInterface
     {
         if (empty($fid)) {
             return self::$output->withCode(27010);

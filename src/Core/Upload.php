@@ -345,6 +345,9 @@ class Upload extends ModelAbstract implements UploadInterface
     public function copyImage(string $pic, int $width = 2000, int $height = 2000, $more = []): string
     {
         $nopic = aval($more, 'nopic', 'resources/global/images/nopic/nopic.jpg');
+        if(empty($pic)){
+            return $nopic;
+        }
         $attachmentHost = !empty(self::$config['attachmentHost']) ? self::$config['attachmentHost'] : self::$config['basehost'];
         $attachmentHost = rtrim($attachmentHost, '/') . '/';
         if (preg_match('/' . self::$config['domain'] . '/i', $pic)) {

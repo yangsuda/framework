@@ -773,8 +773,7 @@ class Table
      */
     public function sum(string $field)
     {
-        $sql = $this->selectSQL('sum(' . $field . ')');
-        return $this->db->fetchColumn($sql);
+        return $this->fetchColumn($field, 'sum');
     }
 
     /**
@@ -784,8 +783,7 @@ class Table
      */
     public function avg(string $field)
     {
-        $sql = $this->selectSQL('avg(' . $field . ')');
-        return $this->db->fetchColumn($sql);
+        return $this->fetchColumn($field, 'avg');
     }
 
     /**

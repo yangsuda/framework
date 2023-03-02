@@ -685,7 +685,7 @@ class Table
         $identifier = $data['identifier'];
         $datatype = $data['datatype'];
         $fields = $this->fetchAllField();
-        $length = !empty($data['fieldlength']) ? str_replace('.', ',', $data['fieldlength']) : '';
+        $length = !empty($data['fieldlength']) ? str_replace('.', ',', (string)$data['fieldlength']) : '';
         if (!empty($fields[$identifier])) {
             $sql = 'ALTER TABLE  `' . $this->tableName . '` MODIFY COLUMN `' . $identifier . '` ';
         } else {

@@ -685,7 +685,7 @@ class Table
         $identifier = $data['identifier'];
         $datatype = $data['datatype'];
         $fields = $this->fetchAllField();
-        $length = !empty($data['fieldlength']) ? str_replace('.', ',', $data['fieldlength']) : '';
+        $length = !empty($data['fieldlength']) ? str_replace('.', ',', (string)$data['fieldlength']) : '';
         if (!empty($fields[$identifier])) {
             $sql = 'ALTER TABLE  `' . $this->tableName . '` MODIFY COLUMN `' . $identifier . '` ';
         } else {
@@ -773,8 +773,7 @@ class Table
      */
     public function sum(string $field)
     {
-        $sql = $this->selectSQL('sum(' . $field . ')');
-        return $this->db->fetchColumn($sql);
+        return $this->fetchColumn($field, 'sum');
     }
 
     /**
@@ -784,8 +783,7 @@ class Table
      */
     public function avg(string $field)
     {
-        $sql = $this->selectSQL('avg(' . $field . ')');
-        return $this->db->fetchColumn($sql);
+        return $this->fetchColumn($field, 'avg');
     }
 
     /**

@@ -25,7 +25,9 @@ class Crypt
         }
         $config = getConfig();
         $keys = &$config['settings']['keys'];
-        $str = openssl_encrypt((string)$str, 'des', $keys['key'], 0, $keys['iv']);
+        $key = hash('sha256', $keys['key']);
+        $iv = substr(hash('sha256', $keys['iv']), 0, 16);
+        $str = (string)openssl_encrypt((string)$str, 'AES-256-CBC', $key, 0, $iv);
         $str = str_replace('+', '.', $str);
         return $str;
     }
@@ -44,7 +46,9 @@ class Crypt
         $str = urldecode(str_replace('%25', '%', urlencode($str)));
         $config = getConfig();
         $keys = &$config['settings']['keys'];
-        $data = openssl_decrypt($str, 'des', $keys['key'], 0, $keys['iv']);
+        $key = hash('sha256', $keys['key']);
+        $iv = substr(hash('sha256', $keys['iv']), 0, 16);
+        $data = openssl_decrypt($str, 'AES-256-CBC', $key, 0, $iv);
         $result = '';
         if (!empty($data) && preg_match("/^[a]:[0-9]+:{(.*)}$/", $data)) {
             $result = unserialize($data);

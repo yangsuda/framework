@@ -132,7 +132,7 @@ class ImageCode
     public static function checkCode($code)
     {
         isset($_SESSION) ? '' : session_start();
-        if ($_SESSION['VerifyCode'] == strtolower($code)) {
+        if ($code && aval($_SESSION,'VerifyCode') == strtolower($code)) {
             self::clearCode();
             return true;
         }

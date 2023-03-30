@@ -83,7 +83,7 @@ class Upload extends ModelAbstract implements UploadInterface
         }
         $post['type'] = empty($post['type']) ? 'image' : $post['type'];
 
-        $dirname = $this->getSaveDir();
+        $dirname = $this->getSaveDir(aval($post,'dir'));
         $imgdir = CSPUBLIC . $dirname;
         File::mkdir($imgdir);
 
@@ -176,9 +176,9 @@ class Upload extends ModelAbstract implements UploadInterface
             $data['mediatype'] = 1;
         } elseif ($p['extension'] == 'swf') {
             $data['mediatype'] = 2;
-        } elseif (preg_match("/mp4|rmvb|rm|wmv|flv|mpg/i", $p['extension'])) {
+        } elseif (preg_match("/mp4|rmvb|rm|wmv|flv|mpg|mov/i", $p['extension'])) {
             $data['mediatype'] = 3;
-        } elseif (preg_match("/wav|mp3|wma|mov|amr|mid/i", $p['extension'])) {
+        } elseif (preg_match("/wav|mp3|wma|amr|mid/i", $p['extension'])) {
             $data['mediatype'] = 4;
         } elseif (preg_match("/zip|gz|rar/i", $p['extension'])) {
             $data['mediatype'] = 5;

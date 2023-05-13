@@ -934,7 +934,7 @@ class Forms extends ModelAbstract
         $data = $result->getData();
         foreach ($data['list'] as $k => $v) {
             foreach ($v as $key => $val) {
-                $format = $val && is_numeric($val) && strlen((string)$val) < 10 ? preg_replace('[\d]', '0', $val) : '@';
+                $format = $val && is_numeric($val) && strlen((string)$val) < 10 ? preg_replace('[\d]', '0', (string)$val) : '@';
                 $v[$key . '_format'] = 'vnd.ms-excel.numberformat:' . $format . ';height:30px;';
             }
             $data['list'][$k] = $v;
@@ -1161,9 +1161,14 @@ class Forms extends ModelAbstract
                     }
                     break;
                 case 'stepselect':
-                    $v['_' . $identifier] = aval($v, $identifier) ? self::t('sysenum')
-                        ->withWhere(['egroup' => $val['egroup'], 'evalue' => $v[$identifier]])
-                        ->fetch('ename') : '';
+                    if (!empty($v[$identifier])) {
+                        $row = self::t('sysenum')
+                            ->withWhere(['egroup' => $val['egroup'], 'evalue' => $v[$identifier]])
+                            ->fetch();
+                        $v['_' . $identifier] = !empty($row['alias']) ? $row['alias'] : aval($row, 'ename', '');
+                    } else {
+                        $v['_' . $identifier] = '';
+                    }
                     break;
                 case 'select':
                 case 'radio':

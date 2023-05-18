@@ -66,7 +66,7 @@ class Wxxcx extends ModelAbstract
     }
 
     /**
-     * 生成的小程序码，永久有效，暂时数量暂无限制
+     * 生成的小程序码，永久有效，暂时数量暂无限制,返回的是base64加密的二进制流
      * @param OutputInterface $output
      * @return OutputInterface
      */
@@ -91,7 +91,8 @@ class Wxxcx extends ModelAbstract
         !empty($data['isHyaline']) && $val['isHyaline'] = $data['isHyaline'];
 
         $url = 'https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=' . self::$accessToken;
-        return Http::curlPost($url, json_encode($val));
+        $result = Http::curlPost($url, json_encode($val));
+        return self::$output->withCode(200)->withData(['qrcode' => base64_encode($result)]);
     }
 
     /**

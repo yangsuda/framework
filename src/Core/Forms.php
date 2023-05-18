@@ -739,11 +739,11 @@ class Forms extends ModelAbstract
                 $val = aval($data, $v['identifier']);
                 if (empty($v['rules']) && $val && preg_match('/,/', (string)$val)) {
                     list($s, $e) = explode(',', $val);
-                    if ($s && $e) {
+                    if (is_numeric($s) && is_numeric($e)) {
                         $where[] = self::t()->field($v['identifier'], $val, 'between');
-                    } elseif ($s) {
+                    } elseif (is_numeric($s)) {
                         $where[] = self::t()->field($v['identifier'], $s, '>=');
-                    } elseif ($e) {
+                    } elseif (is_numeric($e)) {
                         $where[] = self::t()->field($v['identifier'], $e, '<=');
                     }
                 } elseif ($v['datatype'] == 'checkbox') {

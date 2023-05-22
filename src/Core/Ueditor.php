@@ -40,7 +40,7 @@ class Ueditor extends ModelAbstract
         if ($fieldName == 'scrawlFieldName') {
             $uploadData = 'data:image\jpeg;base64,' . $_POST[$uconfig[$fieldName]];
         } else {
-            $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => 1000, 'height' => 1000, 'water' => $water, 'type' => $type];
+            $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => self::$config['imgWidth'], 'height' => self::$config['imgHeight'], 'water' => $water, 'type' => $type];
         }
         $upload = self::$container->get(UploadInterface::class);
         $res = $upload->upload($uploadData);

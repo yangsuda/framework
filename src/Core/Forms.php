@@ -345,7 +345,9 @@ class Forms extends ModelAbstract
             $param['currenturl'] = $arr['currentUrl'];
         }
         if (!empty($param['cacheTime'])) {
-            $cachekey = static::cacheKey(__FUNCTION__, $param, $arr['where']);
+            $para = $param;
+            unset($para['currenturl']);
+            $cachekey = static::cacheKey(__FUNCTION__, $para, $arr['where']);
             $data = self::$redis->get($cachekey);
         }
         if (empty($data)) {

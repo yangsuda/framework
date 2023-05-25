@@ -447,7 +447,7 @@ class Forms extends ModelAbstract
             }
 
             //缓存保存
-            !empty($param['cacheTime']) && self::$redis->set($cachekey, $data, $param['cacheTime']);
+            !empty($param['cacheTime']) && !empty($data['list']) && self::$redis->set($cachekey, $data, $param['cacheTime']);
         }
         return self::$output->withCode(200)->withData($data);
     }

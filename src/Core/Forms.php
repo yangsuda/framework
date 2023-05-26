@@ -434,6 +434,7 @@ class Forms extends ModelAbstract
             }
             $data['form'] = $form;
             $data['fid'] = $param['fid'];
+            $data['order'] = $order;
             $data['by'] = $by;
             $data['currenturl'] = self::url($param['currenturl']);
             $data['get'] = $param['get'];

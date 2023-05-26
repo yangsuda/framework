@@ -359,7 +359,7 @@ class Upload extends ModelAbstract implements UploadInterface
 
         $pic = ltrim($pic, '/');
         $oldurl = CSPUBLIC . $pic;
-        $ptype = strrchr($pic, '.');
+        $ptype = (string)strrchr($pic, '.');
         //如果有已经生成的图片直接返回
         $newpic = str_replace($ptype, "_{$width}x{$height}" . $ptype, $pic);
         if (is_file(CSPUBLIC . $newpic)) {

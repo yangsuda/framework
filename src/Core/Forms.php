@@ -1083,7 +1083,7 @@ class Forms extends ModelAbstract
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    private static function exchangeFieldValue(array $fields, array $v): array
+    protected static function exchangeFieldValue(array $fields, array $v): array
     {
         if (empty($fields)) {
             return [];
@@ -1102,7 +1102,7 @@ class Forms extends ModelAbstract
 
                 //读取由表数据转成的规则
                 if (!empty($rules) && count($rules) == 1) {
-                    $rules = self::tableDataRules($rules);
+                    $rules = static::tableDataRules($rules);
                 }
             }
             switch ($val['datatype']) {
@@ -1249,7 +1249,7 @@ class Forms extends ModelAbstract
             }
             //读取由表数据转成的规则
             if (!empty($v['rules']) && count($v['rules']) == 1) {
-                $v['rules'] = self::tableDataRules($v['rules']);
+                $v['rules'] = static::tableDataRules($v['rules']);
             }
 
             if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio'])) {
@@ -1463,7 +1463,7 @@ class Forms extends ModelAbstract
 
             //读取由表数据转成的规则
             if (!empty($v['rules']) && count($v['rules']) == 1) {
-                $v['rules'] = self::tableDataRules($v['rules']);
+                $v['rules'] = static::tableDataRules($v['rules']);
             }
 
             $v['default'] = !empty($row[$v['identifier']]) ? $row[$v['identifier']] : html_entity_decode((string)$v['default']);
@@ -1598,7 +1598,7 @@ class Forms extends ModelAbstract
      * @param array $rules
      * @return array
      */
-    private static function analysisRules(array $rules): array
+    protected static function analysisRules(array $rules): array
     {
         if (empty($rules) || count($rules) != 1) {
             return [];
@@ -1643,7 +1643,7 @@ class Forms extends ModelAbstract
      * @param $rules
      * @throws \SlimCMS\Error\TextException
      */
-    private static function tableDataRules(array $rules): array
+    protected static function tableDataRules(array $rules): array
     {
         if (empty($rules)) {
             return [];
@@ -1652,18 +1652,23 @@ class Forms extends ModelAbstract
         $cacheKey = self::cacheKey(__FUNCTION__, $rules);
         $val = $cacheTTL ? self::$redis->get($cacheKey) : [];
         if (empty($val)) {
-            $result = self::analysisRules($rules);
+            $result = static::analysisRules($rules);
             if ($result) {
                 if (empty($result['name']) || empty($result['value'])) {
                     return $rules;
                 }
+                $field = str_replace('_', '', $result['value'] . ',' . $result['name']);
                 $list = self::t($result['table'])
                     ->withWhere($result['condition'])
                     ->withLimit($result['limit'])
                     ->withOrderby($result['order'], $result['way'])
-                    ->fetchList($result['value'] . ',' . $result['name']);
+                    ->fetchList($field);
+                $fid = self::t('forms')->withWhere(['table' => $result['table']])->fetch('id');
+                $fields = static::fieldList(['formid' => $fid, 'available' => 1]);
+
                 $val = [];
                 foreach ($list as $v) {
+                    $fields && $v = static::exchangeFieldValue($fields, $v);
                     //支持对应文字多种参数组合显示
                     if (strpos($result['name'], ',')) {
                         $arr = [];
@@ -1711,7 +1716,7 @@ class Forms extends ModelAbstract
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
                 if (!empty($v['rules']) && count(unserialize($v['rules'])) == 1) {
-                    $v['rules'] = serialize(self::tableDataRules(unserialize($v['rules'])));
+                    $v['rules'] = serialize(static::tableDataRules(unserialize($v['rules'])));
                 } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = self::input($v['egroup'], 'int');
                     static $loadonce = 0;

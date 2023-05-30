@@ -117,7 +117,7 @@ class Wxgzh extends ModelAbstract
     {
         $data = $output->getData();
         if (!self::$accessToken) {
-            $res = self::getAccessToken();
+            $res = self::getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
@@ -130,9 +130,9 @@ class Wxgzh extends ModelAbstract
         $val['template_id'] = $data['template_id'];
 
         $sendData = [];
-        //微信新规则，first，remark已经不显示了
-        /*$sendData['first']['value'] = $data['data']['first'];
-        $sendData['first']['color'] = aval($data, 'data/firstColor', '#000000');*/
+        //微信新规则，first已经不显示了
+        //$sendData['first']['value'] = $data['data']['first'];
+        //$sendData['first']['color'] = aval($data, 'data/firstColor', '#000000');
         if (!empty($data['data']['keyword'])) {
             foreach ($data['data']['keyword'] as $k => $v) {
                 $i = $k + 1;

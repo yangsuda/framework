@@ -117,12 +117,12 @@ class Wxgzh extends ModelAbstract
     {
         $data = $output->getData();
         if (!self::$accessToken) {
-            $res = self::getAccessToken($output);
+            $res = self::getAccessToken();
             if ($res->getCode() != 200) {
                 return $res;
             }
         }
-        if (empty($data['touser']) || empty($data['template_id']) || empty($data['data']['first'])) {
+        if (empty($data['touser']) || empty($data['template_id'])) {
             return self::$output->withCode(21003);
         }
         $val = [];
@@ -130,19 +130,20 @@ class Wxgzh extends ModelAbstract
         $val['template_id'] = $data['template_id'];
 
         $sendData = [];
-        $sendData['first']['value'] = $data['data']['first'];
-        $sendData['first']['color'] = aval($data, 'data/firstColor', '#000000');
+        //微信新规则，first，remark已经不显示了
+        /*$sendData['first']['value'] = $data['data']['first'];
+        $sendData['first']['color'] = aval($data, 'data/firstColor', '#000000');*/
         if (!empty($data['data']['keyword'])) {
             foreach ($data['data']['keyword'] as $k => $v) {
                 $i = $k + 1;
-                $sendData['keyword' . $i]['value'] = $data['data']['keyword' . $i];
-                $sendData['keyword' . $i]['color'] = aval($data, 'data/color' . $i, '#000000');
+                $sendData['keyword' . $i]['value'] = $v;
+                $sendData['keyword' . $i]['color'] = aval($data, 'data/color/' . $k, '#000000');
             }
         }
-        if (!empty($data['data']['remark'])) {
+        /*if (!empty($data['data']['remark'])) {
             $sendData['remark']['value'] = $data['data']['remark'];
             $sendData['remark']['color'] = aval($data, 'data/remarkColor', '#000000');
-        }
+        }*/
         $val['data'] = $sendData;
 
         isset($data['url']) && $val['url'] = $data['url'];

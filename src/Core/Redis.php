@@ -29,7 +29,7 @@ class Redis
                         $connect = @$redis->connect($config['server'], aval($config, 'port'));
                     }
                     if ($connect) {
-                        $redis->auth(aval($config, 'password'));
+                        !empty($config['password']) && $redis->auth($config['password']);
                         //0 值不序列化保存，1反之(序列化可以存储对象)
                         $redis->setOption(\Redis::OPT_SERIALIZER, 0);
                         $redis->select(1);

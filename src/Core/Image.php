@@ -191,10 +191,10 @@ class Image extends ModelAbstract
         $srcWH = $srcW / $srcH;
         if ($toWH <= $srcWH) {
             $ftoW = $toW;
-            $ftoH = $ftoW * ($srcH / $srcW);
+            $ftoH = (int)($ftoW * ($srcH / $srcW));
         } else {
             $ftoH = $toH;
-            $ftoW = $ftoH * ($srcW / $srcH);
+            $ftoW = (int)($ftoH * ($srcW / $srcH));
         }
         if ($srcW > $toW || $srcH > $toH) {
             if (function_exists("imagecreatetruecolor")) {

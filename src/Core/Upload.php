@@ -176,11 +176,11 @@ class Upload extends ModelAbstract implements UploadInterface
             $data['mediatype'] = 1;
         } elseif ($p['extension'] == 'swf') {
             $data['mediatype'] = 2;
-        } elseif (preg_match("/mp4|rmvb|rm|wmv|flv|mpg|mov/i", $p['extension'])) {
+        } elseif (preg_match("/mp4|rmvb|rm|wmv|flv|mpg|avi|mpeg|mov|ram|3gp|asf|rmv/i", $p['extension'])) {
             $data['mediatype'] = 3;
-        } elseif (preg_match("/wav|mp3|wma|amr|mid/i", $p['extension'])) {
+        } elseif (preg_match("/wav|mp3|wma|mov|amr|mid|ape|wv|aac|flac|alac/i", $p['extension'])) {
             $data['mediatype'] = 4;
-        } elseif (preg_match("/zip|gz|rar/i", $p['extension'])) {
+        } elseif (preg_match("/zip|gz|rar|tar|7z|jar|cab|arj|ace/i", $p['extension'])) {
             $data['mediatype'] = 5;
         } else {
             $data['mediatype'] = 6;

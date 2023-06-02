@@ -38,12 +38,16 @@ class Ueditor extends ModelAbstract
     {
         $uconfig = self::config()->getData();
         if ($fieldName == 'scrawlFieldName') {
-            $uploadData = 'data:image\jpeg;base64,' . $_POST[$uconfig[$fieldName]];
+            $uploadData = 'data:image/jpeg;base64,' . $_POST[$uconfig[$fieldName]];
         } else {
             $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => self::$config['imgWidth'], 'height' => self::$config['imgHeight'], 'water' => $water, 'type' => $type];
         }
         $upload = self::$container->get(UploadInterface::class);
-        $res = $upload->upload($uploadData);
+        if (is_string($uploadData)) {
+            $res = $upload->h5($uploadData);
+        } else {
+            $res = $upload->upload($uploadData);
+        }
         $result = [];
         if ($res->getCode() != 200 && $res->getCode() != 23001) {
             $result['state'] = $res->getMsg();

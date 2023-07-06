@@ -111,7 +111,7 @@ class Forms extends ModelAbstract
             return self::$output->withCode(21002);
         }
         $ids = array_map('intval', $ids);
-        $form = self::formView($fid)->getData()['form'];
+        $form = static::formView($fid)->getData()['form'];
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
@@ -153,7 +153,7 @@ class Forms extends ModelAbstract
             return self::$output->withCode(21002);
         }
         $ids = array_map('intval', $ids);
-        $form = self::formView($fid)->getData()['form'];
+        $form = static::formView($fid)->getData()['form'];
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
@@ -169,7 +169,7 @@ class Forms extends ModelAbstract
                 }
             }
 
-            $form['isarchive'] == 1 && self::dataSave(7, '', ['formid' => $fid, 'aid' => $v['id'], 'content' => serialize($v)]);//归档记录
+            aval($form, 'isarchive') == 1 && self::dataSave(7, '', ['formid' => $fid, 'aid' => $v['id'], 'content' => serialize($v)]);//归档记录
 
             //判断删除文章附件变量是否开启；
             if (self::$config['isDelAttachment'] == '1') {
@@ -214,7 +214,7 @@ class Forms extends ModelAbstract
         $cachekey = static::cacheKey('dataView', $fid, $id);
         $data = $cacheTime > 0 ? self::$redis->get($cachekey) : [];
         if (empty($data)) {
-            $form = self::formView($fid)->getData()['form'];
+            $form = static::formView($fid)->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }
@@ -276,7 +276,7 @@ class Forms extends ModelAbstract
             $data = self::$redis->get($cachekey);
         }
         if (empty($data)) {
-            $form = self::t('forms')->withWhere($param['fid'])->fetch();
+            $form = static::formView((int)$param['fid'])->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }
@@ -307,6 +307,15 @@ class Forms extends ModelAbstract
     }
 
     /**
+     * 获取字段管理对象
+     * @return Table
+     */
+    protected static function formFields(): Table
+    {
+        return self::t('forms_fields');
+    }
+
+    /**
      * 列表数据
      * @param array $param
      * @return OutputInterface
@@ -317,11 +326,10 @@ class Forms extends ModelAbstract
         if (empty($param['fid'])) {
             return self::$output->withCode(21002);
         }
-        $form = self::t('forms')->withWhere($param['fid'])->fetch();
+        $form = static::formView((int)$param['fid'])->getData()['form'];
         if (empty($form)) {
             return self::$output->withCode(22006);
         }
-
         if (is_callable([self::t($form['table']), 'dataListInit'])) {
             $rs = self::t($form['table'])->dataListInit($param);
             if (is_array($rs)) {
@@ -351,7 +359,7 @@ class Forms extends ModelAbstract
             $data = self::$redis->get($cachekey);
         }
         if (empty($data)) {
-            if ($form['cpcheck'] == 1) {
+            if (aval($form, 'cpcheck') == 1) {
                 $ischeck = aval($param, 'ischeck');
                 if ($ischeck) {
                     $param['get']['ischeck'] = $ischeck;
@@ -380,7 +388,7 @@ class Forms extends ModelAbstract
                     $inlistField = aval($param, 'inlistField') == 'inlistcp' ? 'inlistcp' : 'inlist';
                     $where[$inlistField] = 1;
                 }
-                $fields = self::t('forms_fields')
+                $fields = static::formFields()
                     ->withWhere($where)
                     ->onefieldList('identifier', 60);
                 $fields[] = 'createtime';
@@ -476,7 +484,7 @@ class Forms extends ModelAbstract
             $form = $val['form'];
         } else {
             $row = [];
-            $form = self::formView($fid)->getData()['form'];
+            $form = static::formView($fid)->getData()['form'];
             if (empty($form)) {
                 return self::$output->withCode(22006);
             }
@@ -548,7 +556,7 @@ class Forms extends ModelAbstract
             $fields = $val['fields'];
         } else {
             $row = $row ?: [];
-            $formData = self::formView($fid)->getData();
+            $formData = static::formView($fid)->getData();
             if (empty($formData['form'])) {
                 return self::$output->withCode(22006);
             }
@@ -656,7 +664,7 @@ class Forms extends ModelAbstract
             return $order;
         }
         if (empty($order)) {
-            $row = self::t('forms_fields')->withWhere(['formid' => $fid, 'available' => 1, 'defaultorder' => [1, 2]])->fetch();
+            $row = static::formFields()->withWhere(['formid' => $fid, 'available' => 1, 'defaultorder' => [1, 2]])->fetch();
             $order = 'main.id';
             if ($row) {
                 $by = $row['defaultorder'] == 1 ? 'desc' : 'asc';
@@ -679,7 +687,7 @@ class Forms extends ModelAbstract
                 continue;
             }
             $where = ['formid' => $fid, 'available' => 1, 'identifier' => $v, 'orderby' => 1];
-            if (empty($v) || !self::t('forms_fields')->withWhere($where)->count()) {
+            if (empty($v) || !static::formFields()->withWhere($where)->count()) {
                 $valid = false;
                 break;
             }
@@ -704,7 +712,7 @@ class Forms extends ModelAbstract
         $cachekey = static::cacheKey(__FUNCTION__, func_get_args());
         $list = self::$redis->get($cachekey);
         if (empty($list)) {
-            $list = self::t('forms_fields')
+            $list = static::formFields()
                 ->withWhere($where)
                 ->withLimit($limit)
                 ->withOrderby($order)
@@ -923,11 +931,10 @@ class Forms extends ModelAbstract
         if (empty($param['fid'])) {
             return self::$output->withCode(21001);
         }
-        $form = self::t('forms')->withWhere($param['fid'])->fetch();
-        if (empty($form['table'])) {
+        $form = static::formView((int)$param['fid'])->getData()['form'];
+        if (empty($form)) {
             return self::$output->withCode(22006);
         }
-
         $dataListParam = $param;
         $dataListParam['by'] = 'desc';
         $dataListParam['pagesize'] = aval($param, 'pagesize', 1000);
@@ -962,7 +969,7 @@ class Forms extends ModelAbstract
         $style = 'height:30px;font-weight:bold;background-color:#f6f6f6;text-align:center;';
         $heads = [];
         $heads['id'] = ['title' => '序号', 'datatype' => 'int', 'style' => $style];
-        if ($form['cpcheck'] == 1) {
+        if (aval($form, 'cpcheck') == 1) {
             $heads['ischeck'] = ['title' => '审核状态', 'datatype' => 'radio', 'style' => $style];
         }
         foreach ($fieldList as $v) {
@@ -1204,7 +1211,7 @@ class Forms extends ModelAbstract
                     break;
                 case 'int':
                     if (!empty($val['rules'])) {
-                        $result = self::analysisRules($rules);
+                        $result = static::analysisRules($rules);
                         if ($result) {
                             $v['_' . $identifier] = self::t($result['table'])
                                 ->withWhere([$result['value'] => $v[$identifier]])
@@ -1610,11 +1617,11 @@ class Forms extends ModelAbstract
         if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
             $result = Str::htmlspecialchars($rules[$table], 'de');
             //筛选条件支持外部传参
-            preg_match_all('|&#036;(\w+)&#036;|isU',$result,$mat);
-            if(!empty($mat[1])){
-                foreach ($mat[1] as $v){
+            preg_match_all('|&#036;(\w+)&#036;|isU', $result, $mat);
+            if (!empty($mat[1])) {
+                foreach ($mat[1] as $v) {
                     $val = self::input($v);
-                    $result = str_replace('&#036;'.$v.'&#036;',$val,$result);
+                    $result = str_replace('&#036;' . $v . '&#036;', $val, $result);
                 }
             }
             $result = json_decode($result, true);
@@ -1743,7 +1750,7 @@ class Forms extends ModelAbstract
         }
         $where = ['formid' => $fid, 'available' => 1, 'orderby' => 1];
         $data = [];
-        $data['orderFields'] = self::t('forms_fields')->withWhere($where)->onefieldList('id');
+        $data['orderFields'] = static::formFields()->withWhere($where)->onefieldList('id');
         return self::$output->withCode(200)->withData($data);
     }
 

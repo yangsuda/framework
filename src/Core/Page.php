@@ -25,6 +25,7 @@ class Page extends ModelAbstract
      */
     public static function multi($num, $perpage, $curpage, $mpurl = '', $maxpages = 0, $page = 5, $autogoto = false, $shownum = false)
     {
+        $mpurl = (string)$mpurl;
         $a_name = '';
         if (strpos($mpurl, '#') !== FALSE) {
             $a_strs = explode('#', $mpurl);

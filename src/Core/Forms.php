@@ -326,7 +326,8 @@ class Forms extends ModelAbstract
         if (empty($param['fid'])) {
             return self::$output->withCode(21002);
         }
-        $form = static::formView((int)$param['fid'])->getData()['form'];
+        $res = static::formView((int)$param['fid'])->getData();
+        $form = aval($res, 'form');
         if (empty($form)) {
             return self::$output->withCode(22006);
         }

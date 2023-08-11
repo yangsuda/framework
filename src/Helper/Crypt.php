@@ -86,7 +86,7 @@ class Crypt
         $encrypt_data = base64_decode($data);
         openssl_private_decrypt($encrypt_data, $result, $private_key);
         openssl_free_key($private_key);
-        return $result;
+        return $result ?: '';
     }
 
     /**
@@ -103,6 +103,6 @@ class Crypt
         $encrypted = '';
         openssl_public_encrypt($data, $encrypted, file_get_contents($publicKey));
         $data = base64_encode($encrypted);
-        return $data;
+        return $data ?: '';
     }
 }

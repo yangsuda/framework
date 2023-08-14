@@ -1121,7 +1121,7 @@ class Forms extends ModelAbstract
                     if ($v[$identifier] && $v[$identifier] != '0.00') {
                         $v['_' . $identifier] = $v[$identifier] = (float)$v[$identifier];
                     } else {
-                        $v['_' . $identifier] = $v[$identifier] = '';
+                        $v['_' . $identifier] = '';
                     }
                     break;
                 case 'date':

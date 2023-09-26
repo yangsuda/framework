@@ -76,7 +76,7 @@ class Output implements OutputInterface
      * @param array $para
      * @return mixed|string
      */
-    private function promptMsg($code, $para = []): string
+    protected function promptMsg($code, $para = []): string
     {
         $prompt = $this->prompts();
         $str = aval($prompt, $code);

@@ -395,7 +395,11 @@ class Str
             return preg_replace_callback(
                 '/&#([0-9]+);/is',
                 function (array $match) {
-                    return iconv("UCS-4", 'UTF-8', hex2bin('000' . base_convert($match[1], 10, 16)));
+                    if(strlen($match[1])%2){
+                        return '&#'.$match[1];
+                    }else{
+                        return iconv("UCS-4", 'UTF-8', hex2bin('000'. base_convert($match[1], 10, 16)));
+                    }
                 },
                 $str);
         }

@@ -98,7 +98,7 @@ class Ueditor extends ModelAbstract
     /**
      * 遍历获取目录下的指定类型的文件
      */
-    private static function getFiles(): array
+    protected static function getFiles(): array
     {
         $where = [];
         $where['isfirst'] = 1;

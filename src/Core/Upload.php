@@ -23,7 +23,7 @@ class Upload extends ModelAbstract implements UploadInterface
     {
     }
 
-    private function getSaveDir(string $dirrule = null)
+    protected function getSaveDir(string $dirrule = null)
     {
         $dir = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
         if (!isset($dirrule)) {
@@ -166,7 +166,7 @@ class Upload extends ModelAbstract implements UploadInterface
      * @param int $isfirst
      * @return int
      */
-    private function save(string $url, int $isfirst = 2): int
+    protected function save(string $url, int $isfirst = 2): int
     {
         $dirname = $this->getSaveDir('');
         $data = [];
@@ -297,7 +297,7 @@ class Upload extends ModelAbstract implements UploadInterface
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    private function listByUrl(string $url): array
+    protected function listByUrl(string $url): array
     {
         $url = str_replace(self::$config['basehost'], '', $url);
         $ext = self::$config['imgtype'] . '|' . self::$config['softtype'] . '|' . self::$config['mediatype'];

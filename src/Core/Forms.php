@@ -630,7 +630,7 @@ class Forms extends ModelAbstract
      * @param array $data
      * @return OutputInterface
      */
-    private static function requiredCheck(int $fid, array $row = [], array $data = []): OutputInterface
+    protected static function requiredCheck(int $fid, array $row = [], array $data = []): OutputInterface
     {
         if (empty($fid)) {
             return self::$output->withCode(27010);
@@ -659,7 +659,7 @@ class Forms extends ModelAbstract
      * @return string
      * @throws \SlimCMS\Error\TextException
      */
-    private static function validOrder(int $fid, string $order = '', bool $force = false): string
+    protected static function validOrder(int $fid, string $order = '', bool $force = false): string
     {
         if ($force === true) {
             return $order;
@@ -729,12 +729,17 @@ class Forms extends ModelAbstract
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    private static function searchCondition(array $param): OutputInterface
+    protected static function searchCondition(array $param): OutputInterface
     {
         if (empty($param['fid'])) {
             return self::$output->withCode(21002);
         }
-        $search_fields = static::fieldList(['formid' => $param['fid'], 'available' => 1, 'search' => 1]);
+        if (!empty($param['searchFields'])) {
+            $search_fields = static::fieldList(['formid' => $param['fid'], 'available' => 1, 'identifier' => explode(',', $param['searchFields'])]);
+        } else {
+            $search_fields = static::fieldList(['formid' => $param['fid'], 'available' => 1, 'search' => 1]);
+        }
+
         $fields = static::fieldList(['formid' => $param['fid'], 'available' => 1]);
         $data = static::getFormValue($fields);
 
@@ -743,7 +748,8 @@ class Forms extends ModelAbstract
         if (!empty($search_fields)) {
             foreach ($search_fields as $v) {
                 //使模板标签支持条件筛选
-                $arr = ['func', 'where', 'formid', 'order', 'fields', 'by', 'join', 'joinFields', 'cacheTime', 'url', 'page', 'pagesize', 'maxpages', 'autogoto', 'shownum'];
+                $arr = ['func', 'where', 'formid', 'order', 'fields', 'by', 'join', 'joinFields', 'cacheTime', 'url',
+                    'page', 'pagesize', 'maxpages', 'autogoto', 'shownum'];
                 if (aval($param, $v['identifier']) && !in_array($v['identifier'], $arr)) {
                     $data[$v['identifier']] = $param[$v['identifier']];
                 }
@@ -834,7 +840,7 @@ class Forms extends ModelAbstract
         return self::$output->withCode(200)->withData($data);
     }
 
-    private static function _enumSubids($egroup, $evalue = 0)
+    protected static function _enumSubids($egroup, $evalue = 0)
     {
         $list = self::t('sysenum')->withWhere(['egroup' => $egroup, 'reid' => $evalue])->onefieldList('evalue');
         foreach ($list as $v) {
@@ -1239,7 +1245,7 @@ class Forms extends ModelAbstract
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    private static function getFormValue(array $fields, array $olddata = []): array
+    protected static function getFormValue(array $fields, array $olddata = []): array
     {
         $cfg = &self::$config;
         $data = [];
@@ -1458,7 +1464,7 @@ class Forms extends ModelAbstract
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    private static function formHtml($fid, array $fields, array $row = [], array $options = []): array
+    protected static function formHtml($fid, array $fields, array $row = [], array $options = []): array
     {
         foreach ($fields as $k => $v) {
             $v['maxlength'] = $maxlength = !empty($v['maxlength']) ? 'maxlength="' . $v['maxlength'] . '"' : '';

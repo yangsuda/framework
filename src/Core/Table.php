@@ -166,7 +166,7 @@ class Table
      * @param string $fields
      * @return string
      */
-    private function selectSQL(string $fields): string
+    protected function selectSQL(string $fields): string
     {
         $sql = 'SELECT ' . $fields . ' FROM ' . $this->tableName . ' main ' .
             $this->join . $this->where . $this->orderby . $this->limit;
@@ -407,7 +407,7 @@ class Table
      * @param int $id
      * @param array $data
      */
-    private function updateFetchCache(int $id, array $data)
+    protected function updateFetchCache(int $id, array $data)
     {
         if ($this->redis->isAvailable()) {
             $cachekey = $this->cacheKey($id);
@@ -510,7 +510,7 @@ class Table
         return $clone;
     }
 
-    private function implode(array $array, string $glue = ','): string
+    protected function implode(array $array, string $glue = ','): string
     {
         $sql = $comma = '';
         $glue = ' ' . trim($glue) . ' ';
@@ -527,7 +527,7 @@ class Table
         return $sql;
     }
 
-    private function quote($str, $noarray = false)
+    protected function quote($str, $noarray = false)
     {
         if (is_string($str)) {
             if (preg_match('/^(#@#){1}[A-Za-z]{2,}([\w])*(\+|\-)([\d.]{1,20})$/i', $str)) {
@@ -556,7 +556,7 @@ class Table
         return '\'\'';
     }
 
-    private function quoteField($field)
+    protected function quoteField($field)
     {
         if (is_array($field)) {
             foreach ($field as $k => $v) {
@@ -652,7 +652,7 @@ class Table
      * @param string $glue
      * @return string
      */
-    private function implodeSave(array $array, string $glue = ','): string
+    protected function implodeSave(array $array, string $glue = ','): string
     {
         $sql = $comma = '';
         $glue = ' ' . trim($glue) . ' ';

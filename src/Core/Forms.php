@@ -1718,15 +1718,21 @@ class Forms extends ModelAbstract
 
     /**
      * 参与搜索字段
-     * @param $fid
+     * @param int $fid
+     * @param string $fields
      * @return OutputInterface
+     * @throws \SlimCMS\Error\TextException
      */
-    public static function searchFields(int $fid): OutputInterface
+    public static function searchFields(int $fid, string $fields = ''): OutputInterface
     {
         if (empty($fid)) {
             return self::$output->withCode(27010);
         }
-        $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
+        if (!empty($fields)) {
+            $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'identifier' => explode(',', $fields)]);
+        } else {
+            $searchFields = static::fieldList(['formid' => $fid, 'available' => 1, 'search' => 1]);
+        }
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
                 if (!empty($v['rules']) && count(unserialize($v['rules'])) == 1) {

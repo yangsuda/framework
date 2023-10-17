@@ -9,6 +9,7 @@ namespace SlimCMS\Core;
 
 use Slim\App;
 use SlimCMS\Helper\File;
+use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\TemplateInterface;
 
@@ -131,8 +132,10 @@ class Output implements OutputInterface
         $clone->code = $code;
         $clone->msg = $clone->promptMsg($code, $param);
         if ($code != 200) {
+            $p = aval($_POST, 'p') ?: aval($_GET, 'p');
+            $path = Str::htmlspecialchars($p);
             File::log('errorCode/' . date('Y') . '/' . date('m'))
-                ->info('报错信息', ['code' => $clone->code, 'msg' => $clone->msg]);
+                ->info('报错信息', ['code' => $clone->code, 'msg' => $clone->msg, 'path' => $path]);
             $clone->data = [];
         }
         return $clone;

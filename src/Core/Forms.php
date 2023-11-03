@@ -1166,7 +1166,7 @@ class Forms extends ModelAbstract
                     if (!empty($v[$identifier])) {
                         $arr = [];
                         $arrMore = [];
-                        foreach (explode(',', $v[$identifier]) as $_v) {
+                        foreach (explode(',', (string)$v[$identifier]) as $_v) {
                             if (!empty($_v)) {
                                 $name = aval($rules, $_v);
                                 $arr[] = $name;

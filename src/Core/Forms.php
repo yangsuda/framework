@@ -1021,7 +1021,7 @@ class Forms extends ModelAbstract
                 if (!in_array(strtolower($resource), ['.', '..'])) {
                     $time = filemtime($tmpPath . $resource);
                     if ($time + 3600 < TIMESTAMP) {
-                        unlink($tmpPath . $resource);
+                        is_file($tmpPath . $resource) && unlink($tmpPath . $resource);
                     }
                 }
             }

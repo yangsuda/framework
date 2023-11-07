@@ -39,7 +39,7 @@ class Routes implements RouteInterface
                 $p = 'index';
             }
             $path = str_replace('\\', '/', dirname($p));
-            $path = trim($path, '\.');
+            $path = trim(trim($path, '\.'),'/');
             $controlname = $path ? basename($path) : basename($p);
             $path = empty($path) || $path == $controlname ? '' : dirname($path) . '\\';
 

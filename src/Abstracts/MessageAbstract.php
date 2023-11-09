@@ -117,6 +117,17 @@ abstract class MessageAbstract
         return $this->response;
     }
 
+    /**
+     * DEMO
+     * $response->withResponse($response->getResponse()->withHeader('Content-Type','application/json'));
+     * @param ResponseInterface $response
+     * @return void
+     */
+    public function withResponse(ResponseInterface $response)
+    {
+        $this->response = $response;
+    }
+
     public function getOutput(): OutputInterface
     {
         return $this->output;

@@ -106,6 +106,7 @@ $(function() {
     public static function simplepage($num, $perpage, $curpage, $mpurl, $shownum = false)
     {
         $a_name = '';
+        $mpurl = (string)$mpurl;
         if (strpos($mpurl, '#') !== FALSE) {
             $a_strs = explode('#', $mpurl);
             $mpurl = $a_strs[0];

@@ -73,9 +73,9 @@ class Image extends ModelAbstract
                 if (self::$config['waterpos'] == 0) {
                     self::$config['waterpos'] = mt_rand(1, 9);
                 }
+                $x = $y = 0;
                 switch (self::$config['waterpos']) {
                     case 1:
-
                         $x = +5;
                         $y = +5;
                         break;
@@ -140,7 +140,7 @@ class Image extends ModelAbstract
      * @param $width
      * @param $height
      */
-    public static function imageResize($file, $width = '', $height = '')
+    public static function imageResize($file, $width = 0, $height = 0)
     {
         $width = $width ?: self::$config['imgWidth'];
         $height = $height ?: self::$config['imgHeight'];
@@ -250,7 +250,7 @@ class Image extends ModelAbstract
         }
         self::$targetfile = $srcFile;
         self::$attachinfo = @getimagesize($srcFile);
-        if (self::$attachinfo['mime']=='image/gif') {
+        if (self::$attachinfo['mime'] == 'image/gif') {
             return false;
         }
         $markimgInfo = @getimagesize(CSPUBLIC . self::$config['markimg']);
@@ -309,8 +309,8 @@ class Image extends ModelAbstract
                 break;
         }
 
-        $width = imagesx($img);
-        $height = imagesy($img);
+        $width = $img ? imagesx($img) : 0;
+        $height = $img ? imagesy($img) : 0;
 
         if (!$width || !$height) {
             return FALSE;

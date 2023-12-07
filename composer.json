@@ -22,7 +22,14 @@
         "php": "^7.3",
         "php-di/php-di": "^6.1",
         "slim/psr7": "^1.1",
-        "slim/slim": "^4.5"
+        "slim/slim": "^4.5",
+        "ext-gd": "*",
+        "ext-pdo": "*",
+        "ext-openssl": "*",
+        "ext-curl": "*",
+        "ext-iconv": "*",
+        "ext-mbstring": "*",
+        "ext-zip": "*"
     },
     "repositories": {
         "packagist": {

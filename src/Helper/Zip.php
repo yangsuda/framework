@@ -19,7 +19,9 @@ class Zip
     public static function pack(array $files, bool $inroot = true): bool
     {
         $zip = new \ZipArchive();
-        $zipname = uniqid() . '.zip';
+        $dir = CSPUBLIC . 'uploads/tmp/' . date('Y') . '/';
+        File::mkdir($dir);
+        $zipname = $dir . uniqid() . '.zip';
 
         if ($zip->open($zipname, \ZipArchive::CREATE) !== TRUE) {
             return false;
@@ -41,8 +43,7 @@ class Zip
                     $name = !empty($v['name']) ? $v['name'] : $fileBasename;
                     $name = $i . '_' . $name . '.' . $fileType;
                     $tmpFiles[] = $name;
-                    copy($file, CSPUBLIC . $name);
-                    $zip->addFile($name);
+                    $zip->addFromString($name, file_get_contents($file));
                 } else {
                     $zip->addFile($v['file']);
                 }
@@ -61,13 +62,14 @@ class Zip
         header('Content-Transfer-Encoding: binary');
         header('Connection: close');
         readfile($zipname); // push it out
+
         //每一次下载后删除旧压缩包
         if (is_file($zipname)) {
             @unlink($zipname);
         }
         //删除临时复制的文件
         foreach ($tmpFiles as $v) {
-            @unlink(CSPUBLIC . $v);
+            @unlink($dir . $v);
         }
         return true;
     }

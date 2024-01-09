@@ -24,7 +24,7 @@ class Wxgzh extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    private static function getAccessToken(OutputInterface $output): OutputInterface
+    protected static function getAccessToken(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret'])) {
@@ -190,7 +190,7 @@ class Wxgzh extends ModelAbstract
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    private static function jsapiTicket(OutputInterface $output): OutputInterface
+    protected static function jsapiTicket(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (!self::$accessToken) {

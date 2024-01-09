@@ -23,7 +23,11 @@ class Upload extends ModelAbstract implements UploadInterface
     {
     }
 
-    protected function getSaveDir(string $dirrule = null)
+    /**
+     * @param string|null $dirrule
+     * @return string
+     */
+    protected function getSaveDir(string $dirrule = null):string
     {
         $dir = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
         if (!isset($dirrule)) {

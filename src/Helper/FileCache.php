@@ -12,7 +12,11 @@ class FileCache
     private static function getCacheFile($key)
     {
         $key = md5($key);
-        $dir = CSDATA . 'fileCache/' . $key[0] . '/';
+        if (version_compare(VERSION, '3.0.1', '>=')) {
+            $dir = CSDATA . 'fileCache/' . $key[0] . $key[1] . '/';
+        } else {
+            $dir = CSDATA . 'fileCache/' . $key[0] . '/';
+        }
         File::mkdir($dir);
         return $dir . $key . '.txt';
     }

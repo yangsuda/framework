@@ -53,6 +53,7 @@ class FileCache
         $str = file_get_contents($cacheFile);
         $data = json_decode($str, true);
         if ($data['timestamp'] < TIMESTAMP) {
+            unlink($cacheFile);
             return null;
         }
         return $data['value'];

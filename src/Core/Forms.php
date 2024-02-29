@@ -796,7 +796,7 @@ class Forms extends ModelAbstract
                     }
                 }
 
-                if (!empty($v['rules'][$val])) {
+                if (is_array($v['rules']) && !empty($v['rules'][$val])) {
                     $tags[] = [$v['identifier'], aval($v['rules'], $val)];
                 } elseif (!empty($v['rules']) && !is_array($val) && preg_match('/,/', (string)$val)) {
                     $tags[] = [$v['identifier'], str_replace(',', '-', $val) . $v['units']];

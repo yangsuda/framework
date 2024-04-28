@@ -8,7 +8,7 @@ use SlimCMS\Interfaces\UploadInterface;
  * @param $val 元素
  * @param $default 都不存在时的默认值
  */
-function aval(array $arr, $val, $default = null)
+function aval($arr, $val, $default = null)
 {
     $arr = empty($arr) ? array() : (array)$arr;
     if (($pos = strpos((string)$val, '/')) !== false) {

@@ -13,7 +13,7 @@ use SlimCMS\Error\TextException;
 class Redis
 {
     public static $redis;
-    private $setting;
+    protected $setting;
 
     public function __construct(ContainerInterface $container)
     {
@@ -65,7 +65,7 @@ class Redis
         return !empty(self::$redis);
     }
 
-    private function cacheKey(&$key)
+    protected function cacheKey(&$key)
     {
         $key = $this->setting['redis']['prefix'] . $key;
     }
@@ -691,7 +691,7 @@ class Redis
     /**
      * 大数据通过协程处理
      */
-    private function yield_slice($data)
+    protected function yield_slice($data)
     {
         for($i=0;$i<100;$i++){
             $start = $i*50000;
@@ -853,6 +853,22 @@ class Redis
             return null;
         }
         return self::$redis->lrem($key, $value, $count);
+    }
+
+    /**
+     *  对一个列表进行修剪，让列表只保留指定区间内的元素，不在指定区间之内的元素都将被删除
+     * @param $key
+     * @param int $stat
+     * @param string $end
+     * @return array
+     */
+    public function ltrim($key, $stat = 0, $end = '-1')
+    {
+        $this->cacheKey($key);
+        if (empty(self::$redis)) {
+            return null;
+        }
+        return self::$redis->ltrim($key, $stat, $end);
     }
 
     /**

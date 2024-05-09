@@ -425,7 +425,7 @@ class Forms extends ModelAbstract
             $pagesize = (int)aval($param, 'pagesize', 30);
             $indexField = (string)aval($param, 'indexField');
             $joins = (array)aval($param, 'joins');
-            $data = self::t($form['table'])
+            $data = self::t($form['table'], aval($param, 'extendFormName'))
                 ->withJoin($joins)
                 ->withWhere($param['where'])
                 ->withOrderby($order, $by)

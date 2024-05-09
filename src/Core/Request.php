@@ -156,6 +156,8 @@ class Request extends MessageAbstract
                 $data[$k] = preg_replace('/[^\d\-]/i', '', $val);
             } elseif ($v == 'number') {
                 $data[$k] = preg_replace('/[^\d]/i', '', $val);
+            } elseif ($v == 'anumber') {
+                $data[$k] = preg_replace('/[^\d,]/i', '', $val);
             } elseif ($v == 'fnumber') {
                 $data[$k] = preg_replace('/[^\d.]/i', '', $val);
             } elseif ($v == 'email') {

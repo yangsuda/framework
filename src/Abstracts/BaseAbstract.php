@@ -76,10 +76,10 @@ abstract class BaseAbstract
         if (!class_exists($classname)) {
             $classname = 'App\Core\Table';
         }
-        if (empty($objs[$name])) {
-            $objs[$name] = new $classname(self::$request, $name, $extendName);
+        if (empty($objs[$name.$extendName])) {
+            $objs[$name.$extendName] = new $classname(self::$request, $name, $extendName);
         }
-        return $objs[$name];
+        return $objs[$name.$extendName];
     }
 
     /**

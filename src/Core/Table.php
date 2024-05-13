@@ -237,7 +237,7 @@ class Table
             $cachekey = $this->cacheKey($indexid);
             $data = $this->redis->get($cachekey);
             if (empty($data)) {
-                $data = $this->db->fetch('SELECT * FROM ' . $this->tableName . ' WHERE id=' . $indexid);
+                $data = $this->db->fetch('SELECT * FROM ' . $this->tableName . ' main WHERE id=' . $indexid);
                 $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
             }
         } else {

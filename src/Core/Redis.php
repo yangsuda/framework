@@ -495,6 +495,22 @@ class Redis
      * @param $key
      * @param $start
      * @param $end
+     * @return null
+     */
+    public function zrangebyscore($key, $start, $end)
+    {
+        $this->cacheKey($key);
+        if (empty(self::$redis)) {
+            return null;
+        }
+        return self::$redis->zrangebyscore($key, (string)$start, (string)$end);
+    }
+
+    /**
+     * 移除有序集合中给定的分数区间的所有成员
+     * @param $key
+     * @param $start
+     * @param $end
      * @return int
      */
     public function zremrangebyscore($key, $start, $end)
@@ -503,7 +519,7 @@ class Redis
         if (empty(self::$redis)) {
             return null;
         }
-        return self::$redis->zRemRangeByScore($key, $start, $end);
+        return self::$redis->zRemRangeByScore($key, (string)$start, (string)$end);
     }
 
     /**
@@ -616,6 +632,45 @@ class Redis
     }
 
     /**
+     * 有序集合取交集
+     * @param string $key
+     * @param array $members
+     * @return mixed|null
+     */
+    public function zInterStore(string $key, array $members)
+    {
+        $this->cacheKey($key);
+        if (empty(self::$redis)) {
+            return null;
+        }
+        array_walk($members, array($this, "cacheKey"));
+        foreach ($members as $v) {
+            $this->cacheKey($key);
+        }
+        $res = self::$redis->zInterStore($key, $members);
+        // 获取交集结果
+        return self::$redis->zRange($key, 0, -1, true);
+    }
+
+    /**
+     * 有序集合取并集
+     * @param string $key
+     * @param array $members
+     * @return null
+     */
+    public function zUnionStore(string $key, array $members)
+    {
+        $this->cacheKey($key);
+        if (empty(self::$redis)) {
+            return null;
+        }
+        array_walk($members, array($this, "cacheKey"));
+        $res = self::$redis->zUnionStore($key, $members);
+        // 获取交集结果
+        return self::$redis->zRange($key, 0, -1, true);
+    }
+
+    /**
      * 返回 key 的剩余过期时间
      * @param $key
      * @return int|null
@@ -693,9 +748,9 @@ class Redis
      */
     protected function yield_slice($data)
     {
-        for($i=0;$i<100;$i++){
-            $start = $i*50000;
-            yield $slice = array_slice($data, $start,50000);
+        for ($i = 0; $i < 100; $i++) {
+            $start = $i * 50000;
+            yield $slice = array_slice($data, $start, 50000);
         }
     }
 

@@ -11,6 +11,7 @@ namespace SlimCMS\Core;
 use App\Core\Upload;
 use App\Core\Ueditor;
 use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Crypt;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Ipdata;
@@ -576,6 +577,11 @@ class Forms extends ModelAbstract
         }
 
         $data = $data ?: static::getFormValue($fields, $row);
+
+        $res = self::validCheck($fid, $data);
+        if ($res->getCode() != 200) {
+            return $res;
+        }
 
         //判断是否唯一
         $uniques = static::fieldList(['formid' => $fid, 'unique' => 1, 'available' => 1]);
@@ -1781,5 +1787,50 @@ class Forms extends ModelAbstract
         $allValidFields = static::fieldList(['formid' => $fid, 'available' => 1]);
         return self::$output->withCode(200)->withData(['allValidFields' => $allValidFields]);
 
+    }
+
+    /**
+     * 数据有效性检测
+     * @param int $fid
+     * @param array $data
+     * @return OutputInterface
+     * @throws TextException
+     */
+    protected static function validCheck(int $fid, array $data = []): OutputInterface
+    {
+        if (empty($fid)) {
+            return self::$output->withCode(27010);
+        }
+        $form = self::formView($fid)->getData()['form'];
+        if (empty($form)) {
+            return self::$output->withCode(22006);
+        }
+        $fields = static::fieldList(['formid' => $fid, 'available' => 1]);
+        foreach ($fields as $v) {
+            $msg = $v['errormsg'] ?: $v['title'];
+            $val = $data ?: self::input($v['identifier']);
+            $val = $val ?: (!empty($v['egroup']) ? self::inputInt($v['egroup']) : '');
+            if ($v['datatype'] == 'stepselect') {
+                $v['rules'] = [];
+                foreach (self::enumsData($v['egroup'])->getData()['list'] as $v1) {
+                    $v['rules'][$v1['evalue']] = $v1['ename'];
+                }
+            } elseif (!empty($v['rules'])) {
+                $v['rules'] = unserialize($v['rules']);
+                //读取由表数据转成的规则
+                count($v['rules']) == 1 && $v['rules'] = self::tableDataRules($v['rules']);
+            }
+            if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio', 'stepselect'])) {
+                if (is_array($val)) {
+                    $vals = $val;
+                } else {
+                    $vals = $val || $val == '0' ? explode('`', $val) : [];
+                }
+                if (isset($vals[$v['identifier']]) && !array_key_exists($vals[$v['identifier']], $v['rules'])) {
+                    return self::$output->withCode(21000, ['msg' => $msg . '值不正确']);
+                }
+            }
+        }
+        return self::$output->withCode(200);
     }
 }

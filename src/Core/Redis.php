@@ -32,7 +32,8 @@ class Redis
                         !empty($config['password']) && $redis->auth($config['password']);
                         //0 值不序列化保存，1反之(序列化可以存储对象)
                         $redis->setOption(\Redis::OPT_SERIALIZER, 0);
-                        $redis->select(1);
+                        $dbindex = !empty($config['dbindex']) ? $config['dbindex'] : 1;
+                        $redis->select($dbindex);
                         self::$redis = &$redis;
                     }
                 } catch (RedisException $e) {

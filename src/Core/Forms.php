@@ -578,11 +578,6 @@ class Forms extends ModelAbstract
 
         $data = $data ?: static::getFormValue($fields, $row);
 
-        $res = self::validCheck($fid, $data);
-        if ($res->getCode() != 200) {
-            return $res;
-        }
-
         //判断是否唯一
         $uniques = static::fieldList(['formid' => $fid, 'unique' => 1, 'available' => 1]);
         foreach ($uniques as $v) {

@@ -507,6 +507,22 @@ class Redis
     }
 
     /**
+     * 返回有序集中指定分数区间内的成员，分数从高到低排序
+     * @param $key
+     * @param $start
+     * @param $end
+     * @return null
+     */
+    public function zrevrangebyscore($key, $start, $end)
+    {
+        $this->cacheKey($key);
+        if (empty(self::$redis)) {
+            return null;
+        }
+        return self::$redis->zrevrangebyscore($key, (string)$start, (string)$end);
+    }
+
+    /**
      * 移除有序集合中给定的分数区间的所有成员
      * @param $key
      * @param $start

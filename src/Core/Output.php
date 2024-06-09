@@ -236,7 +236,7 @@ class Output implements OutputInterface
             'msg' => $this->msg,
             'data' => $this->data,
         ];
-        //!empty($this->referer) && $data['referer'] = $this->referer;
+        !empty($this->referer) && $data['referer'] = $this->referer;
         return $data;
     }
 }

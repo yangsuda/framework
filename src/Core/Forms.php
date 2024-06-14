@@ -674,7 +674,7 @@ class Forms extends ModelAbstract
             }
             return $order;
         }
-        if ($order == 'rand&#040;&#041;') {
+        if ($order == 'rand&#040;&#041;' || $order == 'rand()') {
             return 'rand()';
         }
         $fields = (array)$order;
@@ -1791,7 +1791,7 @@ class Forms extends ModelAbstract
      * @return OutputInterface
      * @throws TextException
      */
-    protected static function validCheck(int $fid, array $data = []): OutputInterface
+    protected static function validCheck(int $fid, array $data): OutputInterface
     {
         if (empty($fid)) {
             return self::$output->withCode(27010);
@@ -1803,8 +1803,6 @@ class Forms extends ModelAbstract
         $fields = static::fieldList(['formid' => $fid, 'available' => 1]);
         foreach ($fields as $v) {
             $msg = $v['errormsg'] ?: $v['title'];
-            $val = $data ?: self::input($v['identifier']);
-            $val = $val ?: (!empty($v['egroup']) ? self::inputInt($v['egroup']) : '');
             if ($v['datatype'] == 'stepselect') {
                 $v['rules'] = [];
                 foreach (self::enumsData($v['egroup'])->getData()['list'] as $v1) {
@@ -1815,13 +1813,8 @@ class Forms extends ModelAbstract
                 //读取由表数据转成的规则
                 count($v['rules']) == 1 && $v['rules'] = self::tableDataRules($v['rules']);
             }
-            if (!empty($v['rules']) && in_array($v['datatype'], ['checkbox', 'select', 'radio', 'stepselect'])) {
-                if (is_array($val)) {
-                    $vals = $val;
-                } else {
-                    $vals = $val || $val == '0' ? explode('`', $val) : [];
-                }
-                if (isset($vals[$v['identifier']]) && !array_key_exists($vals[$v['identifier']], $v['rules'])) {
+            if (!empty($v['rules']) && in_array($v['datatype'], ['select', 'radio', 'stepselect'])) {
+                if (!empty($data[$v['identifier']]) && !array_key_exists($data[$v['identifier']], $v['rules'])) {
                     return self::$output->withCode(21000, ['msg' => $msg . '值不正确']);
                 }
             }

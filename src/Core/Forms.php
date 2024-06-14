@@ -674,7 +674,7 @@ class Forms extends ModelAbstract
             }
             return $order;
         }
-        if ($order == 'rand&#040;&#041;') {
+        if ($order == 'rand&#040;&#041;' || $order == 'rand()') {
             return 'rand()';
         }
         $fields = (array)$order;

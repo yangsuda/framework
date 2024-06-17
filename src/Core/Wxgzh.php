@@ -130,6 +130,7 @@ class Wxgzh extends ModelAbstract
         $val['template_id'] = $data['template_id'];
         $val['data'] = $data['data'];
         isset($data['url']) && $val['url'] = $data['url'];
+        !empty($data['miniprogram']) && $val['miniprogram'] = $data['miniprogram'];
 
         $url = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=' . self::$accessToken;
         $result = Http::curlPost($url, json_encode($val));

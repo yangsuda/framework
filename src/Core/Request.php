@@ -158,12 +158,16 @@ class Request extends MessageAbstract
                 $data[$k] = preg_replace('/[^\d]/i', '', $val);
             } elseif ($v == 'anumber') {
                 $data[$k] = preg_replace('/[^\d,]/i', '', $val);
+            } elseif ($v == 'bnumber') {
+                $data[$k] = preg_replace('/[^\d.,`\-\/]/i', '', $val);
             } elseif ($v == 'fnumber') {
                 $data[$k] = preg_replace('/[^\d.]/i', '', $val);
             } elseif ($v == 'email') {
                 $data[$k] = preg_replace('/[^\w\-.@]/i', '', $val);
             } elseif ($v == 'w') {
                 $data[$k] = preg_replace('/[^\w\/]/i', '', $val);
+            } elseif ($v == 'str') {
+                $data[$k] = preg_replace('/[^\w.,`\-\/]/i', '', $val);
             } elseif ($v == 'date') {
                 $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
             } elseif ($v == 'media' || $v == 'addon') {

@@ -27,7 +27,7 @@ class Upload extends ModelAbstract implements UploadInterface
      * @param string|null $dirrule
      * @return string
      */
-    protected function getSaveDir(string $dirrule = null):string
+    protected function getSaveDir(string $dirrule = null): string
     {
         $dir = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
         if (!isset($dirrule)) {
@@ -46,48 +46,62 @@ class Upload extends ModelAbstract implements UploadInterface
     /**
      * @inheritDoc
      */
-    public function h5(string $img): OutputInterface
+    public function h5(string $str): OutputInterface
     {
-        $img = preg_replace('/data:image\/(jpeg|png);base64,/i', '', $img);
-        $img = str_replace(' ', '+', $img);
-        $data = base64_decode($img);
-        if (empty($data)) {
-            return self::$output->withCode(23001);
-        }
+        if (preg_match('/^data:\s*([^\/]+)\/([^\/]+);base64,/', $str, $matches)) {
+            $mimeType = $matches[1] . '/' . $matches[2]; // 提取 MIME 类型
+            $str = str_replace(['data:' . $mimeType . ';base64,', ' '], ['', '+'], $str);
+            $data = base64_decode($str);
+            if (empty($data)) {
+                return self::$output->withCode(27013);
+            }
 
-        //防止伪装成图片的木马上传
-        $checkWords = aval(self::$setting, 'security/uploadCheckWords');
-        if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
-            return self::$output->withCode(23005);
-        }
+            //防止伪装成图片的木马上传
+            $checkWords = aval(self::$setting, 'security/uploadCheckWords');
+            if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
+                return self::$output->withCode(23005);
+            }
 
-        $dirname = $this->getSaveDir('tmp');
-        $file = uniqid() . '.jpg';
-        $tmpPath = CSPUBLIC . $dirname;
-        File::mkdir($tmpPath);
-        $fileUrl = $tmpPath . $file;
-        $success = file_put_contents($fileUrl, $data);
-        if (!$success) {
-            return self::$output->withCode(23014);
+            $dirname = $this->getSaveDir('tmp');
+            $file = uniqid() . '.' . $matches[2];
+            $tmpPath = CSPUBLIC . $dirname;
+            File::mkdir($tmpPath);
+            $fileUrl = $tmpPath . $file;
+            $success = file_put_contents($fileUrl, $data);
+            if (!$success) {
+                return self::$output->withCode(23014);
+            }
+            $post = [];
+            $post['files']['tmp_name'] = $fileUrl;
+            $post['files']['name'] = $file;
+            $post['files']['type'] = $mimeType;
+            if (in_array($matches[2], explode('|', self::$config['mediatype']))) {
+                $types = 'media';
+            } elseif (in_array($matches[2], explode('|', self::$config['imgtype']))) {
+                $types = 'image';
+            } else {
+                $types = 'addon';
+            }
+            $post['type'] = $types;
+            return $this->upload($post);
         }
-        $post = [];
-        $post['files']['tmp_name'] = $fileUrl;
-        $post['files']['name'] = $file;
-        $post['files']['type'] = 'image/jpeg';
-        return $this->upload($post);
+        return self::$output->withCode(27013);
     }
 
     /**
      * @inheritDoc
      */
-    public function upload(array $post): OutputInterface
+    public function upload($post): OutputInterface
     {
+        if (is_string($post)) {
+            return $this->h5($post);
+        }
         if (empty($post['files']['tmp_name'])) {
             return self::$output->withCode(23001);
         }
         $post['type'] = empty($post['type']) ? 'image' : $post['type'];
 
-        $dirname = $this->getSaveDir(aval($post,'dir'));
+        $dirname = $this->getSaveDir(aval($post, 'dir'));
         $imgdir = CSPUBLIC . $dirname;
         File::mkdir($imgdir);
 

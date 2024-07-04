@@ -10,7 +10,7 @@ namespace SlimCMS\Interfaces;
 interface UploadInterface
 {
     /**
-     * 图片H5上传数据处理
+     * H5上传数据处理
      * @param string $img
      * @return OutputInterface
      */
@@ -18,10 +18,10 @@ interface UploadInterface
 
     /**
      * 上传附件
-     * @param array $post
+     * @param $post
      * @return OutputInterface
      */
-    public function upload(array $post): OutputInterface;
+    public function upload($post): OutputInterface;
 
     /**
      * webupload上传

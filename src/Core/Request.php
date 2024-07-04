@@ -171,8 +171,8 @@ class Request extends MessageAbstract
             } elseif ($v == 'date') {
                 $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
             } elseif ($v == 'media' || $v == 'addon') {
-                $uploadData = ['files' => $_FILES[$k], 'type' => $v];
                 $upload = $this->container->get(UploadInterface::class);
+                $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'type' => $v];
                 $res = $upload->upload($uploadData);
                 if ($res->getCode() != 200 && $res->getCode() != 23001) {
                     throw new TextException($res->getCode());

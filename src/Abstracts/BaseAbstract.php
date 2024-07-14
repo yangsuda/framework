@@ -238,10 +238,7 @@ abstract class BaseAbstract
                 unset($output[$k]);
             }
         }
-        if (empty($output['p'])) {
-            throw new TextException(21009);
-        }
-        $url = rtrim($host, '/') . '/' . trim($output['p'], '/') . '/';
+        $url = rtrim($host, '/') . '/' . (!empty($output['p']) ? trim($output['p'], '/') . '/' : '');
         $jsoncallback = !empty($output['jsoncallback']);
         unset($output['p'], $output['jsoncallback']);
         if (!empty($output)) {

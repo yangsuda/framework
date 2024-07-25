@@ -25,8 +25,7 @@ class Routes implements RouteInterface
      */
     public function route(App $app)
     {
-        $app->get('/[{params:.*}]', $this->routeCallable($app));
-        $app->post('/[{params:.*}]', $this->routeCallable($app));
+        $app->any('/[{params:.*}]', $this->routeCallable($app));
     }
 
     protected function routeCallable(App $app)

@@ -40,6 +40,9 @@ class Ueditor extends ModelAbstract
         if ($fieldName == 'scrawlFieldName') {
             $uploadData = 'data:image/jpeg;base64,' . $_POST[$uconfig[$fieldName]];
         } else {
+            if(empty($_FILES[$uconfig[$fieldName]])){
+                return self::$output->withCode(23001);
+            }
             $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => self::$config['imgWidth'], 'height' => self::$config['imgHeight'], 'water' => $water, 'type' => $type];
         }
         $upload = self::$container->get(UploadInterface::class);
@@ -53,13 +56,15 @@ class Ueditor extends ModelAbstract
             $result['state'] = $res->getMsg();
         } else {
             $data = $res->getData();
-            $result['state'] = 'SUCCESS';
-            $result['url'] = trim(self::$config['attachmentHost'], '/') . $data['fileurl'];
-            $result['title'] = basename($data['fileurl']);
-            $result['original'] = '';
-            $result['type'] = pathinfo($data['fileurl'], PATHINFO_EXTENSION);
-            $info = $upload->metaInfo($data['fileurl'])->getData();
-            $result['size'] = aval($info,'size');
+            if(!empty($data)){
+                $result['state'] = 'SUCCESS';
+                $result['url'] = trim(self::$config['attachmentHost'], '/') . $data['fileurl'];
+                $result['title'] = basename($data['fileurl']);
+                $result['original'] = '';
+                $result['type'] = pathinfo($data['fileurl'], PATHINFO_EXTENSION);
+                $info = $upload->metaInfo($data['fileurl'])->getData();
+                $result['size'] = aval($info,'size');
+            }
         }
         return self::$output->withCode(200)->withData($result);
     }

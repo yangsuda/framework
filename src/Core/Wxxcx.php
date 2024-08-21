@@ -73,7 +73,7 @@ class Wxxcx extends ModelAbstract
     public static function getwxacodeunlimit(OutputInterface $output): OutputInterface
     {
         if (!self::$accessToken) {
-            $res = self::getAccessToken($output);
+            $res = static::getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
@@ -170,7 +170,7 @@ class Wxxcx extends ModelAbstract
     {
         $data = $output->getData();
         if (!self::$accessToken) {
-            $res = self::getAccessToken($output);
+            $res = static::getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
@@ -205,7 +205,7 @@ class Wxxcx extends ModelAbstract
     public static function getuserphonenumber(OutputInterface $output): OutputInterface
     {
         if (!self::$accessToken) {
-            $res = Wxxcx::getAccessToken($output);
+            $res = static::getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }

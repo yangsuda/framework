@@ -24,7 +24,7 @@ class Wxxcx extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    protected static function getAccessToken(OutputInterface $output): OutputInterface
+    public static function getAccessToken(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret'])) {

@@ -241,8 +241,11 @@ class Table
                 $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
             }
         } else {
-            $sql = $this->selectSQL('*');
-            $data = $this->db->fetch($sql);
+            $data = [];
+            if(!empty($this->where)){
+                $sql = $this->selectSQL('*');
+                $data = $this->db->fetch($sql);
+            }
         }
 
         if ($fields == '*') {

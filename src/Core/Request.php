@@ -178,6 +178,18 @@ class Request extends MessageAbstract
                     throw new TextException($res->getCode());
                 }
                 $data[$k] = $res->getData()['fileurl'] ?: '';
+            } elseif (preg_match('/^list:/i', $v)) {//接收列表中指定数据
+                $val = (string)$val;
+                $arr = [];
+                if ($val) {
+                    $whiteList = explode(',', str_replace('list:', '', $v));
+                    foreach (explode(',', $val) as $v1) {
+                        if (in_array($v1, $whiteList)) {
+                            $arr[] = $v1;
+                        }
+                    }
+                }
+                $data[$k] = $arr;
             }
         }
         return $data;

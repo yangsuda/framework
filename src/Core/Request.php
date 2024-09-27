@@ -95,101 +95,126 @@ class Request extends MessageAbstract
             if (!isset($val) && empty($_FILES[$k]['tmp_name'])) {
                 continue;
             }
-            if ($v == 'htmltext') {
-                $data[$k] = (string)Str::addslashes($val);
-            } elseif ($v == 'string') {
-                $data[$k] = Str::htmlspecialchars($val);
-            } elseif ($v == 'float') {
-                $data[$k] = (float)$val;
-            } elseif ($v == 'price') {
-                $data[$k] = round((float)$val, 2);
-            } elseif ($v == 'time') {
-                $data[$k] = strtotime($val);
-            } elseif (preg_match('/^img/i', $v)) {
-                $width = $height = 0;
-                if (strpos($v, ',')) {
-                    list(, $width, $height) = explode(',', $v);
-                }
-                $upload = $this->container->get(UploadInterface::class);
-                if (is_string($val)) {
-                    $res = $upload->h5($val);
-                } else {
-                    $uploadData = ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
+            switch ($v) {
+                case 'htmltext':
+                    $data[$k] = (string)Str::addslashes($val);
+                    break;
+                case 'string':
+                    $data[$k] = Str::htmlspecialchars($val);
+                    break;
+                case 'float':
+                    $data[$k] = (float)$val;
+                    break;
+                case 'price':
+                    $data[$k] = round((float)$val, 2);
+                    break;
+                case 'time':
+                    $data[$k] = strtotime($val);
+                    break;
+                case 'serialize':
+                    $data[$k] = $val ? serialize(Str::htmlspecialchars($val)) : '';
+                    break;
+                case 'url':
+                    $data[$k] = str_replace(
+                        ['"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'],
+                        ['&quot;', '&lt;', '&gt;', '&#039;', '', '&#124;&#124;', '&#042;', '&#036;', '&#040;', ' &#041;'],
+                        $val);
+                    break;
+                case 'tel':
+                    $data[$k] = preg_replace('/[^\d\-]/i', '', $val);
+                    break;
+                case 'number':
+                    $data[$k] = preg_replace('/[^\d]/i', '', $val);
+                    break;
+                case 'anumber':
+                    $data[$k] = preg_replace('/[^\d,]/i', '', $val);
+                    break;
+                case 'bnumber':
+                    $data[$k] = preg_replace('/[^\d.,`\-\/]/i', '', $val);
+                    break;
+                case 'fnumber':
+                    $data[$k] = preg_replace('/[^\d.]/i', '', $val);
+                    break;
+                case 'email':
+                    $data[$k] = preg_replace('/[^\w\-.@]/i', '', $val);
+                    break;
+                case 'w':
+                    $data[$k] = preg_replace('/[^\w\/]/i', '', $val);
+                    break;
+                case 'str':
+                    $data[$k] = preg_replace('/[^\w.,`\-\/]/i', '', $val);
+                    break;
+                case 'date':
+                    $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
+                    break;
+                case 'media':
+                case 'addon':
+                    $upload = $this->container->get(UploadInterface::class);
+                    $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'type' => $v];
                     $res = $upload->upload($uploadData);
-                }
-                if ($res->getCode() != 200 && $res->getCode() != 23001) {
-                    throw new TextException($res->getCode());
-                }
-                $data[$k] = aval($res->getData(), 'fileurl') ?: '';
-            } elseif (preg_match('/^int/i', $v)) {
-                $data[$k] = (int)$val;
-                if (strpos($v, ',')) {
-                    list($v, $val1, $val2) = explode(',', $v);
-                    if (strpos($v, '==')) {
-                        $data[$k] = $val == str_replace('int==', '', $v) ? $val1 : $val2;
-                    } else {
-                        $data[$k] = $val ? $val1 : $val2;
+                    if ($res->getCode() != 200 && $res->getCode() != 23001) {
+                        throw new TextException($res->getCode());
                     }
-                }
-            } elseif (preg_match('/^isset/i', $v) && isset($_GET[$k])) {
-                $data[$k] = Str::htmlspecialchars($val);
-                if (strpos($v, ',')) {
-                    list($v, $val1, $val2) = explode(',', $v);
-                    if (strpos($v, '==')) {
-                        $data[$k] = $val == str_replace('isset==', '', $v) ? $val1 : $val2;
-                    } else {
-                        $data[$k] = $val ? $val1 : $val2;
-                    }
-                }
-            } elseif (preg_match('/^checkbox/i', $v)) {
-                if (strpos($v, ',')) {
-                    list(, $func) = explode(',', $v);
-                    $data[$k] = implode(',', array_map($func, $val));
-                } else {
-                    $data[$k] = Str::htmlspecialchars(implode(',', $val));
-                }
-            } elseif ($v == 'serialize') {
-                $data[$k] = $val ? serialize(Str::htmlspecialchars($val)) : '';
-            } elseif ($v == 'url') {
-                $data[$k] = str_replace(['"', '<', '>', '\'', '(null)', '||', '*', '$', '(', ')'], ['&quot;', '&lt;', '&gt;', '&#039;', '', '&#124;&#124;', '&#042;', '&#036;', '&#040;', ' &#041;'], $val);
-            } elseif ($v == 'tel') {
-                $data[$k] = preg_replace('/[^\d\-]/i', '', $val);
-            } elseif ($v == 'number') {
-                $data[$k] = preg_replace('/[^\d]/i', '', $val);
-            } elseif ($v == 'anumber') {
-                $data[$k] = preg_replace('/[^\d,]/i', '', $val);
-            } elseif ($v == 'bnumber') {
-                $data[$k] = preg_replace('/[^\d.,`\-\/]/i', '', $val);
-            } elseif ($v == 'fnumber') {
-                $data[$k] = preg_replace('/[^\d.]/i', '', $val);
-            } elseif ($v == 'email') {
-                $data[$k] = preg_replace('/[^\w\-.@]/i', '', $val);
-            } elseif ($v == 'w') {
-                $data[$k] = preg_replace('/[^\w\/]/i', '', $val);
-            } elseif ($v == 'str') {
-                $data[$k] = preg_replace('/[^\w.,`\-\/]/i', '', $val);
-            } elseif ($v == 'date') {
-                $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
-            } elseif ($v == 'media' || $v == 'addon') {
-                $upload = $this->container->get(UploadInterface::class);
-                $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'type' => $v];
-                $res = $upload->upload($uploadData);
-                if ($res->getCode() != 200 && $res->getCode() != 23001) {
-                    throw new TextException($res->getCode());
-                }
-                $data[$k] = $res->getData()['fileurl'] ?: '';
-            } elseif (preg_match('/^list:/i', $v)) {//接收列表中指定数据
-                $val = (string)$val;
-                $arr = [];
-                if ($val) {
-                    $whiteList = explode(',', str_replace('list:', '', $v));
-                    foreach (explode(',', $val) as $v1) {
-                        if (in_array($v1, $whiteList)) {
-                            $arr[] = $v1;
+                    $data[$k] = $res->getData()['fileurl'] ?: '';
+                    break;
+                default:
+                    if (preg_match('/^int/i', $v)) {
+                        $data[$k] = (int)$val;
+                        if (strpos($v, ',')) {
+                            list($v, $val1, $val2) = explode(',', $v);
+                            if (strpos($v, '==')) {
+                                $data[$k] = $val == str_replace('int==', '', $v) ? $val1 : $val2;
+                            } else {
+                                $data[$k] = $val ? $val1 : $val2;
+                            }
                         }
+                    } elseif (preg_match('/^img/i', $v)) {
+                        $width = $height = 0;
+                        if (strpos($v, ',')) {
+                            list(, $width, $height) = explode(',', $v);
+                        }
+                        $upload = $this->container->get(UploadInterface::class);
+                        if (is_string($val)) {
+                            $res = $upload->h5($val);
+                        } else {
+                            $uploadData = ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
+                            $res = $upload->upload($uploadData);
+                        }
+                        if ($res->getCode() != 200 && $res->getCode() != 23001) {
+                            throw new TextException($res->getCode());
+                        }
+                        $data[$k] = aval($res->getData(), 'fileurl') ?: '';
+                    } elseif (preg_match('/^isset/i', $v) && isset($_GET[$k])) {
+                        $data[$k] = Str::htmlspecialchars($val);
+                        if (strpos($v, ',')) {
+                            list($v, $val1, $val2) = explode(',', $v);
+                            if (strpos($v, '==')) {
+                                $data[$k] = $val == str_replace('isset==', '', $v) ? $val1 : $val2;
+                            } else {
+                                $data[$k] = $val ? $val1 : $val2;
+                            }
+                        }
+                    } elseif (preg_match('/^checkbox/i', $v)) {
+                        if (strpos($v, ',')) {
+                            list(, $func) = explode(',', $v);
+                            $data[$k] = implode(',', array_map($func, $val));
+                        } else {
+                            $data[$k] = Str::htmlspecialchars(implode(',', $val));
+                        }
+                    } elseif (preg_match('/^list:/i', $v)) {//接收列表中指定数据
+                        $val = (string)$val;
+                        $arr = [];
+                        if ($val) {
+                            $whiteList = explode(',', str_replace('list:', '', $v));
+                            foreach (explode(',', $val) as $v1) {
+                                if (in_array($v1, $whiteList)) {
+                                    $arr[] = $v1;
+                                }
+                            }
+                        }
+                        $data[$k] = $arr;
                     }
-                }
-                $data[$k] = $arr;
+                    break;
             }
         }
         return $data;

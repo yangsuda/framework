@@ -17,7 +17,7 @@ class TextException extends Exception
     {
         //应用实例引入还要传多一个参数，此处暂时不走容器，直接new了
         $output = new Output();
-        if(!CORE_DEBUG){
+        if(!CORE_DEBUG && isset($param['title'])){
             //防止debug关掉时，一些物理地址都打印出来
             unset($param['title']);
         }

@@ -402,7 +402,7 @@ class Forms extends ModelAbstract
                 $param['fields'] = 'main.' . str_replace(',', ',main.', $param['fields']) . ',' . $param['joinFields'];
             }
 
-            $param['where'] = !empty($param['where']) ? array_merge($param['where'], $arr['where']) : $arr['where'];
+            $param['where'] = !empty($param['where']) ? array_merge($arr['where'], $param['where']) : $arr['where'];
 
             if (is_callable([self::t($form['table']), 'dataListBefore'])) {
                 $rs = self::t($form['table'])->dataListBefore($param);

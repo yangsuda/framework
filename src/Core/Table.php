@@ -410,7 +410,7 @@ class Table
      * @param int $id
      * @param array $data
      */
-    protected function updateFetchCache(int $id, array $data)
+    public function updateFetchCache(int $id, array $data)
     {
         if ($this->redis->isAvailable()) {
             $cachekey = $this->cacheKey($id);
@@ -513,7 +513,7 @@ class Table
         return $clone;
     }
 
-    protected function implode(array $array, string $glue = ','): string
+    public function implode(array $array, string $glue = ','): string
     {
         $sql = $comma = '';
         $glue = ' ' . trim($glue) . ' ';

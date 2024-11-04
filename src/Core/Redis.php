@@ -837,10 +837,10 @@ class Redis
      * 取出列表集中指定长度数据
      * @param $key
      * @param int $stat
-     * @param string $end
+     * @param int $end
      * @return array
      */
-    public function lrange($key, $stat = 0, $end = '-1')
+    public function lrange($key, $stat = 0, $end = -1)
     {
         $this->cacheKey($key);
         if (empty(self::$redis)) {

@@ -92,6 +92,13 @@ class Request extends MessageAbstract
         $data = [];
         foreach ($param as $k => $v) {
             $val = $this->getInput($k);
+            if (strpos($v, '*')) {
+                list($v, $title) = explode('*', $v);
+                if (empty($val)) {
+                    $msg = $title ? $title . '必填' : '必填参数不能为空(' . $k . ')';
+                    throw new TextException(21000, ['msg' => $msg]);
+                }
+            }
             if (!isset($val) && empty($_FILES[$k]['tmp_name'])) {
                 continue;
             }

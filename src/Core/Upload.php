@@ -428,7 +428,7 @@ class Upload extends ModelAbstract implements UploadInterface
         $cachekey = __FUNCTION__;
         $cookie = self::$container->get(CookieInterface::class);
         if ($index == 1) {
-            $cookie->set($cachekey, md5((string)TIMESTAMP), 3600);
+            $cookie->set($cachekey, md5((string)microtime(true) . mt_rand(1000, 9999)), 3600);
         }
 
         $md5filename = $cookie->get($cachekey) ?: md5($filename);

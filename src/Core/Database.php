@@ -206,7 +206,7 @@ class Database implements DatabaseInterface
             if (is_array($querysafe['dfunction'])) {
                 foreach ($querysafe['dfunction'] as $fun) {
                     if (strpos($clean, $fun . '(') !== false) {
-                        throw new TextException(21056, '', 'pdo');
+                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$fun], 'pdo');
                     }
                 }
             }
@@ -214,19 +214,19 @@ class Database implements DatabaseInterface
             if (is_array($querysafe['daction'])) {
                 foreach ($querysafe['daction'] as $action) {
                     if (strpos($clean, $action) !== false) {
-                        throw new TextException(21056, '', 'pdo');
+                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$action], 'pdo');
                     }
                 }
             }
 
             if ($querysafe['dlikehex'] && strpos($clean, 'like0x')) {
-                throw new TextException(21056, '', 'pdo');
+                throw new TextException(21000, ['msg'=>'不安全的SQL请求：like0x'], 'pdo');
             }
 
             if (is_array($querysafe['dnote'])) {
                 foreach ($querysafe['dnote'] as $note) {
                     if (strpos($clean, $note) !== false) {
-                        throw new TextException(21056, '', 'pdo');
+                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$note], 'pdo');
                     }
                 }
             }

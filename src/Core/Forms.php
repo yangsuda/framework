@@ -548,7 +548,7 @@ class Forms extends ModelAbstract
     {
         //编辑数据
         if ($row && is_numeric($row)) {
-            $res = static::dataView($fid, $row);
+            $res = static::dataView($fid, (int)$row);
             if ($res->getCode() != 200) {
                 return $res;
             }

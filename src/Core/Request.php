@@ -154,6 +154,9 @@ class Request extends MessageAbstract
                 case 'date':
                     $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
                     break;
+                case 'json':
+                    $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars',json_decode($val, true)):$val;
+                    break;
                 case 'media':
                 case 'addon':
                     $upload = $this->container->get(UploadInterface::class);

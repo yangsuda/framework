@@ -53,7 +53,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public static function detail(int $id, string $fields, string $extraFields = '', array $param = []): OutputInterface
     {
-        if (empty($id)) {
+        if (empty($id) || empty($fields)) {
             return self::$output->withCode(21002);
         }
         $res = Forms::dataView(static::getFid(), $id, $fields);
@@ -65,7 +65,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         //自定义方法处理
         if (!empty($param['callback']) && $extraFields && method_exists($param['callback'], 'reprocess') && is_callable([$param['callback'], 'reprocess'])) {
             $callback = $param['callback'] . '::reprocess';
-            $callback($data, $extraFields);
+            $callback($data, $extraFields, $param);
         }
         return self::$output->withCode(200)->withData($data);
     }

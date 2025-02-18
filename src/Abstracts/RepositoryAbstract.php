@@ -175,7 +175,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public static function getFid(): int
     {
-        $table = strtolower(pathinfo(get_called_class(), PATHINFO_BASENAME));
+        $table = strtolower(substr(strrchr(get_called_class(), '\\'), 1));
         $id = (int)self::t('forms')->withWhere(['table' => $table])->fetch('id');
         if (empty($id)) {
             throw new TextException(21039);

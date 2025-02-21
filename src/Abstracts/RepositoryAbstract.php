@@ -13,20 +13,63 @@ use SlimCMS\Interfaces\OutputInterface;
 
 abstract class RepositoryAbstract extends BaseAbstract
 {
+    protected static function getData(array $param): array
+    {
+        $data = [];
+        $formid = self::getFid();
+        $list = self::t('forms_fields')->withWhere(['formid' => $formid, 'available' => 1])->fetchList('identifier,datatype,rules');
+        foreach ($list as $v) {
+            switch ($v['datatype']) {
+                case 'radio':
+                case 'select':
+                case 'month':
+                case 'date':
+                case 'datetime':
+                case 'int':
+                case 'stepselect':
+                    isset($param[$v['identifier']]) && $data[$v['identifier']] = (int)$param[$v['identifier']];
+                    break;
+                case 'float':
+                case 'tel':
+                case 'price':
+                    isset($param[$v['identifier']]) && $data[$v['identifier']] = (float)$param[$v['identifier']];
+                    break;
+                default:
+                    isset($param[$v['identifier']]) && $data[$v['identifier']] = (string)$param[$v['identifier']];
+                    break;
+            }
+        }
+        return $data;
+    }
+
     /**
      * 添加
      * @param array $param
-     * @return mixed
+     * @return OutputInterface
      */
-    abstract public static function add(array $param);
+    public static function add(array $param): OutputInterface
+    {
+        $data = static::getData($param);
+        if (empty($data)) {
+            return self::$output->withCode(21020);
+        }
+        return Forms::dataSave(self::getFid(), [], $data);
+    }
 
     /**
      * 修改
      * @param int $id
      * @param array $param
-     * @return mixed
+     * @return OutputInterface
      */
-    abstract public static function edit(int $id, array $param);
+    public static function edit(int $id, array $param): OutputInterface
+    {
+        $data = static::getData($param);
+        if (empty($data)) {
+            return self::$output->withCode(21020);
+        }
+        return Forms::dataSave(self::getFid(), $id, $data);
+    }
 
     /**
      * 删除
@@ -60,7 +103,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if ($res->getCode() != 200) {
             return $res;
         }
-        $data = $res->getData()['row'];
+        $data = (array)$res->getData()['row'];
         static::reprocess($data, $extraFields, $param);
         //自定义方法处理
         if (!empty($param['callback']) && $extraFields && method_exists($param['callback'], 'reprocess') && is_callable([$param['callback'], 'reprocess'])) {
@@ -87,8 +130,14 @@ abstract class RepositoryAbstract extends BaseAbstract
             }
             $param['end'] = strtotime($param['end']);
         }
-        !empty($param['start']) && $where[] = self::t()->field('createtime', $param['start'], '>=');
-        !empty($param['end']) && $where[] = self::t()->field('createtime', $param['end'], '<=');
+        $field = $param['dateField'] ?? 'createtime';
+        !empty($param['start']) && $where[] = self::t()->field($field, $param['start'], '>=');
+        !empty($param['end']) && $where[] = self::t()->field($field, $param['end'], '<=');
+        //自定义方法处理
+        if (!empty($param['callback']) && method_exists($param['callback'], 'condition') && is_callable([$param['callback'], 'condition'])) {
+            $callback = $param['callback'] . '::condition';
+            $callback($where, $param);
+        }
         return $where;
     }
 
@@ -168,6 +217,16 @@ abstract class RepositoryAbstract extends BaseAbstract
         $fieldArr = $fields ? explode(',', $fields) : [];
     }
 
+
+    /**
+     * 表单名称
+     * @return string
+     */
+    public static function tableName(): string
+    {
+        return strtolower(substr(strrchr(get_called_class(), '\\'), 1));
+    }
+
     /**
      * 获取对应表的ID
      * @return int
@@ -175,11 +234,71 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public static function getFid(): int
     {
-        $table = strtolower(substr(strrchr(get_called_class(), '\\'), 1));
+        $table = self::tableName();
         $id = (int)self::t('forms')->withWhere(['table' => $table])->fetch('id');
         if (empty($id)) {
             throw new TextException(21039);
         }
         return $id;
+    }
+
+    public static function batchDelete(array $param): int
+    {
+        if (empty($param)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->delete();
+    }
+
+    public static function batchUpdate(array $param, array $value): int
+    {
+        if (empty($value)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->update($value);
+    }
+
+    /**
+     * 数量统计
+     * @param array $param
+     * @return int
+     * @throws TextException
+     */
+    public static function count(array $param = []): int
+    {
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->count();
+    }
+
+    /**
+     * 累加统计
+     * @param string $field
+     * @param array $param
+     * @return float
+     * @throws TextException
+     */
+    public static function sum(string $field, array $param = []): float
+    {
+        if (empty($field)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return (float)self::t($table)->withWhere($where)->sum($field);
+    }
+
+    public static function fetchColumn(string $field, string $func, array $param = [])
+    {
+        if (empty($field) || empty($func)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->fetchColumn($field, $func);
     }
 }

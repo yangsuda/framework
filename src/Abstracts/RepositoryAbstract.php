@@ -202,7 +202,7 @@ abstract class RepositoryAbstract extends BaseAbstract
                 //自定义方法处理
                 if (!empty($param['callback']) && !empty($param['extraFields']) && method_exists($param['callback'], 'reprocess') && is_callable([$param['callback'], 'reprocess'])) {
                     $callback = $param['callback'] . '::reprocess';
-                    $callback($v, $param['extraFields']);
+                    $callback($v, $param['extraFields'], $param);
                 }
             }
         }

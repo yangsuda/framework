@@ -188,6 +188,10 @@ abstract class RepositoryAbstract extends BaseAbstract
             'by' => aval($param, 'by') ?: 'desc',
             'noinput' => true,
             'orderForce' => aval($param, 'orderForce', true),
+            'joins' => aval($param, 'joins'),
+            'joinFields' => aval($param, 'joinFields'),
+            'indexField' => aval($param, 'indexField'),
+            'extendFormName' => aval($param, 'extendFormName'),
         ];
         $params['where'] = static::condition($param);
         $res = Forms::dataList($params);

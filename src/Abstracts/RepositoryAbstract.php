@@ -305,4 +305,15 @@ abstract class RepositoryAbstract extends BaseAbstract
         $table = self::tableName();
         return self::t($table)->withWhere($where)->fetchColumn($field, $func);
     }
+
+
+    public static function fetch(string $field, array $param)
+    {
+        if (empty($field) || empty($param)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->fetch($field);
+    }
 }

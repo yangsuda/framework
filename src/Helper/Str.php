@@ -434,4 +434,25 @@ class Str
     {
         return substr($mobile, 0, $front) . '***' . substr($mobile, $after);
     }
+
+    /**
+     * 序列化图集
+     * @param $imgs
+     * @return string
+     */
+    public static function serializeImgs($imgs)
+    {
+        if (empty($imgs)) {
+            return '';
+        }
+        $imgurls = [];
+        foreach ($imgs as $v) {
+            if (!empty($v['url'])) {
+                $key = md5($v['url']);
+                $imgurls[$key]['img'] = Str::htmlspecialchars($v['url']);
+                $imgurls[$key]['text'] = !empty($v['text']) ? Str::htmlspecialchars($v['text']) : '';
+            }
+        }
+        return $imgurls ? serialize($imgurls) : '';
+    }
 }

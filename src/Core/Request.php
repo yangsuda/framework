@@ -155,7 +155,7 @@ class Request extends MessageAbstract
                     $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
                     break;
                 case 'json':
-                    $val = json_decode($val, true);
+                    $val && $val= json_decode($val, true);
                     $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars', $val) : $val;
                     break;
                 case 'media':

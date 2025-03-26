@@ -272,11 +272,11 @@ abstract class RepositoryAbstract extends BaseAbstract
      * @return int
      * @throws TextException
      */
-    public static function count(array $param = []): int
+    public static function count(array $param = [], string $fields = '*', int $cacheTime = 0): int
     {
         $where = static::condition($param);
         $table = self::tableName();
-        return self::t($table)->withWhere($where)->count();
+        return self::t($table)->withWhere($where)->count($fields, $cacheTime);
     }
 
     /**
@@ -307,13 +307,23 @@ abstract class RepositoryAbstract extends BaseAbstract
     }
 
 
-    public static function fetch(string $field, array $param)
+    public static function fetch(string $field, array $param, int $cacheTime = 0)
     {
         if (empty($field) || empty($param)) {
             throw new TextException(21010);
         }
         $where = static::condition($param);
         $table = self::tableName();
-        return self::t($table)->withWhere($where)->fetch($field);
+        return self::t($table)->withWhere($where)->fetch($field, $cacheTime);
+    }
+
+    public static function fetchList(string $field, array $param = [], string $indexField = '', int $cacheTime = 0): array
+    {
+        if (empty($field)) {
+            throw new TextException(21010);
+        }
+        $where = static::condition($param);
+        $table = self::tableName();
+        return self::t($table)->withWhere($where)->fetchList($field, $indexField, $cacheTime);
     }
 }

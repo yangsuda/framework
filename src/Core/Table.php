@@ -447,6 +447,9 @@ class Table
                     $this->updateFetchCache((int)$v['id'], $data);
                 }
             }
+            if(!$this->where){
+                return 0;
+            }
             $sql = 'UPDATE ' . $this->tableName . ' SET ' . $this->implodeSave($data) . $this->where;
             $query = $this->db->query($sql);
             return $this->db->affectedRows($query);
@@ -466,6 +469,9 @@ class Table
                 $cachekey = $this->cacheKey($v['id']);
                 $this->redis->del($cachekey);
             }
+        }
+        if(!$this->where){
+            return 0;
         }
         $query = $this->db->query('DELETE FROM ' . $this->tableName . $this->where);
         return $this->db->affectedRows($query);

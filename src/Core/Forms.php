@@ -608,8 +608,8 @@ class Forms extends ModelAbstract
             $data['mngtype'] = 'edit';
             self::$redis->del(static::cacheKey('dataView', $fid, $row['id']));
         } else {
-            $data['createtime'] = TIMESTAMP;
-            $data['ip'] = Ipdata::getip();
+            empty($data['createtime']) && $data['createtime'] = TIMESTAMP;
+            empty($data['ip']) && $data['ip'] = Ipdata::getip();
             $data['id'] = self::t($form['table'])->insert($data, true);
             $data['mngtype'] = 'add';
             $row = $data;

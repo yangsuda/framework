@@ -1098,7 +1098,7 @@ class Forms extends ModelAbstract
      * @return array
      * @throws \SlimCMS\Error\TextException
      */
-    protected static function exchangeFieldValue(array $fields, array $v): array
+    public static function exchangeFieldValue(array $fields, array $v): array
     {
         if (empty($fields)) {
             return [];

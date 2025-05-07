@@ -326,4 +326,16 @@ abstract class RepositoryAbstract extends BaseAbstract
         $table = self::tableName();
         return self::t($table)->withWhere($where)->fetchList($field, $indexField, $cacheTime);
     }
+
+    /**
+     * 数据有效性检测
+     * @param array $data 数据
+     * @param int $id 要编辑的信息ID(判断唯一性时用到)
+     * @return array
+     * @throws TextException
+     */
+    public static function validCheck(array $data, int $id = 0): array
+    {
+        return Forms::validCheck(self::getFid(), $data, $id);
+    }
 }

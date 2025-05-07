@@ -1786,23 +1786,35 @@ class Forms extends ModelAbstract
 
     /**
      * 数据有效性检测
-     * @param int $fid
-     * @param array $data
+     * @param int $fid 表单ID
+     * @param array $data 修改/添加的数据
+     * @param int $id 编辑的信息ID
      * @return OutputInterface
      * @throws TextException
      */
-    protected static function validCheck(int $fid, array $data): OutputInterface
+    public static function validCheck(int $fid, array $data, int $id = 0): array
     {
         if (empty($fid)) {
-            return self::$output->withCode(27010);
+            throw new TextException(27010);
         }
         $form = self::formView($fid)->getData()['form'];
         if (empty($form)) {
-            return self::$output->withCode(22006);
+            throw new TextException(22006);
         }
         $fields = static::fieldList(['formid' => $fid, 'available' => 1]);
         foreach ($fields as $v) {
             $msg = $v['errormsg'] ?: $v['title'];
+            //必填判断
+            if ($v['required'] == 1 && empty($data[$v['identifier']])) {
+                throw new TextException(21000, ['msg' => $v['title'] . '必填']);
+            }
+            //唯一判断
+            if ($v['unique'] == 1 && !empty($data[$v['identifier']])) {
+                $exist_id = self::t($form['table'])->withWhere([$v['identifier'] => $data[$v['identifier']]])->fetch('id');
+                if ($exist_id && (empty($id) || $exist_id != $id)) {
+                    throw new TextException(21000, ['msg' => $v['title'] . '已存在']);
+                }
+            }
             if ($v['datatype'] == 'stepselect') {
                 $v['rules'] = [];
                 foreach (self::enumsData($v['egroup'])->getData()['list'] as $v1) {
@@ -1815,10 +1827,10 @@ class Forms extends ModelAbstract
             }
             if (!empty($v['rules']) && in_array($v['datatype'], ['select', 'radio', 'stepselect'])) {
                 if (!empty($data[$v['identifier']]) && !array_key_exists($data[$v['identifier']], $v['rules'])) {
-                    return self::$output->withCode(21000, ['msg' => $msg . '值不正确']);
+                    throw new TextException(21000, ['msg' => $msg . '值不正确']);
                 }
             }
         }
-        return self::$output->withCode(200);
+        return $data;
     }
 }

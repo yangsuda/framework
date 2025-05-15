@@ -64,6 +64,9 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public static function edit(int $id, array $param): OutputInterface
     {
+        if (empty($id) || empty($param)) {
+            return self::$output->withCode(21003);
+        }
         $data = static::getData($param);
         if (empty($data)) {
             return self::$output->withCode(21020);
@@ -121,6 +124,7 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected static function condition(array $param): array
     {
         $where = !empty($param['where']) ? $param['where'] : [];
+        !empty($param['ids']) && $where['id'] = is_array($param['ids']) ? $param['ids'] : explode(',', $param['ids']);
         if (!empty($param['start']) && !is_numeric($param['start'])) {
             $param['start'] = strtotime($param['start']);
         }

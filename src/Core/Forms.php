@@ -1232,7 +1232,7 @@ class Forms extends ModelAbstract
                     }
                     break;
                 default:
-                    $v['_' . $identifier] = Str::htmlspecialchars(html_entity_decode($v[$identifier]), 'de');
+                    $v['_' . $identifier] = Str::htmlspecialchars(html_entity_decode((string)$v[$identifier]), 'de');
                     break;
             }
         }

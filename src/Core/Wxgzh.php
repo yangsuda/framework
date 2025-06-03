@@ -170,11 +170,10 @@ class Wxgzh extends ModelAbstract
     /**
      * 获取api_ticket
      * @param OutputInterface $output
-     * @return OutputInterface
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @return bool|false|string
+     * @throws TextException
      */
-    protected static function jsapiTicket(OutputInterface $output): OutputInterface
+    protected static function jsapiTicket(OutputInterface $output)
     {
         $data = $output->getData();
         if (!self::$accessToken) {
@@ -213,7 +212,7 @@ class Wxgzh extends ModelAbstract
                 $re = json_decode($str, true);
                 File::log('wx/jsapiTicket')->info('获取api_ticket', $re);
                 if (!empty($re['ticket'])) {
-                    file_put_contents($cacheFile, $re['access_token']);
+                    file_put_contents($cacheFile, $re['ticket']);
                     return $re['ticket'];
                 }
                 return false;

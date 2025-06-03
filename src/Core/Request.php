@@ -156,7 +156,7 @@ class Request extends MessageAbstract
                     break;
                 case 'json':
                     $val && $val= json_decode($val, true);
-                    $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars', $val) : $val;
+                    $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars', (array)$val) : $val;
                     break;
                 case 'media':
                 case 'addon':

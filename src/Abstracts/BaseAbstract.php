@@ -88,7 +88,7 @@ abstract class BaseAbstract
      * @param string $type
      * @return array|mixed|\都不存在时的默认值|null
      */
-    protected static function input($name, string $type = 'string')
+    protected static function input($name, $type = 'string')
     {
         return self::$request->input($name, $type);
     }

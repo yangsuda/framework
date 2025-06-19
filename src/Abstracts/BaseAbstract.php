@@ -85,10 +85,10 @@ abstract class BaseAbstract
     /**
      * 获取外部传入数据
      * @param $name
-     * @param string $type
+     * @param $type
      * @return array|mixed|\都不存在时的默认值|null
      */
-    protected static function input($name, string $type = 'string')
+    protected static function input($name, $type = 'string')
     {
         return self::$request->input($name, $type);
     }

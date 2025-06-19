@@ -1200,7 +1200,7 @@ class Forms extends ModelAbstract
                 case 'imgs':
                     $width = aval(self::$config, 'imgWidth', 800);
                     $height = aval(self::$config, 'imgHeight', 800);
-                    $img = unserialize($v[$identifier]);
+                    $img = !empty($v[$identifier]) ? unserialize($v[$identifier]) : [];
                     if (is_array($img)) {
                         foreach ($img as $k1 => $v1) {
                             $v1['originalImg'] = $v1['img'];
@@ -1208,7 +1208,7 @@ class Forms extends ModelAbstract
                             $img[$k1] = $v1;
                         }
                     }
-                    $v['_' . $identifier] = !empty($v[$identifier]) ? $img : [];
+                    $v['_' . $identifier] = $img;
                     break;
                 case 'media':
                 case 'addon':

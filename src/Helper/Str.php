@@ -472,7 +472,7 @@ class Str
         foreach ($data as &$v1) {
             $ext = pathinfo($v1['img'], PATHINFO_EXTENSION);
             $v1['originImg'] = $v1['img'];
-            $v1['img'] = in_array(strtolower($ext), ['jpg', 'jpeg', 'png']) ? copyImage($v1['img'], $width, $height) : self::$config['basehost'] . trim($v1['img'], '/');
+            $v1['img'] = copyImage($v1['img'], $width, $height);
         }
         return $data;
     }

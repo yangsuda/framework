@@ -374,6 +374,10 @@ class Upload extends ModelAbstract implements UploadInterface
         if (preg_match("/^(https?:\/\/)/i", $pic)) {
             return $pic;
         }
+        $ext = pathinfo($pic, PATHINFO_EXTENSION);
+        if (!in_array(strtolower($ext), ['jpg', 'jpeg', 'png'])) {
+            return rtrim(self::$config['basehost'], '/') . $pic;
+        }
 
         $pic = ltrim($pic, '/');
         $oldurl = CSPUBLIC . $pic;

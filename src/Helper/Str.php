@@ -395,10 +395,10 @@ class Str
             return preg_replace_callback(
                 '/&#([0-9]+);/is',
                 function (array $match) {
-                    if(strlen($match[1])%2){
-                        return '&#'.$match[1];
-                    }else{
-                        return iconv("UCS-4", 'UTF-8', hex2bin('000'. base_convert($match[1], 10, 16)));
+                    if (strlen($match[1]) % 2) {
+                        return '&#' . $match[1];
+                    } else {
+                        return iconv("UCS-4", 'UTF-8', hex2bin('000' . base_convert($match[1], 10, 16)));
                     }
                 },
                 $str);
@@ -440,7 +440,7 @@ class Str
      * @param $imgs
      * @return string
      */
-    public static function serializeImgs($imgs)
+    public static function serializeImgs($imgs): string
     {
         if (empty($imgs)) {
             return '';
@@ -454,5 +454,26 @@ class Str
             }
         }
         return $imgurls ? serialize($imgurls) : '';
+    }
+
+    /**
+     * 反序列化图集
+     * @param string $imgs
+     * @param int $width
+     * @param int $height
+     * @return array
+     */
+    public static function unserializeImgs(string $imgs, int $width = 1000, int $height = 1000): array
+    {
+        if (empty($imgs)) {
+            return [];
+        }
+        $data = array_values(unserialize($imgs));
+        foreach ($data as &$v1) {
+            $ext = pathinfo($v1['img'], PATHINFO_EXTENSION);
+            $v1['originImg'] = $v1['img'];
+            $v1['img'] = copyImage($v1['img'], $width, $height);
+        }
+        return $data;
     }
 }

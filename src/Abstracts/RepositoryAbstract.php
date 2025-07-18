@@ -62,7 +62,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      * @param array $param
      * @return OutputInterface
      */
-    public static function edit(int $id, array $param): OutputInterface
+    public static function edit(int $id, array $param, array $options = []): OutputInterface
     {
         if (empty($id) || empty($param)) {
             return self::$output->withCode(21003);
@@ -71,7 +71,20 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return self::$output->withCode(21020);
         }
-        return Forms::dataSave(self::getFid(), $id, $data);
+        $fid = self::getFid();
+        $res = Forms::dataView($fid, $id);
+        if ($res->getCode() != 200) {
+            return $res;
+        }
+        $val = $res->getData()['row'];
+        if (!empty($options['callback']) && method_exists($options['callback'], 'editCheck') && is_callable([$options['callback'], 'editCheck'])) {
+            $callback = $options['callback'] . '::editCheck';
+            $res = $callback($val, $param, $options);
+            if ($res->getCode() != 200) {
+                return $res;
+            }
+        }
+        return Forms::dataSave($fid, $val, $data);
     }
 
     /**
@@ -124,7 +137,7 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected static function condition(array $param): array
     {
         $where = !empty($param['where']) ? $param['where'] : [];
-        !empty($param['ids']) && $where['id'] = is_array($param['ids']) ? $param['ids'] : explode(',', $param['ids']);
+        !empty($param['ids']) && $where['id'] = is_array($param['ids']) ? $param['ids'] : explode(',', (string)$param['ids']);
         if (!empty($param['start']) && !is_numeric($param['start'])) {
             $param['start'] = strtotime($param['start']);
         }

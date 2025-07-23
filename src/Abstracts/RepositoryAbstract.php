@@ -209,6 +209,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             'joinFields' => aval($param, 'joinFields'),
             'indexField' => aval($param, 'indexField'),
             'extendFormName' => aval($param, 'extendFormName'),
+            'groupby' => aval($param, 'groupby'),
         ];
         $params['where'] = static::condition($param);
         $res = Forms::dataList($params);

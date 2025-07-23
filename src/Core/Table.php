@@ -87,6 +87,8 @@ class Table
      */
     protected $orderby = ' order by main.id desc ';
 
+    protected $groupby = '';
+
     protected static $container;
 
     /**
@@ -177,7 +179,7 @@ class Table
     protected function selectSQL(string $fields): string
     {
         $sql = 'SELECT ' . $fields . ' FROM ' . $this->tableName . ' main ' .
-            $this->join . $this->where . $this->orderby . $this->limit;
+            $this->join . $this->where . $this->groupby . $this->orderby . $this->limit;
         return $sql;
     }
 
@@ -196,6 +198,9 @@ class Table
         if (empty($count)) {
             $fields = $fields ?: '*';
             $sql = $this->selectSQL('count(' . $fields . ')');
+            if ($this->groupby) {
+                $sql = 'select count(*) from (' . $sql . ') as tmp';
+            }
             $count = $this->db->fetchColumn($sql);
             $this->redis->isAvailable() && $cacheTime && $this->redis->set($cacheKey, $count, $cacheTime);
         }
@@ -250,7 +255,7 @@ class Table
             }
         } else {
             $data = [];
-            if(!empty($this->where)){
+            if (!empty($this->where)) {
                 $sql = $this->selectSQL('*');
                 $data = $this->db->fetch($sql);
             }
@@ -413,6 +418,13 @@ class Table
         return $clone;
     }
 
+    public function withGroupby(string $field = ''): Table
+    {
+        $clone = clone $this;
+        $field && $clone->groupby = ' group by ' . $field . ' ';
+        return $clone;
+    }
+
     /**
      * 更新fetch缓存
      * @param int $id
@@ -455,7 +467,7 @@ class Table
                     $this->updateFetchCache((int)$v['id'], $data);
                 }
             }
-            if(!$this->where){
+            if (!$this->where) {
                 return 0;
             }
             $sql = 'UPDATE ' . $this->tableName . ' SET ' . $this->implodeSave($data) . $this->where;
@@ -478,7 +490,7 @@ class Table
                 $this->redis->del($cachekey);
             }
         }
-        if(!$this->where){
+        if (!$this->where) {
             return 0;
         }
         $query = $this->db->query('DELETE FROM ' . $this->tableName . $this->where);

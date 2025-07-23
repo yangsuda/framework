@@ -426,9 +426,11 @@ class Forms extends ModelAbstract
             $pagesize = (int)aval($param, 'pagesize', 30);
             $indexField = (string)aval($param, 'indexField');
             $joins = (array)aval($param, 'joins');
+            $groupby = (string)aval($param, 'groupby','');
             $data = self::t($form['table'], aval($param, 'extendFormName'))
                 ->withJoin($joins)
                 ->withWhere($param['where'])
+                ->withGroupby($groupby)
                 ->withOrderby($order, $by)
                 ->pageList($page, $fields, $pagesize, 0, $indexField);
             $fields = static::fieldList(['formid' => $param['fid'], 'available' => 1]);

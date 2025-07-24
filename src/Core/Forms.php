@@ -1660,7 +1660,7 @@ class Forms extends ModelAbstract
      * @param $rules
      * @throws \SlimCMS\Error\TextException
      */
-    protected static function tableDataRules(array $rules): array
+    public static function tableDataRules(array $rules): array
     {
         if (empty($rules)) {
             return [];

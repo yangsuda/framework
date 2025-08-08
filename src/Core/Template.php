@@ -54,6 +54,7 @@ class Template implements TemplateInterface
         $template = preg_replace_callback("/\<\?\=\<\?\=$var_regexp\?\>\?\>/s", [get_called_class(), 'addquote'], $template);
 
         $template = preg_replace_callback("/[\n\r\t]*\{template\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'loadTemplateTag'], $template);
+        $template = preg_replace_callback("/[\n\r\t]*\{pluginHook\s+(.+?)\s*\}[\n\r\t]*/is", [get_called_class(), 'loadPluginHookTag'], $template);
         $template = preg_replace_callback("/[\n\r\t]*\{echo\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'echoTag'], $template);
 
         $template = preg_replace_callback("/[\n\r\t]*\{url\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'urlTag'], $template);
@@ -120,6 +121,36 @@ class Template implements TemplateInterface
         return static::stripvtags($expr);
     }
 
+    protected static function loadPluginHookTag($matches)
+    {
+        $file = str_replace(['<?=', '?>'], ["'.", ".'"], $matches[1]);
+        $tpldir = '/template/' . CURSCRIPT . '/plugin/';
+        $templates = [];
+        // 创建一个递归目录迭代器
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/admincp/plugin/'));
+        // 遍历目录和子目录
+        foreach ($iterator as $f) {
+            $pathName = realpath($f->getPathname());
+            if ($f->getExtension() === 'htm' && strpos($pathName, DIRECTORY_SEPARATOR . 'hook' . DIRECTORY_SEPARATOR . $file . '.htm') !== false) {
+                $templates[] = str_replace(realpath(CSROOT . '/template'), '', $pathName);
+            }
+        }
+        // 创建一个递归目录迭代器
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/main/plugin/'));
+        // 遍历目录和子目录
+        foreach ($iterator as $f) {
+            $pathName = realpath($f->getPathname());
+            if ($f->getExtension() === 'htm' && strpos($pathName, DIRECTORY_SEPARATOR . 'hook' . DIRECTORY_SEPARATOR . $file . '.htm') !== false) {
+                $templates[] = str_replace(realpath(CSROOT . '/template'), '', $pathName);
+            }
+        }
+        $files = [];
+        foreach ($templates as $t) {
+            $files[] = static::stripvtags('<?php include SlimCMS\Core\Template::loadTemplate(\'' . trim($t, '.htm') . '\',true); ?>');
+        }
+        return implode("\n", $files);
+    }
+
     protected static function dataTag($matches)
     {
         $tagcode = $matches[1];
@@ -139,7 +170,7 @@ class Template implements TemplateInterface
             }
         }
         $data = json_encode($row);
-        $func = aval($row, 'func','dataCount');
+        $func = aval($row, 'func', 'dataCount');
         $key = aval($row, 'key', 'count');
         $i = count(static::$replacecode['search']);
         static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
@@ -299,5 +330,4 @@ class Template implements TemplateInterface
         }
         return FALSE;
     }
-
 }

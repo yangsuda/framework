@@ -137,7 +137,7 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected static function condition(array $param): array
     {
         $where = !empty($param['where']) ? $param['where'] : [];
-        !empty($param['ids']) && $where['id'] = is_array($param['ids']) ? $param['ids'] : explode(',', (string)$param['ids']);
+        isset($param['ids']) && $where['id'] = is_array($param['ids']) ? $param['ids'] : explode(',', (string)$param['ids']);
         if (!empty($param['start']) && !is_numeric($param['start'])) {
             $param['start'] = strtotime($param['start']);
         }
@@ -274,6 +274,13 @@ abstract class RepositoryAbstract extends BaseAbstract
         return self::t($table)->withWhere($where)->delete();
     }
 
+    /**
+     * 批量修改
+     * @param array $param
+     * @param array $value
+     * @return int
+     * @throws TextException
+     */
     public static function batchUpdate(array $param, array $value): int
     {
         if (empty($value)) {
@@ -282,6 +289,22 @@ abstract class RepositoryAbstract extends BaseAbstract
         $where = static::condition($param);
         $table = self::tableName();
         return self::t($table)->withWhere($where)->update($value);
+    }
+
+    /**
+     * 指定ID修改
+     * @param int $id
+     * @param array $value
+     * @return int
+     * @throws TextException
+     */
+    public static function update(int $id, array $value): int
+    {
+        if (empty($id) || empty($value)) {
+            throw new TextException(21010);
+        }
+        $table = self::tableName();
+        return self::t($table)->withWhere($id)->update($value);
     }
 
     /**

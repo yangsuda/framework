@@ -421,8 +421,13 @@ class Redis
         if (empty(self::$redis)) {
             return null;
         }
-        $keys = is_array($fields) ? implode('\',\'', $fields) : $fields;
-        eval("self::\$redis->hdel(\$key,'" . $keys . "');");
+        if (is_array($fields)) {
+            // 使用可变参数传递数组
+            $res = self::$redis->hdel($key, ...array_values($fields));
+        } else {
+            $res = self::$redis->hdel($key, $fields);
+        }
+        return $res;
     }
 
     /**
@@ -479,16 +484,13 @@ class Redis
         if (empty(self::$redis)) {
             return null;
         }
-        $glue = '';
-        //数据库中数据保存的数据是xx,xx,xx形式的，会被拆分保存，因集合成员只能唯一，所以以空格区分的，删除时也要同时删除，默认
-        for ($i = 0; $i < 50; $i++) {
-            $keys = is_array($members) ? implode($glue . '\',\'', $members) : $members;
-            eval("\$res = self::\$redis->zrem(\$key,'" . $keys . $glue . "');");
-            $glue .= ' ';
-            if (empty($res)) {
-                break;
-            }
+        if (is_array($members)) {
+            // 使用可变参数传递数组
+            $res = self::$redis->zrem($key, ...array_values($members));
+        } else {
+            $res = self::$redis->zrem($key, $members);
         }
+        return $res;
     }
 
     /**
@@ -720,8 +722,8 @@ class Redis
                 if (empty($slice)) {
                     break;
                 }
-                $members = str_replace(' ', '', implode('\',\'', $slice));
-                eval("self::\$redis->sadd(\$key,'" . $members . "');");
+                // 使用可变参数传递数组
+                $res = self::$redis->sadd($key, ...array_values($slice));
             }
             unset($member);
         } else {
@@ -751,7 +753,8 @@ class Redis
                 if (empty($slice)) {
                     break;
                 }
-                eval("self::\$redis->srem(\$key,'" . implode('\',\'', $slice) . "');");
+                // 使用可变参数传递数组
+                $res = self::$redis->srem($key, ...array_values($slice));
             }
             unset($member);
         } else {
@@ -826,11 +829,16 @@ class Redis
         if (empty(self::$redis)) {
             return null;
         }
-        $value = is_array($value) ? implode('\',\'', $value) : $value;
-        eval("\$res = self::\$redis->lpush(\$key,'" . $value . "');");
-        if ($ttl) {
+        if (is_array($value)) {
+            // 使用可变参数传递数组
+            $res = self::$redis->lpush($key, ...array_values($value));
+        } else {
+            $res = self::$redis->lpush($key, $value);
+        }
+        if ($ttl && $res !== false) {
             self::$redis->expire($key, $ttl);
         }
+        return $res;
     }
 
     /**
@@ -861,11 +869,16 @@ class Redis
         if (empty(self::$redis)) {
             return null;
         }
-        $value = is_array($value) ? implode('\',\'', $value) : $value;
-        eval("\$res = self::\$redis->rpush(\$key,'" . $value . "');");
-        if ($ttl) {
+        if (is_array($value)) {
+            // 使用可变参数传递数组
+            $res = self::$redis->rpush($key, ...array_values($value));
+        } else {
+            $res = self::$redis->rpush($key, $value);
+        }
+        if ($ttl && $res !== false) {
             self::$redis->expire($key, $ttl);
         }
+        return $res;
     }
 
     /**

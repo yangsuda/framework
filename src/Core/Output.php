@@ -27,7 +27,7 @@ class Output implements OutputInterface
     /**
      * @var array|object|null
      */
-    private $msg = '';
+    private $msg = '操作成功';
 
     private $referer;
 

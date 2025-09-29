@@ -4,6 +4,10 @@ declare(strict_types=1);
 namespace SlimCMS\Handlers;
 
 use Psr\Http\Message\ResponseInterface as Response;
+use Slim\Error\Renderers\HtmlErrorRenderer;
+use Slim\Error\Renderers\JsonErrorRenderer;
+use Slim\Error\Renderers\PlainTextErrorRenderer;
+use Slim\Error\Renderers\XmlErrorRenderer;
 use Slim\Exception\HttpInternalServerErrorException;
 use Slim\Handlers\ErrorHandler;
 use SlimCMS\Core\Error;
@@ -28,12 +32,12 @@ class HttpErrorHandler extends ErrorHandler
     /**
      * {@inheritdoc}
      */
-    protected $errorRenderers = [
-        'application/json' => JsonError::class,
-        'application/xml' => XmlError::class,
-        'text/xml' => XmlError::class,
-        'text/html' => HtmlError::class,
-        'text/plain' => PlainTextError::class,
+    protected array $errorRenderers = [
+        'application/json' => JsonErrorRenderer::class,
+        'application/xml' => XmlErrorRenderer::class,
+        'text/xml' => XmlErrorRenderer::class,
+        'text/html' => HtmlErrorRenderer::class,
+        'text/plain' => PlainTextErrorRenderer::class,
     ];
 
     /**

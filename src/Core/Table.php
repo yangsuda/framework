@@ -720,7 +720,7 @@ class Table
         } else {
             $sql = 'ALTER TABLE  `' . $this->tableName . '` ADD `' . $identifier . '` ';
         }
-        if (in_array($datatype, ['multitext', 'multidate', 'htmltext', 'imgs', 'serialize'])) {
+        if (in_array($datatype, ['multitext', 'multidate', 'htmltext', 'imgs', 'serialize', 'addons'])) {
             $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'TEXT';
             $sql .= $fieldtype . ' NOT NULL ';
         } elseif ($datatype == 'int' || $datatype == 'datetime' || $datatype == 'date' || $datatype == 'stepselect') {

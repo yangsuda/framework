@@ -773,7 +773,7 @@ class Forms extends ModelAbstract
                             $where[] = self::t()->field($v['identifier'], $val1, 'find');
                         }
                     }
-                } elseif ($v['datatype'] == 'text' || $v['datatype'] == 'multitext' || $v['datatype'] == 'htmltext') {
+                } elseif (in_array($v['datatype'], ['text', 'multitext', 'htmltext'])) {
                     if (!empty($val)) {
                         if (aval($v, 'precisesearch') == 1) {
                             $where[$v['identifier']] = $val;
@@ -784,6 +784,10 @@ class Forms extends ModelAbstract
                 } elseif ($v['datatype'] == 'stepselect') {
                     if (!empty($val)) {
                         $where[$v['identifier']] = self::_enumSubids($v['egroup'], $val);
+                    }
+                } elseif (in_array($v['datatype'], ['radio', 'option'])) {
+                    if (!empty($val) || $val == '0') {
+                        $where[$v['identifier']] = $val;
                     }
                 } else {
                     if (!empty($val)) {
@@ -1216,6 +1220,7 @@ class Forms extends ModelAbstract
                 case 'addon':
                     $v['_' . $identifier] = $v[$identifier] ? trim(self::$config['basehost'], '/') . $v[$identifier] : '';
                     break;
+                case 'addons':
                 case 'serialize':
                     $v['_' . $identifier] = unserialize($v[$identifier]);
                     break;
@@ -1395,6 +1400,30 @@ class Forms extends ModelAbstract
                                 }
                             }
                         }
+                        break;
+                    case 'addons':
+                        $addons = [];
+                        if(!empty($_FILES[$identifier]['tmp_name'])){
+                            $upload = self::$container->get(UploadInterface::class);
+                            foreach ($_FILES[$identifier]['tmp_name'] as $k1=>$v1){
+                                $uploadData = [
+                                    'files' => [
+                                        'name'=>$_FILES[$identifier]['name'][$k1],
+                                        'type'=>$_FILES[$identifier]['type'][$k1],
+                                        'tmp_name'=>$_FILES[$identifier]['tmp_name'][$k1],
+                                        'size'=>$_FILES[$identifier]['size'][$k1],
+                                    ],
+                                    'type' => 'addon'];
+                                $res = $upload->upload($uploadData);
+                                if ($res->getCode() == 200) {
+                                    $addons[] = [
+                                        'url'=>$res->getData()['fileurl'] ?: '',
+                                        'text'=>$uploadData['files']['name'],
+                                    ];
+                                }
+                            }
+                        }
+                        $data[$identifier] = $addons ? serialize($addons) : '';
                         break;
                     case 'serialize':
                         $val = self::input($identifier);

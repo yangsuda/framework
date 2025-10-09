@@ -1403,6 +1403,9 @@ class Forms extends ModelAbstract
                         break;
                     case 'addons':
                         $addons = [];
+                        if (!empty($olddata[$identifier])) {
+                            $addons = unserialize($olddata[$identifier]);
+                        }
                         if(!empty($_FILES[$identifier]['tmp_name'])){
                             $upload = self::$container->get(UploadInterface::class);
                             foreach ($_FILES[$identifier]['tmp_name'] as $k1=>$v1){

@@ -32,7 +32,7 @@ class HttpErrorHandler extends ErrorHandler
     /**
      * {@inheritdoc}
      */
-    protected array $errorRenderers = [
+    protected $errorRenderers = [
         'application/json' => JsonErrorRenderer::class,
         'application/xml' => XmlErrorRenderer::class,
         'text/xml' => XmlErrorRenderer::class,

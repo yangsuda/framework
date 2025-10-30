@@ -663,6 +663,26 @@ class Table
                 return 'FIND_IN_SET(' . $this->quote($val) . ', ' . $field . ')>0';
             case 'nofind':
                 return 'FIND_IN_SET(' . $this->quote($val) . ', ' . $field . ')<1';
+            case 'findMult':
+                if (empty($val) || !is_array($val) && !strpos($val, ',')) {
+                    return 'FIND_IN_SET(' . $this->quote($val) . ', ' . $field . ')>0';
+                }
+                $val = is_array($val) ? $val : explode(',', $val);
+                $arr = [];
+                foreach ($val as $v1) {
+                    $arr[] = 'FIND_IN_SET(' . $this->quote($v1) . ', ' . $field . ')>0';
+                }
+                return '(' . implode(' or ', $arr) . ')';
+            case 'nofindMult':
+                if (empty($val) || !is_array($val) && !strpos($val, ',')) {
+                    return 'FIND_IN_SET(' . $this->quote($val) . ', ' . $field . ')<1';
+                }
+                $val = is_array($val) ? $val : explode(',', $val);
+                $arr = [];
+                foreach ($val as $v1) {
+                    $arr[] = 'FIND_IN_SET(' . $this->quote($v1) . ', ' . $field . ')<1';
+                }
+                return '(' . implode(' or ', $arr) . ')';
             case 'between':
                 list($min, $max) = explode(',', $val);
                 $min = preg_replace('/[^\d.-]/', '', $min);

@@ -744,7 +744,7 @@ class Table
             $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'TEXT';
             $sql .= $fieldtype . ' NOT NULL ';
         } elseif ($datatype == 'int' || $datatype == 'datetime' || $datatype == 'date' || $datatype == 'stepselect') {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'INT';
+            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'bigint';
             $length = $length ?: '11';
             $default = !empty($data['default']) ? $data['default'] : 0;
             $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL DEFAULT  \'' . $default . '\' ';

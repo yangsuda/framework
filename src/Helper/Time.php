@@ -136,4 +136,13 @@ class Time
         }
         return $dates;
     }
+
+    public static function secondToStr(int $seconds): string
+    {
+        $hour = intval($seconds / 3600);
+        $remain = $seconds % 3600;
+        $minite = intval($remain / 60);
+        $seconds = $remain % 60;
+        return ($hour ? $hour . '小时' : '') . ($minite ? $minite . '分' : '') . ($seconds ? $seconds . '秒' : '');
+    }
 }

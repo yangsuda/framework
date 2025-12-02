@@ -767,7 +767,8 @@ class Table
             }
         } else {
             $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'VARCHAR';
-            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext'])) {
+            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext', 'year', 'date', 'datetime', 'timestamp', 'geometry',
+                'polygon', 'point', 'linestring', 'multipoint', 'multilinestring', 'multipolygon', 'geometrycollection', 'set', 'enum'])) {
                 $sql .= $fieldtype . ' NOT NULL ';
             } else {
                 $length = $length ?: '250';

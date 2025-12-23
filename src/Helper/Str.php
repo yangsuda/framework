@@ -392,7 +392,7 @@ class Str
     public static function filterEmoji(string $str, int $type = 0): string
     {
         if ($type == 2) {
-            return preg_replace_callback(
+            $result = preg_replace_callback(
                 '/&#([0-9]+);/is',
                 function (array $match) {
                     if (strlen($match[1]) % 2) {
@@ -402,15 +402,16 @@ class Str
                     }
                 },
                 $str);
+        } else {
+            $result = preg_replace_callback(
+                '/./u',
+                function (array $match) use ($type) {
+                    $replace = $type == 1 ? "&#" . base_convert(bin2hex(iconv('UTF-8', "UCS-4", $match[0])), 16, 10) . ';' : '';
+                    return strlen($match[0]) >= 4 ? $replace : $match[0];
+                },
+                $str);
         }
-        return preg_replace_callback(
-            '/./u',
-            function (array $match) use ($type) {
-                $replace = $type == 1 ? "&#" . base_convert(bin2hex(iconv('UTF-8', "UCS-4", $match[0])), 16, 10) . ';' : '';
-                return strlen($match[0]) >= 4 ? $replace : $match[0];
-            },
-            $str);
-
+        return $result === null ? '' : (string)$result;
     }
 
     /**

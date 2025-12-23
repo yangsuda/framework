@@ -30,9 +30,11 @@ abstract class RepositoryAbstract extends BaseAbstract
                     isset($param[$v['identifier']]) && $data[$v['identifier']] = (int)$param[$v['identifier']];
                     break;
                 case 'float':
-                case 'tel':
                 case 'price':
                     isset($param[$v['identifier']]) && $data[$v['identifier']] = (float)$param[$v['identifier']];
+                    break;
+                case 'tel':
+                    isset($param[$v['identifier']]) && $data[$v['identifier']] = preg_replace('/[^\d\-]/i', '', (string)$param[$v['identifier']]);
                     break;
                 default:
                     isset($param[$v['identifier']]) && $data[$v['identifier']] = (string)$param[$v['identifier']];

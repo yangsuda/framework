@@ -64,11 +64,24 @@ class Crypt
      * @param $pwd
      * @return bool|string
      */
-    public static function pwd($pwd): string
+    public static function pwd($pwd, $algo = PASSWORD_DEFAULT, array $options = []): string
     {
         $config = getConfig();
         $settings = &$config['settings'];
-        return substr(md5($pwd . $settings['security']['authkey']), 5, 20);
+        return password_hash($pwd . $settings['security']['authkey'], $algo, $options);
+    }
+
+    /**
+     * 密码校验
+     * @param $pwd 密码
+     * @param $hash 哈希值
+     * @return string
+     */
+    public static function pwdVerify($pwd, string $hash): bool
+    {
+        $config = getConfig();
+        $settings = &$config['settings'];
+        return password_verify($pwd . $settings['security']['authkey'], $hash);
     }
 
     /**

@@ -30,7 +30,7 @@ abstract class TableAbstract extends ServiceAbstract
 
     protected function initialize()
     {
-        $this->tableName = rtrim(strtolower(substr(strrchr(get_called_class(), '\\'), 1)), 'service');
+        $this->tableName = preg_replace('/service$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
         $this->formId = (int)self::t('forms')->withWhere(['table' => $this->tableName])->fetch('id');
         if (empty($this->formId)) {
             throw new TextException(21039);
@@ -40,7 +40,9 @@ abstract class TableAbstract extends ServiceAbstract
     protected function getData(array $param): array
     {
         $data = [];
-        $list = self::t('forms_fields')->withWhere(['formid' => $this->formId, 'available' => 1])->fetchList('identifier,datatype,rules');
+        $list = self::t('forms_fields')
+            ->withWhere(['formid' => $this->formId, 'available' => 1])
+            ->fetchList('identifier,datatype,rules');
         foreach ($list as $v) {
             switch ($v['datatype']) {
                 case 'radio':

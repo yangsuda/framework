@@ -167,6 +167,7 @@ class Ueditor extends ModelAbstract
         if (empty($config['serverUrl'])) {
             $ue[] = 'serverUrl:"' . self::$config['basehost'] . self::$config['scriptname'] . '?p=ueditor"';
         }
+        $ue[] = 'csrf_token:"'.\App\Core\Csrf::getToken().'"';
         $ue[] = 'pageBreakTag:"#p#副标题#e#"';
         $data = [];
         $data['fieldname'] = $fieldname;

@@ -45,8 +45,6 @@ abstract class TableAbstract extends ServiceAbstract
             ->fetchList('identifier,datatype,rules');
         foreach ($list as $v) {
             switch ($v['datatype']) {
-                case 'radio':
-                case 'select':
                 case 'month':
                 case 'date':
                 case 'datetime':

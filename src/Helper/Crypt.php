@@ -73,11 +73,11 @@ class Crypt
 
     /**
      * 密码校验
-     * @param $pwd 密码
-     * @param $hash 哈希值
+     * @param string $pwd 密码
+     * @param string $hash 哈希值
      * @return string
      */
-    public static function pwdVerify($pwd, string $hash): bool
+    public static function pwdVerify(string $pwd, string $hash): bool
     {
         $config = getConfig();
         $settings = &$config['settings'];

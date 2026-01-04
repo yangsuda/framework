@@ -418,7 +418,9 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->fetch($field, $cacheTime);
+        $row = self::t($this->tableName)->withWhere($this->where)->fetch($field, $cacheTime);
+        !empty($row) && is_array($row) && $this->listRowHandle($row);
+        return $row;
     }
 
     public function fetchList(string $field, string $indexField = '', int $cacheTime = 0): array
@@ -426,13 +428,19 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)
+        $list = self::t($this->tableName)
             ->withWhere($this->where)
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
             ->withLimit($this->limit)
             ->fetchList($field, $indexField, $cacheTime);
+        if (!empty($this->respExtraRowFields)) {
+            foreach ($list as &$v) {
+                $this->listRowHandle($v);
+            }
+        }
+        return $list;
     }
 
     public function pageList(string $fields = '*', int $page = 1, int $pagesize = 30, int $cacheTime = 0, string $indexField = ''): array

@@ -413,7 +413,7 @@ abstract class TableAbstract extends ServiceAbstract
 
     public function fetch(string $field, int $cacheTime = 0)
     {
-        if (empty($field)) {
+        if (empty($this->where) || empty($field)) {
             throw new TextException(21010);
         }
         $row = self::t($this->tableName)->withWhere($this->where)->fetch($field, $cacheTime);

@@ -202,7 +202,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             'fid' => static::getFid(),
             'page' => aval($param, 'page', 1),
             'pagesize' => aval($param, 'pagesize', 30),
-            'fields' => $fields,
+            'fields' => self::transFields($fields),
             'order' => aval($param, 'order'),
             'by' => aval($param, 'by') ?: 'desc',
             'noinput' => true,
@@ -380,5 +380,16 @@ abstract class RepositoryAbstract extends BaseAbstract
     public static function validCheck(array $data, int $id = 0): array
     {
         return Forms::validCheck(self::getFid(), $data, $id);
+    }
+
+    protected static function transFields(string $fields): string
+    {
+        $arr = [];
+        foreach (explode(',', $fields) as $field) {
+            if (strpos($field, '.') === false) {
+                $arr[] = 'main.' . $field;
+            }
+        }
+        return implode(',', $arr);
     }
 }

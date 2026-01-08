@@ -275,7 +275,7 @@ abstract class TableAbstract extends ServiceAbstract
             'fid' => $this->formId,
             'page' => $page,
             'pagesize' => $pagesize,
-            'fields' => $fields,
+            'fields' => self::transFields($fields),
             'order' => $this->order,
             'by' => $this->by,
             'noinput' => true,
@@ -464,5 +464,16 @@ abstract class TableAbstract extends ServiceAbstract
     public function validCheck(array $data, int $id = 0): array
     {
         return Forms::validCheck($this->formId, $data, $id);
+    }
+
+    protected static function transFields(string $fields): string
+    {
+        $arr = [];
+        foreach (explode(',', $fields) as $field) {
+            if (strpos($field, '.') === false) {
+                $arr[] = 'main.' . $field;
+            }
+        }
+        return implode(',', $arr);
     }
 }

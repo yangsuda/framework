@@ -388,6 +388,8 @@ abstract class RepositoryAbstract extends BaseAbstract
         foreach (explode(',', $fields) as $field) {
             if (strpos($field, '.') === false) {
                 $arr[] = 'main.' . $field;
+            } else {
+                $arr[] = $field;
             }
         }
         return implode(',', $arr);

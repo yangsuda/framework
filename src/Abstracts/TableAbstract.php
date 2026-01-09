@@ -169,7 +169,9 @@ abstract class TableAbstract extends ServiceAbstract
         $class = '\App\Model\req\\' . ucfirst($this->tableName) . 'Req';
         if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
             $callback = $class . '::instance';
-            $clone->where = $callback()->getWhere($param);
+            $req = $callback()->getReq();
+            $clone->where = $req->getWhere($param);
+            $clone->joins = $req->getJoins();
         }
         return $clone;
     }
@@ -432,7 +434,7 @@ abstract class TableAbstract extends ServiceAbstract
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
             ->withLimit($this->limit)
-            ->fetchList($field, $indexField, $cacheTime);
+            ->fetchList(self::transFields($field), $indexField, $cacheTime);
         if (!empty($this->respExtraRowFields)) {
             foreach ($list as &$v) {
                 $this->listRowHandle($v);
@@ -451,7 +453,7 @@ abstract class TableAbstract extends ServiceAbstract
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
-            ->pageList($page, $fields, $pagesize, $cacheTime, $indexField);
+            ->pageList($page, self::transFields($fields), $pagesize, $cacheTime, $indexField);
     }
 
     /**
@@ -472,6 +474,8 @@ abstract class TableAbstract extends ServiceAbstract
         foreach (explode(',', $fields) as $field) {
             if (strpos($field, '.') === false) {
                 $arr[] = 'main.' . $field;
+            } else {
+                $arr[] = $field;
             }
         }
         return implode(',', $arr);

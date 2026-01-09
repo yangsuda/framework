@@ -10,16 +10,27 @@ namespace SlimCMS\Abstracts;
 abstract class ReqAbstract extends ServiceAbstract
 {
     protected $where = [];
+    protected $joins = [];
+
+    public function getReq()
+    {
+        $clone = clone $this;
+        return $clone;
+    }
 
     public function getWhere(array $param): array
     {
-        $clone = clone $this;
         foreach ($param as $k => $v) {
             if (is_callable([$this, $k])) {
-                $clone->$k($param, $v);
+                $this->$k($param, $v);
             }
         }
-        return $clone->where;
+        return $this->where;
+    }
+
+    public function getJoins(): array
+    {
+        return array_unique($this->joins);
     }
 
     protected function start(array $param, $words = null): void

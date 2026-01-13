@@ -19,16 +19,16 @@ abstract class RespAbstract extends ServiceAbstract
      * @param string $respExtraRowFields
      * @return void
      */
-    public function getRespExtraRowData(array &$data, string $respExtraRowFields = ''): void
+    public function getRespExtraRowData(array &$data, TableAbstract $table): void
     {
-        $fields = $respExtraRowFields ? explode(',', $respExtraRowFields) : [];
+        $fields = $table->getRespExtraRowFields() ? explode(',', $table->getRespExtraRowFields()) : [];
         $clone = clone $this;
-        $clone->getRelation($data, $respExtraRowFields);
-        if($fields){
+        $clone->getRelation($data, $table);
+        if ($fields) {
             foreach ($data as &$v) {
                 foreach ($fields as $field) {
                     if (is_callable([$this, $field])) {
-                        $clone->$field($v);
+                        $clone->$field($v, $table);
                     }
                 }
             }
@@ -41,13 +41,13 @@ abstract class RespAbstract extends ServiceAbstract
      * @param string $respExtraFields
      * @return array
      */
-    public function getRespExtraData(array $data, string $respExtraFields = ''): array
+    public function getRespExtraData(array $data, TableAbstract $table): array
     {
-        $fields = $respExtraFields ? explode(',', $respExtraFields) : [];
+        $fields = $table->getRespExtraFields() ? explode(',', $table->getRespExtraFields()) : [];
         $clone = clone $this;
         foreach ($fields as $v) {
             if (is_callable([$this, $v])) {
-                $clone->$v($data);
+                $clone->$v($data, $table);
             }
         }
         return $clone->respExtraData;
@@ -59,14 +59,13 @@ abstract class RespAbstract extends ServiceAbstract
      * @param string $respExtraRowFields
      * @return void
      */
-    public function getRelation(array &$data, string $respExtraRowFields = ''): void
+    public function getRelation(array &$data, TableAbstract $table): void
     {
-        $fields = $respExtraRowFields ? explode(',', $respExtraRowFields) : [];
+        $fields = $table->getRespExtraRowFields() ? explode(',', $table->getRespExtraRowFields()) : [];
         foreach ($fields as $field) {
             $func = $field . 'Relation';
             if (is_callable([$this, $func])) {
-                $ids = array_column($data, $field);
-                $this->relations[$field] = $this->$func($ids);
+                $this->relations[$field] = $this->$func($data, $table);
             }
         }
     }

@@ -25,6 +25,7 @@ abstract class TableAbstract extends ServiceAbstract
     protected $respExtraRowFields = '';//行额外数据
     protected $respExtraFields = '';//列表额外数据
     protected $limit;
+    protected $auth;
     private $tableName = '';
     private $formId = 0;
 
@@ -176,6 +177,11 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getWhere()
+    {
+        return $this->where;
+    }
+
     /**
      * 排序
      * @param string $field
@@ -191,6 +197,16 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getOrder()
+    {
+        return $this->order;
+    }
+
+    public function getBy()
+    {
+        return $this->by;
+    }
+
     /**
      * 联表查询
      * @param array $joins
@@ -202,6 +218,16 @@ abstract class TableAbstract extends ServiceAbstract
         $clone->joins = $joins;
         $clone->joinFields = $fields;
         return $clone;
+    }
+
+    public function getJoins()
+    {
+        return $this->joins;
+    }
+
+    public function getJoinFields()
+    {
+        return $this->joinFields;
     }
 
     /**
@@ -216,6 +242,11 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getIndexField()
+    {
+        return $this->indexField;
+    }
+
     /**
      * 分组排序
      * @param string $field
@@ -226,6 +257,11 @@ abstract class TableAbstract extends ServiceAbstract
         $clone = clone $this;
         $clone->groupBy = $field;
         return $clone;
+    }
+
+    public function getGroupBy()
+    {
+        return $this->groupBy;
     }
 
     /**
@@ -240,6 +276,11 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getExtendFormName()
+    {
+        return $this->extendFormName;
+    }
+
     /**
      * 其它返回值
      * @param string $fields
@@ -252,6 +293,11 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getRespExtraRowFields()
+    {
+        return $this->respExtraRowFields;
+    }
+
     public function withrespExtraFields(string $fields): self
     {
         $clone = clone $this;
@@ -259,11 +305,33 @@ abstract class TableAbstract extends ServiceAbstract
         return $clone;
     }
 
+    public function getRespExtraFields()
+    {
+        return $this->respExtraFields;
+    }
+
     public function withLimit($limit): self
     {
         $clone = clone $this;
         $clone->limit = $limit;
         return $clone;
+    }
+
+    public function getLimit()
+    {
+        return $this->limit;
+    }
+
+    public function withAuth(array $auth): self
+    {
+        $clone = clone $this;
+        $clone->auth = $auth;
+        return $clone;
+    }
+
+    public function getAuth()
+    {
+        return $this->auth;
     }
 
     /**
@@ -320,7 +388,7 @@ abstract class TableAbstract extends ServiceAbstract
         $class = '\App\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
         if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
             $callback = $class . '::instance';
-            return $callback()->getRespExtraData($data, $this->respExtraFields);
+            return $callback()->getRespExtraData($data, $this);
         }
         return [];
     }
@@ -335,7 +403,7 @@ abstract class TableAbstract extends ServiceAbstract
         $class = '\App\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
         if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
             $callback = $class . '::instance';
-            $callback()->getRespExtraRowData($data, $this->respExtraRowFields);
+            $callback()->getRespExtraRowData($data, $this);
         }
     }
 

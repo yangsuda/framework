@@ -295,9 +295,7 @@ abstract class TableAbstract extends ServiceAbstract
         }
         $data = $res->getData();
         if (!empty($this->respExtraRowFields)) {
-            foreach ($data['list'] as &$v) {
-                $this->listRowHandle($v);
-            }
+            $this->listRowHandle($data['list']);
         }
         $val = [
             'list' => aval($data, 'list'),
@@ -436,9 +434,7 @@ abstract class TableAbstract extends ServiceAbstract
             ->withLimit($this->limit)
             ->fetchList(self::transFields($field), $indexField, $cacheTime);
         if (!empty($this->respExtraRowFields)) {
-            foreach ($list as &$v) {
-                $this->listRowHandle($v);
-            }
+            $this->listRowHandle($list);
         }
         return $list;
     }

@@ -38,7 +38,7 @@ abstract class ReqAbstract extends ServiceAbstract
         if (!empty($words) && !is_numeric($words)) {
             $words = strtotime($words);
         }
-        $field = $param['dateField'] ?? 'createtime';
+        $field = $param['dateField'] ?? 'main.createtime';
         $words && $this->where[] = self::t()->field($field, $words, '>=');
     }
 
@@ -47,7 +47,7 @@ abstract class ReqAbstract extends ServiceAbstract
         if (!empty($words) && !is_numeric($words)) {
             $words = strtotime($words);
         }
-        $field = $param['dateField'] ?? 'createtime';
+        $field = $param['dateField'] ?? 'main.createtime';
         $words && $this->where[] = self::t()->field($field, $words, '<=');
     }
 

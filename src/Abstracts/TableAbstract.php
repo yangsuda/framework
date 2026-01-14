@@ -171,7 +171,9 @@ abstract class TableAbstract extends ServiceAbstract
         if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
             $callback = $class . '::instance';
             $req = $callback()->getReq();
-            $clone->where = $req->getWhere($param);
+            foreach ($req->getWhere($param) as $k => $v) {
+                $clone->where[$this->transFields($k)] = $v;
+            }
             $clone->joins = $req->getJoins();
         }
         return $clone;
@@ -191,7 +193,7 @@ abstract class TableAbstract extends ServiceAbstract
     public function withOrderBy(string $field, string $direction = 'DESC', bool $orderForce = true): self
     {
         $clone = clone $this;
-        $clone->order = $field;
+        $clone->order = $this->transFields($field);
         $clone->by = $direction;
         $clone->orderForce = $orderForce;
         return $clone;
@@ -345,7 +347,7 @@ abstract class TableAbstract extends ServiceAbstract
             'fid' => $this->formId,
             'page' => $page,
             'pagesize' => $pagesize,
-            'fields' => self::transFields($fields),
+            'fields' => $this->transFields($fields),
             'order' => $this->order,
             'by' => $this->by,
             'noinput' => true,
@@ -412,7 +414,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->delete();
+        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->delete();
     }
 
     /**
@@ -426,7 +428,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where) || empty($value)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->update($value);
+        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->update($value);
     }
 
     /**
@@ -451,9 +453,9 @@ abstract class TableAbstract extends ServiceAbstract
      * @return int
      * @throws TextException
      */
-    public function count(string $fields = '*', int $cacheTime = 0): int
+    public function count(string $fields = 'id', int $cacheTime = 0): int
     {
-        return self::t($this->tableName)->withWhere($this->where)->count($fields, $cacheTime);
+        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->count($this->transFields($fields), $cacheTime);
     }
 
     /**
@@ -467,7 +469,10 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        return (float)self::t($this->tableName)->withWhere($this->where)->sum($field);
+        return (float)self::t($this->tableName)
+            ->withWhere($this->where)
+            ->withJoin($this->joins)
+            ->sum($this->transFields($field));
     }
 
     public function fetchColumn(string $field, string $func)
@@ -475,17 +480,25 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field) || empty($func)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->fetchColumn($field, $func);
+        return self::t($this->tableName)
+            ->withWhere($this->where)
+            ->withJoin($this->joins)
+            ->fetchColumn($this->transFields($field), $func);
     }
 
 
     public function fetch(string $field, int $cacheTime = 0)
     {
-        if (empty($this->where) || empty($field)) {
+        if (empty($this->where) || (empty($field) && empty($this->joinFields))) {
             throw new TextException(21010);
         }
-        $row = self::t($this->tableName)->withWhere($this->where)->fetch($field, $cacheTime);
-        !empty($row) && is_array($row) && $this->listRowHandle($row);
+        $field = $field ? $this->transFields($field) . ',' . $this->joinFields : $this->joinFields;
+        $row = self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->fetch($field, $cacheTime);
+        if (!empty($row)) {
+            $row = [$row];
+            $this->listRowHandle($row);
+            $row = $row[0];
+        }
         return $row;
     }
 
@@ -494,13 +507,14 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
+        $field = $field ? $this->transFields($field) . ',' . $this->joinFields : $this->joinFields;
         $list = self::t($this->tableName)
             ->withWhere($this->where)
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
             ->withLimit($this->limit)
-            ->fetchList(self::transFields($field), $indexField, $cacheTime);
+            ->fetchList($field, $indexField, $cacheTime);
         if (!empty($this->respExtraRowFields)) {
             $this->listRowHandle($list);
         }
@@ -517,7 +531,7 @@ abstract class TableAbstract extends ServiceAbstract
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
-            ->pageList($page, self::transFields($fields), $pagesize, $cacheTime, $indexField);
+            ->pageList($page, $this->transFields($fields), $pagesize, $cacheTime, $indexField);
     }
 
     /**
@@ -532,8 +546,16 @@ abstract class TableAbstract extends ServiceAbstract
         return Forms::validCheck($this->formId, $data, $id);
     }
 
-    protected static function transFields(string $fields): string
+    /**
+     * 防止联表查询有冲突，主表字段默认都加main前缀
+     * @param $fields
+     * @return float|int|string
+     */
+    protected function transFields($fields)
     {
+        if (is_numeric($fields)) {
+            return $fields;
+        }
         $arr = [];
         foreach (explode(',', $fields) as $field) {
             if (strpos($field, '.') === false) {

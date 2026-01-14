@@ -464,7 +464,7 @@ class Table
     {
         if (!empty($data)) {
             if ($this->redis->isAvailable()) {
-                $row = $this->fetchList('id');
+                $row = $this->fetchList('main.id');
                 foreach ($row as $v) {
                     $this->updateFetchCache((int)$v['id'], $data);
                 }
@@ -472,7 +472,7 @@ class Table
             if (!$this->where) {
                 return 0;
             }
-            $sql = 'UPDATE ' . $this->tableName . ' SET ' . $this->implodeSave($data) . $this->where;
+            $sql = 'UPDATE ' . $this->tableName . ' main SET ' . $this->implodeSave($data) . $this->where;
             $query = $this->db->query($sql);
             return $this->db->affectedRows($query);
         }
@@ -486,7 +486,7 @@ class Table
     public function delete(): int
     {
         if ($this->redis->isAvailable()) {
-            $row = $this->fetchList('id');
+            $row = $this->fetchList('main.id');
             foreach ($row as $v) {
                 $cachekey = $this->cacheKey($v['id']);
                 $this->redis->del($cachekey);
@@ -495,7 +495,7 @@ class Table
         if (!$this->where) {
             return 0;
         }
-        $query = $this->db->query('DELETE FROM ' . $this->tableName . $this->where);
+        $query = $this->db->query('DELETE main FROM ' . $this->tableName. ' main ' . $this->where);
         return $this->db->affectedRows($query);
     }
 

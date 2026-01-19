@@ -492,7 +492,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where) || (empty($field) && empty($this->joinFields))) {
             throw new TextException(21010);
         }
-        $field = $field ? $this->transFields($field) . ',' . $this->joinFields : $this->joinFields;
+        $field = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
         $row = self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->fetch($field, $cacheTime);
         if (!empty($row)) {
             $row = [$row];
@@ -507,7 +507,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        $field = $field ? $this->transFields($field) . ',' . $this->joinFields : $this->joinFields;
+        $field = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
         $list = self::t($this->tableName)
             ->withWhere($this->where)
             ->withGroupby($this->groupBy)

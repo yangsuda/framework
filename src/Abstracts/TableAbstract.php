@@ -26,6 +26,7 @@ abstract class TableAbstract extends ServiceAbstract
     protected $respExtraFields = '';//列表额外数据
     protected $limit;
     protected $auth;
+    protected $query = [];//查询参数
     private $tableName = '';
     private $formId = 0;
 
@@ -176,12 +177,18 @@ abstract class TableAbstract extends ServiceAbstract
             }
             $clone->joins = $req->getJoins();
         }
+        $clone->query = $param;
         return $clone;
     }
 
     public function getWhere()
     {
         return $this->where;
+    }
+
+    public function getQuery()
+    {
+        return $this->query;
     }
 
     /**

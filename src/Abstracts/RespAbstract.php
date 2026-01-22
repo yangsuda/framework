@@ -10,7 +10,6 @@ namespace SlimCMS\Abstracts;
 abstract class RespAbstract extends ServiceAbstract
 {
 
-    protected $respExtraData = [];
     protected $relations = [];
 
     /**
@@ -39,9 +38,9 @@ abstract class RespAbstract extends ServiceAbstract
      * 返回额外数据
      * @param array $data
      * @param string $respExtraFields
-     * @return array
+     * @return void
      */
-    public function getRespExtraData(array $data, TableAbstract $table): array
+    public function getRespExtraData(array &$data, TableAbstract $table): void
     {
         $fields = $table->getRespExtraFields() ? explode(',', $table->getRespExtraFields()) : [];
         $clone = clone $this;
@@ -50,7 +49,6 @@ abstract class RespAbstract extends ServiceAbstract
                 $clone->$v($data, $table);
             }
         }
-        return $clone->respExtraData;
     }
 
     /**

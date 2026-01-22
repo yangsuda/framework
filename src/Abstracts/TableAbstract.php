@@ -162,16 +162,19 @@ abstract class TableAbstract extends ServiceAbstract
     /**
      * 生成筛选条件
      * @param array $param
+     * @param bool $append true：追加条件
      * @return $this
-     * @throws TextException
      */
-    public function withWhere(array $param): self
+    public function withWhere(array $param, bool $append = true): self
     {
         $clone = clone $this;
         $class = '\App\Model\req\\' . ucfirst($this->tableName) . 'Req';
         if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
             $callback = $class . '::instance';
             $req = $callback()->getReq();
+            if ($append === false) {
+                $clone->where = [];
+            }
             foreach ($req->getWhere($param) as $k => $v) {
                 $clone->where[$this->transFields($k)] = $v;
             }
@@ -382,7 +385,7 @@ abstract class TableAbstract extends ServiceAbstract
             'pagesize' => $pagesize
         ];
         if (!empty($this->respExtraFields)) {
-            $val = array_merge($val, $this->listHandle($data));
+            $this->listHandle($val);
         }
         return self::$output->withCode(200)->withData($val);
     }

@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
+use Respect\Validation\Exceptions\ValidationException;
+use SlimCMS\Error\TextException;
+
 abstract class ReqAbstract extends ServiceAbstract
 {
     protected $where = [];
@@ -18,14 +21,34 @@ abstract class ReqAbstract extends ServiceAbstract
         return $clone;
     }
 
-    public function getWhere(array $param): array
+    public function getWhere(array $param, array $valiIgnore = []): array
     {
         foreach ($param as $k => $v) {
             if (is_callable([$this, $k])) {
+                if (empty($valiIgnore) || aval($valiIgnore, $k) !== true) {
+                    //有效性校验
+                    $class = '\App\Model\vali\\' . ucfirst(self::getTableName()) . 'Vali';
+                    if (!empty($class) && method_exists($class, $k) && is_callable([$class, $k])) {
+                        $callback = $class . '::' . $k;
+                        try {
+                            $callback()->assert($v);
+                        } catch (ValidationException $e) {
+                            $messages = $e->getMessages();
+                            foreach ($messages as $message) {
+                                throw new TextException(21000, ['msg' => $message]);
+                            }
+                        }
+                    }
+                }
                 $this->$k($param, $v);
             }
         }
         return $this->where;
+    }
+
+    private function getTableName(): string
+    {
+        return preg_replace('/req$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
     }
 
     public function getJoins(): array

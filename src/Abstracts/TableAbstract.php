@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace SlimCMS\Abstracts;
 
 use App\Core\Forms;
+use Respect\Validation\Exceptions\ValidationException;
 use SlimCMS\Error\TextException;
 use SlimCMS\Interfaces\OutputInterface;
 
@@ -39,13 +40,35 @@ abstract class TableAbstract extends ServiceAbstract
         }
     }
 
-    protected function getData(array $param): array
+    /**
+     * 数据整理
+     * @param array $param 数据
+     * @param array $valiIgnore 需要忽略的校验字段
+     * @return array
+     * @throws TextException
+     */
+    protected function getData(array $param, array $valiIgnore = []): array
     {
         $data = [];
         $list = self::t('forms_fields')
             ->withWhere(['formid' => $this->formId, 'available' => 1])
             ->fetchList('identifier,datatype,rules');
         foreach ($list as $v) {
+            if (empty($valiIgnore) || aval($valiIgnore, $v['identifier']) !== true) {
+                //有效性校验
+                $class = '\App\Model\vali\\' . ucfirst($this->tableName) . 'Vali';
+                if (!empty($class) && method_exists($class, $v['identifier']) && is_callable([$class, $v['identifier']])) {
+                    $callback = $class . '::' . $v['identifier'];
+                    try {
+                        $callback()->assert($param[$v['identifier']]);
+                    } catch (ValidationException $e) {
+                        $messages = $e->getMessages();
+                        foreach ($messages as $message) {
+                            throw new TextException(21000, ['msg' => $message]);
+                        }
+                    }
+                }
+            }
             switch ($v['datatype']) {
                 case 'month':
                 case 'date':
@@ -74,9 +97,9 @@ abstract class TableAbstract extends ServiceAbstract
      * @param array $param
      * @return OutputInterface
      */
-    public function add(array $param): OutputInterface
+    public function add(array $param, array $valiIgnore = []): OutputInterface
     {
-        $data = $this->getData($param);
+        $data = $this->getData($param, $valiIgnore);
         if (empty($data)) {
             return self::$output->withCode(21020);
         }
@@ -89,12 +112,12 @@ abstract class TableAbstract extends ServiceAbstract
      * @param array $param
      * @return OutputInterface
      */
-    public function edit(int $id, array $param, array $options = []): OutputInterface
+    public function edit(int $id, array $param, array $options = [], array $valiIgnore = []): OutputInterface
     {
         if (empty($id) || empty($param)) {
             return self::$output->withCode(21003);
         }
-        $data = $this->getData($param);
+        $data = $this->getData($param, $valiIgnore);
         if (empty($data)) {
             return self::$output->withCode(21020);
         }
@@ -163,9 +186,10 @@ abstract class TableAbstract extends ServiceAbstract
      * 生成筛选条件
      * @param array $param
      * @param bool $append true：追加条件
+     * @param array $valiIgnore 忽略有效性校验设置
      * @return $this
      */
-    public function withWhere(array $param, bool $append = true): self
+    public function withWhere(array $param, bool $append = true, array $valiIgnore = []): self
     {
         $clone = clone $this;
         $class = '\App\Model\req\\' . ucfirst($this->tableName) . 'Req';
@@ -175,7 +199,7 @@ abstract class TableAbstract extends ServiceAbstract
             if ($append === false) {
                 $clone->where = [];
             }
-            foreach ($req->getWhere($param) as $k => $v) {
+            foreach ($req->getWhere($param, $valiIgnore) as $k => $v) {
                 $clone->where[$this->transFields($k)] = $v;
             }
             $clone->joins = $req->getJoins();

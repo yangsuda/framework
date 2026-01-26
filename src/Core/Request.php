@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use Respect\Validation\Exceptions\ValidationException;
 use SlimCMS\Error\TextException;
 use SlimCMS\Abstracts\MessageAbstract;
 use SlimCMS\Helper\Str;
@@ -93,16 +92,6 @@ class Request extends MessageAbstract
         $data = [];
         foreach ($param as $k => $v) {
             $val = $this->getInput($k);
-            if ($v instanceof \Respect\Validation\Validatable) {
-                try {
-                    $v->assert($val);
-                } catch (ValidationException $e) {
-                    !empty($e->getParams()['template']) && $e->updateTemplate($e->getParams()['template']);
-                    throw new TextException(21000, ['msg' => $e->getMessage()]);
-                }
-                isset($val) && $data[$k] = $val;
-                continue;
-            }
             if (strpos($v, '*')) {
                 list($v, $title) = explode('*', $v);
                 if (empty($val)) {

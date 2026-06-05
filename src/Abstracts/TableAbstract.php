@@ -372,7 +372,9 @@ abstract class TableAbstract extends ServiceAbstract
 
     /**
      * 列表
-     * @param array $param
+     * @param string $fields 字段
+     * @param int $page 页码
+     * @param int $pagesize 每页数量
      * @return OutputInterface
      */
     public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): OutputInterface

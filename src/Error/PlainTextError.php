@@ -25,7 +25,7 @@ class PlainTextError extends AbstractErrorRenderer
     /**
      * {@inheritdoc}
      */
-    protected $defaultErrorTitle = 'SlimCMS Application Error';
+    protected string $defaultErrorTitle = 'SlimCMS Application Error';
 
     /**
      * {@inheritdoc}

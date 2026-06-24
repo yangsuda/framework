@@ -17,7 +17,7 @@ use SlimCMS\Interfaces\DatabaseInterface;
 
 class Database implements DatabaseInterface
 {
-    private $setting;
+    protected $setting;
     public static $link;
 
     public function __construct(ContainerInterface $container)

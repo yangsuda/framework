@@ -284,6 +284,7 @@ class Table
             }
             return $row;
         }
+        $fields = str_replace('main.', '', $fields);
         if (isset($data[$fields])) {
             return $data[$fields];
         }
@@ -310,6 +311,7 @@ class Table
                     foreach ($list as $k => $v) {
                         $data = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($fields) : [];
                         if (!strpos($fields, ',') && $fields != '*' && $data) {
+                            $fields = str_replace('main.', '', $fields);
                             $data = [$fields => $data];
                         }
                         $list[$k] = $data ?: $v;

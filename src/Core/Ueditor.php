@@ -165,7 +165,7 @@ class Ueditor extends ModelAbstract
             $ue[] = $k . ':\'' . $v . '\'';
         }
         if (empty($config['serverUrl'])) {
-            $ue[] = 'serverUrl:"' . self::$config['basehost'] . self::$config['scriptname'] . '?p=ueditor"';
+            $ue[] = 'serverUrl:"' . self::$config['basehost'] . '/admin/ueditor"';
         }
         $ue[] = 'csrf_token:"'.\App\Core\Csrf::getToken().'"';
         $ue[] = 'pageBreakTag:"#p#副标题#e#"';

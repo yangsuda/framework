@@ -531,6 +531,9 @@ abstract class TableAbstract extends ServiceAbstract
         $field = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
         $row = self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->fetch($field, $cacheTime);
         if (!empty($row)) {
+            if(!is_array($row)){
+                return $row;
+            }
             $row = [$row];
             $this->listRowHandle($row);
             $row = $row[0];
@@ -589,7 +592,7 @@ abstract class TableAbstract extends ServiceAbstract
      */
     protected function transFields($fields)
     {
-        if (is_numeric($fields)) {
+        if (is_numeric($fields) || $fields == '*') {
             return $fields;
         }
         $arr = [];

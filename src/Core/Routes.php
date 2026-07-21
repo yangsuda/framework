@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use App\Core\RouteAction;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
@@ -25,45 +26,38 @@ class Routes implements RouteInterface
      */
     public function route(App $app)
     {
-        $app->any('/[{params:.*}]', $this->routeCallable($app));
+        // 设置 RouteAction 门面的路由收集器（支持 Route::get() 等静态调用）
+        RouteAction::setCollector($app);
+
+        // 加载路由文件（先加载具体路由）
+        $this->loadRouteFiles($app);
+
+        //其它未匹配到路由兜底
+        RouteAction::any('/{path:.*}', 'Main\MainController@notFound');
     }
 
-    protected function routeCallable(App $app)
+    /**
+     * 加载所有路由文件
+     */
+    protected function loadRouteFiles(App $app): void
     {
-        return function (ServerRequestInterface $req, ResponseInterface $res) use ($app) {
-            $request = new Request($req, $res, $app);
-            $response = new Response($req, $res, $app);
-            $p = $request->input('p');
-            if (empty($p)) {
-                $p = 'index';
+        $routeFiles = [
+            CSAPP . 'routes/main.php',
+            CSAPP . 'routes/admin.php',
+        ];
+        // 创建一个递归目录迭代器
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSAPP . 'routes/plugin'));
+        // 遍历目录和子目录
+        foreach ($iterator as $f) {
+            $pathName = realpath($f->getPathname());
+            if ($f->getExtension() === 'php') {
+                $routeFiles[] = str_replace('\\', '/', $pathName);
             }
-            $path = str_replace('\\', '/', dirname($p));
-            $path = trim(trim($path, '\.'),'/');
-            $controlname = $path ? basename($path) : basename($p);
-            $path = empty($path) || $path == $controlname ? '' : dirname($path) . '\\';
-
-            $controlname = ucfirst($controlname);
-            $controlpath = '\App\Control\\' . CURSCRIPT . '\\' . str_replace('/','\\',$path);
-            $classname = $controlpath . $controlname . 'Control';
-            if (!class_exists($classname)) {
-                $classname = $controlpath . 'DefaultControl';
-                if (!class_exists($classname)) {
-                    $classname = '\App\Control\\' . CURSCRIPT . '\\' . 'DefaultControl';
-                    if (!class_exists($classname)) {
-                        $classname = '\App\Control\\' . 'DefaultControl';
-                    }
-                }
+        }
+        foreach ($routeFiles as $file) {
+            if (file_exists($file)) {
+                require $file;
             }
-            $method = basename($p);
-            $obj = new $classname($request, $response);
-            if (!is_callable([$obj, $method])) {
-                $classname = '\App\Control\\' . 'DefaultControl';
-                $obj = new $classname($request, $response);
-            }
-            if (!is_callable([$obj, $method])) {
-                return $response->output($request->getOutput()->withCode(21009));
-            }
-            return $obj->$method();
-        };
+        }
     }
 }

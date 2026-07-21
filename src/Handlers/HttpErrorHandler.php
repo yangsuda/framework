@@ -64,6 +64,17 @@ class HttpErrorHandler extends ErrorHandler
         if (CORE_DEBUG === true) {
             return parent::respond();
         }
+        //生产环境下，所有异常统一返回 JSON 格式
+        $statusCode = $this->exception->getCode() ?: 500;
+        $errorPayload = [
+            'code' => $statusCode,
+            'data' => null,
+            'message' => $this->exception->getMessage(),
+        ];
+        $response = $this->responseFactory->createResponse($statusCode);
+        $response = $response->withHeader('Content-Type', 'application/json');
+        $response->getBody()->write(json_encode($errorPayload, JSON_UNESCAPED_UNICODE));
+        return $response;
     }
 
     /**

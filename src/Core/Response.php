@@ -27,9 +27,6 @@ class Response extends MessageAbstract
         if ($output->directTo) {
             return $this->directTo($output);
         }
-        if ($output->jsonCallback) {
-            return $this->jsonCallback($output);
-        }
         if ($output->json) {
             $contentType = 'application/json';
         } else {
@@ -89,18 +86,6 @@ class Response extends MessageAbstract
             }
         }
         return null;
-    }
-
-    /**
-     * JSONP数据返回
-     * @param Output $result
-     * @return ResponseInterface
-     */
-    protected function jsonCallback(Output $output)
-    {
-        $encodedOutput = $output->getJsonCallback() . '(' . json_encode($output) . ')';
-        $this->response = $this->response->getBody()->write($encodedOutput);
-        return $this->response;
     }
 
     /**

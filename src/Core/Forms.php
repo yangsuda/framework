@@ -345,14 +345,14 @@ class Forms extends ModelAbstract
             }
         }
 
-        $param['currenturl'] = self::$request->getRequest()->getUri()->getQuery();
+        $param['currenturl'] = self::url();
         $param['get'] = [];
         $arr = [];
         $arr['where'] = [];
         if (empty($param['noinput'])) {
             $arr = static::searchCondition($param)->getData();
             $param['get'] = $arr['get'];
-            $param['currenturl'] = $arr['currentUrl'];
+            $param['currenturl'] .= $arr['currentUrl'];
         }
         if (!empty($param['cacheTime'])) {
             $para = $param;
@@ -426,7 +426,7 @@ class Forms extends ModelAbstract
             $pagesize = (int)aval($param, 'pagesize', 30);
             $indexField = (string)aval($param, 'indexField');
             $joins = (array)aval($param, 'joins');
-            $groupby = (string)aval($param, 'groupby','');
+            $groupby = (string)aval($param, 'groupby', '');
             $data = self::t($form['table'], aval($param, 'extendFormName'))
                 ->withJoin($joins)
                 ->withWhere($param['where'])
@@ -448,7 +448,7 @@ class Forms extends ModelAbstract
             $data['fid'] = $param['fid'];
             $data['order'] = $order;
             $data['by'] = $by;
-            $data['currenturl'] = self::url($param['currenturl']);
+            $data['currenturl'] = $param['currenturl'];
             $data['get'] = $param['get'];
             $data['where'] = $param['where'];
 
@@ -1258,8 +1258,7 @@ class Forms extends ModelAbstract
         $cfg = &self::$config;
         $data = [];
         foreach ($fields as $k => $v) {
-            //接口请求只有开启前台显示的字段才可以前端获取数据
-            if (CURSCRIPT == 'api' && $v['infront'] != 1) {
+            if ($v['infront'] != 1) {
                 continue;
             }
             if (!empty($olddata['id']) && ($v['datatype'] == 'readonly' || $v['forbidedit'] == 2)) {
@@ -1406,22 +1405,22 @@ class Forms extends ModelAbstract
                         if (!empty($olddata[$identifier])) {
                             $addons = unserialize($olddata[$identifier]);
                         }
-                        if(!empty($_FILES[$identifier]['tmp_name'])){
+                        if (!empty($_FILES[$identifier]['tmp_name'])) {
                             $upload = self::$container->get(UploadInterface::class);
-                            foreach ($_FILES[$identifier]['tmp_name'] as $k1=>$v1){
+                            foreach ($_FILES[$identifier]['tmp_name'] as $k1 => $v1) {
                                 $uploadData = [
                                     'files' => [
-                                        'name'=>$_FILES[$identifier]['name'][$k1],
-                                        'type'=>$_FILES[$identifier]['type'][$k1],
-                                        'tmp_name'=>$_FILES[$identifier]['tmp_name'][$k1],
-                                        'size'=>$_FILES[$identifier]['size'][$k1],
+                                        'name' => $_FILES[$identifier]['name'][$k1],
+                                        'type' => $_FILES[$identifier]['type'][$k1],
+                                        'tmp_name' => $_FILES[$identifier]['tmp_name'][$k1],
+                                        'size' => $_FILES[$identifier]['size'][$k1],
                                     ],
                                     'type' => 'addon'];
                                 $res = $upload->upload($uploadData);
                                 if ($res->getCode() == 200) {
                                     $addons[] = [
-                                        'url'=>$res->getData()['fileurl'] ?: '',
-                                        'text'=>$uploadData['files']['name'],
+                                        'url' => $res->getData()['fileurl'] ?: '',
+                                        'text' => $uploadData['files']['name'],
                                     ];
                                 }
                             }

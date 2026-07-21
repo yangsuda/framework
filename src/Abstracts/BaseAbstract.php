@@ -76,10 +76,10 @@ abstract class BaseAbstract
         if (!class_exists($classname)) {
             $classname = 'App\Core\Table';
         }
-        if (empty($objs[$name.$extendName])) {
-            $objs[$name.$extendName] = new $classname(self::$request, $name, $extendName);
+        if (empty($objs[$name . $extendName])) {
+            $objs[$name . $extendName] = new $classname(self::$request, $name, $extendName);
         }
-        return $objs[$name.$extendName];
+        return $objs[$name . $extendName];
     }
 
     /**
@@ -152,111 +152,19 @@ abstract class BaseAbstract
      * @param string $host
      * @return string
      */
-    public static function url(string $url = '', string $host = ''): string
+    public static function url(string $url = '', string $path = ''): string
     {
-        static $urls = [];
-        $key = md5($url . $host);
-        if (!empty($urls[$key])) {
-            return $urls[$key];
-        }
-        $host = $host ?: self::$config['basehost'];
         $uri = self::$request->getRequest()->getUri();
         if (empty($url) || preg_match('/^&/', $url)) {
-            $url = $uri->getQuery() . $url;
+            $query = $uri->getQuery() . $url;
+        } elseif (strpos($url, '?') !== false) {
+            list($path, $query) = explode('?', $url);
         }
-        if (strpos($url, '?') !== false) {
-            list($path, $url) = explode('?', $url);
-        }
-        if (!empty(self::$config['urlEncrypt']) && !empty($path) && preg_match('/\.html$/', $path)) {
-            $data = Str::QAnalysis(urldecode(preg_replace('/^q-/', '', pathinfo($path, PATHINFO_FILENAME))));
-            $data['p'] = parse_url(pathinfo($path, PATHINFO_DIRNAME), PHP_URL_PATH);
-            $url = http_build_query($data) . '&' . $url;
-        }
-
-        parse_str($url, $output);
-        if (!empty($output['q'])) {
-            $q = preg_replace('/^q-/', '', $output['q']);
-            $data = Str::QAnalysis($q);
-            unset($output['q']);
-            $output = array_merge($data, $output);
-            $url = http_build_query($output);
-        }
-
-        parse_str($url, $output);
-        foreach ($output as $k => $v) {
-            if ($v === '') {
-                unset($output[$k]);
-            }
-        }
-        if (!empty(self::$config['urlEncrypt'])) {
-            $p = $output['p'];
-            unset($output['p']);
-            if (!empty($output['q'])) {
-                $data = Str::QAnalysis($output['q']);
-                !empty($data['q']) && $data = Crypt::decrypt($data['q']);
-                unset($output['q']);
-                $output = array_merge($data, $output);
-            }
-            $url = 'p=' . $p . '&q=' . Crypt::encrypt($output);
-        } else {
-            $url = http_build_query($output);
-        }
-
-        if (empty(self::$config['rewriteUrl'])) {
-            if (empty($path)) {
-                $path = ltrim($uri->getPath(), '/');
-                if (preg_match('/\.html$/', $path)) {
-                    $server = self::$request->getRequest()->getServerParams();
-                    $path = basename($server['SCRIPT_FILENAME']);
-                }
-            }
-            $url = (preg_match('/^http/', $path) ? $path : rtrim($host, '/') . '/' . $path) . '?' . $url;
-            return str_replace('%27', '\'', $url);
-        }
-
+        !empty($query) && parse_str($query, $output);
+        $query = !empty($output) ? http_build_query($output) : '';
         if (empty($path)) {
-            $server = self::$request->getRequest()->getServerParams();
-            $fileName = pathinfo($server['SCRIPT_FILENAME'], PATHINFO_FILENAME);
-            $path = ltrim(dirname($uri->getPath()), '/');
-            $path = str_replace(self::$config['basehost'], '', $path);
-        } else {
-            $path = str_replace(self::$config['basehost'], '', $path);
-            $fileName = pathinfo($path, PATHINFO_FILENAME);
+            $path = $uri->getPath();
         }
-        parse_str($url, $output);
-        $data = Str::QAnalysis(pathinfo($path, PATHINFO_FILENAME));
-        $data['p'] = str_replace($fileName, '', dirname($path));
-        $output = array_merge($data, $output);
-
-        if (empty(self::$config['urlEncrypt']) && !empty($output['q'])) {
-            $data = Str::QAnalysis($output['q']);
-            $data && $output = array_merge($data, $output);
-            unset($output['q']);
-        }
-        foreach ($output as $k => $v) {
-            if ($v === '') {
-                unset($output[$k]);
-            }
-        }
-        $url = rtrim($host, '/') . '/' . (!empty($output['p']) ? trim($output['p'], '/') . '/' : '');
-        $jsoncallback = !empty($output['jsoncallback']);
-        unset($output['p'], $output['jsoncallback']);
-        if (!empty($output)) {
-            $arr = [];
-            foreach ($output as $k => $v) {
-                $v = is_array($v) ? implode('`', $v) : $v;
-                if (!empty($v) || $v == '0') {
-                    $arr[] = urlencode(str_replace(['-', '_'], ['&#045;', '&#095;'], $k) . '-' . str_replace(['-', '_'], ['&#045;', '&#095;'], $v));
-                }
-            }
-            if ($arr) {
-                $val = implode('_', $arr);
-                $url .= urlencode($val) . '.html';
-                //方便JS中url的拼接生成URL
-                $url = str_replace(['%2527%2B', '%2B%2527'], ['\'+', '+\''], $url);
-            }
-        }
-        $urls[$key] = $url . ($jsoncallback ? '?jsoncallback=?' : '');
-        return $urls[$key];
+        return $path. ($query ? '?' . $query : '');
     }
 }

@@ -23,7 +23,7 @@ abstract class ControlAbstract extends BaseAbstract
     public function __construct(Request $request, Response $response)
     {
         parent::__construct($request, $response);
-        $this->p = trim(self::inputString('p'), '/');
+        $this->p = $request->getRequest()->getUri()->getPath();
     }
 
     /**
@@ -46,7 +46,8 @@ abstract class ControlAbstract extends BaseAbstract
             $errorMsg = (string)self::$request->cookie()->get('errorMsg');
             $data['errorMsg'] = Crypt::decrypt($errorMsg);
         }
-        $data['currentUrl'] = self::url();
+        parse_str(self::$request->getRequest()->getUri()->getQuery(),$querys);
+        $data['query'] = http_build_query($querys);
         $data['p'] = $this->p;
         $output = $output->withTemplate((string)$template)->withData($data);
 
@@ -74,19 +75,6 @@ abstract class ControlAbstract extends BaseAbstract
     {
         $output = $output ?? self::$output;
         $output->json = 1;
-        return self::response($output);
-    }
-
-    /**
-     * 跨域请求返回数据
-     * @param array $result
-     * @return array|\Psr\Http\Message\ResponseInterface
-     *
-     */
-    public function jsonCallback(OutputInterface $output = null, string $jsonCallback)
-    {
-        $output = $output ?? self::$output;
-        $output->jsonCallback = $jsonCallback;
         return self::response($output);
     }
 }

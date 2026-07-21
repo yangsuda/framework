@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use App\Core\ErrorCode;
 use SlimCMS\Error\TextException;
 use SlimCMS\Interfaces\TemplateInterface;
 
@@ -56,8 +57,6 @@ class Template implements TemplateInterface
         $template = preg_replace_callback("/[\n\r\t]*\{template\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'loadTemplateTag'], $template);
         $template = preg_replace_callback("/[\n\r\t]*\{pluginHook\s+(.+?)\s*\}[\n\r\t]*/is", [get_called_class(), 'loadPluginHookTag'], $template);
         $template = preg_replace_callback("/[\n\r\t]*\{echo\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'echoTag'], $template);
-
-        $template = preg_replace_callback("/[\n\r\t]*\{url\s+(.+?)\}[\n\r\t]*/is", [get_called_class(), 'urlTag'], $template);
 
         $template = preg_replace_callback("/([\n\r\t]*)\{if\s+(.+?)\}([\n\r\t]*)/is", [get_called_class(), 'ifTag'], $template);
         $template = preg_replace_callback("/([\n\r\t]*)\{elseif\s+(.+?)\}([\n\r\t]*)/is", [get_called_class(), 'elseifTag'], $template);
@@ -124,10 +123,10 @@ class Template implements TemplateInterface
     protected static function loadPluginHookTag($matches)
     {
         $file = str_replace(['<?=', '?>'], ["'.", ".'"], $matches[1]);
-        $tpldir = '/template/' . CURSCRIPT . '/plugin/';
+        $tpldir = '/template/plugin/';
         $templates = [];
         // 创建一个递归目录迭代器
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/admincp/plugin/'));
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/admin/plugin'));
         // 遍历目录和子目录
         foreach ($iterator as $f) {
             $pathName = realpath($f->getPathname());
@@ -136,7 +135,7 @@ class Template implements TemplateInterface
             }
         }
         // 创建一个递归目录迭代器
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/main/plugin/'));
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(CSROOT . 'template/plugin'));
         // 遍历目录和子目录
         foreach ($iterator as $f) {
             $pathName = realpath($f->getPathname());
@@ -181,18 +180,6 @@ class Template implements TemplateInterface
     protected static function echoTag($matches)
     {
         $expr = '<?php echo ' . $matches[1] . '??\'\'; ?>';
-        return static::stripvtags($expr);
-    }
-
-    protected static function urlTag($matches)
-    {
-        $config = getConfig();
-        $param = str_replace(['<?=', '?>'], ['".', '."'], $matches[1]);
-        if (!empty($config['cfg']['urlEncrypt']) && strpos($param, '\'+')) {
-            $expr = '<?php echo "' . $param . '"; ?>';
-        } else {
-            $expr = '<?php echo \SlimCMS\Core\Forms::url("' . $param . '"); ?>';
-        }
         return static::stripvtags($expr);
     }
 
@@ -291,7 +278,7 @@ class Template implements TemplateInterface
         }
         if ($force === false) {
             $file = trim($file, '/');
-            $tpldir = '/template/' . CURSCRIPT . '/';
+            $tpldir = '/template/';
 
             $tplfile = $tpldir . $file . '.htm';
             if (!is_file(CSROOT . $tplfile)) {
@@ -303,7 +290,7 @@ class Template implements TemplateInterface
             if (!is_file(CSROOT . $tplfile)) {
                 $tplfile = '/template/default/' . basename($file) . '.htm';
             }
-            static::$cacheFile = 'template/' . CURSCRIPT . '_' . str_replace('/', '_', $file) . '.tpl.php';
+            static::$cacheFile = 'template/' . str_replace('/', '_', $file) . '.tpl.php';
         } else {
             $tplfile = '/template/' . $file . '.htm';
             if (!is_file(CSROOT . $tplfile)) {

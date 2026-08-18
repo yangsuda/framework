@@ -8,9 +8,10 @@ declare(strict_types=1);
 namespace SlimCMS\Abstracts;
 
 use Respect\Validation\Exceptions\ValidationException;
+use SlimCMS\Core\Table;
 use SlimCMS\Error\TextException;
 
-abstract class ReqAbstract extends ServiceAbstract
+abstract class ReqAbstract extends BaseAbstract
 {
     protected $where = [];
     protected $joins = [];
@@ -27,15 +28,15 @@ abstract class ReqAbstract extends ServiceAbstract
             if (is_callable([$this, $k])) {
                 if (empty($valiIgnore) || aval($valiIgnore, $k) !== true) {
                     //有效性校验
-                    $class = '\App\Model\vali\\' . ucfirst(self::getTableName()) . 'Vali';
-                    if (!empty($class) && method_exists($class, $k) && is_callable([$class, $k])) {
-                        $callback = $class . '::' . $k;
+                    $class = '\app\Model\vali\\' . ucfirst($this->getTableName()) . 'Vali';
+                    if (!empty($class) && method_exists($class, $k) && ($obj = $this->i($class)) && is_callable([$obj, $k])) {
+                        $callback = $obj->$k();
                         try {
-                            $callback()->assert($v);
+                            $callback->assert($v);
                         } catch (ValidationException $e) {
                             $messages = $e->getMessages();
                             foreach ($messages as $message) {
-                                throw new TextException(21000, ['msg' => $message]);
+                                throw new TextException(21000, $message);
                             }
                         }
                     }
@@ -62,7 +63,7 @@ abstract class ReqAbstract extends ServiceAbstract
             $words = strtotime($words);
         }
         $field = $param['dateField'] ?? 'main.createtime';
-        $words && $this->where[] = self::t()->field($field, $words, '>=');
+        $words && $this->where[] = $this->i(Table::class)->field($field, $words, '>=');
     }
 
     protected function end(array $param, $words = null): void
@@ -71,11 +72,16 @@ abstract class ReqAbstract extends ServiceAbstract
             $words = strtotime($words);
         }
         $field = $param['dateField'] ?? 'main.createtime';
-        $words && $this->where[] = self::t()->field($field, $words, '<=');
+        $words && $this->where[] = $this->i(Table::class)->field($field, $words, '<=');
     }
 
     protected function ids(array $param, $words = null): void
     {
         isset($words) && $this->where['id'] = is_array($words) ? $words : explode(',', (string)$words);
+    }
+
+    protected function id(array $param, $words = null): void
+    {
+        isset($words) && $this->where['id'] = $words;
     }
 }

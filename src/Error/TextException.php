@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Error;
 
-use App\Core\Output;
+use SlimCMS\Core\Output;
 use Exception;
 
 class TextException extends Exception

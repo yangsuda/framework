@@ -1,37 +1,20 @@
 <?php
-/**
- * 服务基类
- * @author zhucy
- */
 declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
-use App\Core\Forms;
-use App\Core\Request;
-use App\Core\Response;
+use SlimCMS\Error\TextException;
 
 abstract class ServiceAbstract extends BaseAbstract
 {
-    protected static $instances;
 
-    public function __construct(Request $request, Response $response)
+    /**
+     * 获取仓库类名
+     * @param string $name
+     * @return string
+     */
+    protected function getRepositoryClassName(string $name):string
     {
-        parent::__construct($request, $response);
-        $this->initialize();
-    }
-
-    protected function initialize()
-    {
-
-    }
-
-    public static function instance()
-    {
-        $instance_name = static::class;
-        if (empty(self::$instances[$instance_name])) {
-            self::$instances[$instance_name] = new static(self::$request, self::$response);
-        }
-        return self::$instances[$instance_name];
+        return '\app\Repository\\' . ucfirst($name) . 'Repository';
     }
 }

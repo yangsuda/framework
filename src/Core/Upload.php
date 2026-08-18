@@ -9,19 +9,16 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use Slim\Psr7\UploadedFile;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\File;
 use SlimCMS\Interfaces\CookieInterface;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\UploadInterface;
-use SlimCMS\Abstracts\ModelAbstract;
 
-class Upload extends ModelAbstract implements UploadInterface
+class Upload extends BaseAbstract implements UploadInterface
 {
-
-    public function __construct()
-    {
-    }
+    use \SlimCMS\Traits\table;
 
     /**
      * @param string|null $dirrule
@@ -29,13 +26,13 @@ class Upload extends ModelAbstract implements UploadInterface
      */
     protected function getSaveDir(string $dirrule = null): string
     {
-        $dir = !empty(self::$setting['attachment']['dirname']) ? trim(self::$setting['attachment']['dirname'], '/') : 'uploads';
+        $dir = !empty($this->setting['attachment']['dirname']) ? trim($this->setting['attachment']['dirname'], '/') : 'uploads';
         if (!isset($dirrule)) {
-            if (!empty(self::$setting['attachment']['dirrule'])) {
+            if (!empty($this->setting['attachment']['dirrule'])) {
                 $dirrule = str_replace(
                     ['{Y}', '{m}', '{d}'],
                     [date('Y'), date('m'), date('d')],
-                    trim(self::$setting['attachment']['dirrule'], '/'));
+                    trim($this->setting['attachment']['dirrule'], '/'));
             } else {
                 $dirrule = date('Y/m');
             }
@@ -49,15 +46,14 @@ class Upload extends ModelAbstract implements UploadInterface
     public function h5(string $str): OutputInterface
     {
         if (preg_match('/^data:\s*([^\/]+)\/([^\/]+);base64,/', $str, $matches)) {
-            $mimeType = $matches[1] . '/' . $matches[2]; // 提取 MIME 类型
-            $str = str_replace(['data:' . $mimeType . ';base64,', ' '], ['', '+'], $str);
+            $str = preg_replace('/^data:image\/\w+;base64,/', '', $str);
             $data = base64_decode($str);
             if (empty($data)) {
                 return self::$output->withCode(27013);
             }
 
             //防止伪装成图片的木马上传
-            $checkWords = aval(self::$setting, 'security/uploadCheckWords');
+            $checkWords = aval($this->setting, 'security/uploadCheckWords');
             if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
                 return self::$output->withCode(23005);
             }
@@ -71,66 +67,62 @@ class Upload extends ModelAbstract implements UploadInterface
             if (!$success) {
                 return self::$output->withCode(23014);
             }
-            $post = [];
-            $post['files']['tmp_name'] = $fileUrl;
-            $post['files']['name'] = $file;
-            $post['files']['type'] = $mimeType;
-            if (in_array($matches[2], explode('|', self::$config['mediatype']))) {
+
+            if (in_array($matches[2], explode('|', $this->config['mediatype']))) {
                 $types = 'media';
-            } elseif (in_array($matches[2], explode('|', self::$config['imgtype']))) {
+            } elseif (in_array($matches[2], explode('|', $this->config['imgtype']))) {
                 $types = 'image';
             } else {
                 $types = 'addon';
             }
-            $post['type'] = $types;
-            return $this->upload($post);
+            $mimeType = $matches[1] . '/' . $matches[2]; // 提取 MIME 类型
+            $uploadFile = new UploadedFile($fileUrl, $file, $mimeType, filesize($fileUrl));
+            return $this->upload($uploadFile, $types);
         }
-        return self::$output->withCode(27013);
+        return $this->output->withCode(27013);
     }
 
     /**
      * @inheritDoc
      */
-    public function upload($post): OutputInterface
+    public function upload(UploadedFile $post, string $type = 'image', string $dir = null): OutputInterface
     {
-        if (is_string($post)) {
-            return $this->h5($post);
+        if ($post->getSize() < 1) {
+            return $this->output->withCode(23001);
         }
-        if (empty($post['files']['tmp_name'])) {
-            return self::$output->withCode(23001);
-        }
-        $post['type'] = empty($post['type']) ? 'image' : $post['type'];
 
-        $dirname = $this->getSaveDir(aval($post, 'dir'));
+        $dirname = $this->getSaveDir($dir);
         $imgdir = CSPUBLIC . $dirname;
         File::mkdir($imgdir);
 
-        $not_allow = aval(self::$setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
-        $file_name = trim(preg_replace("#[ \r\n\t\*\%\\\/\?><\|\":]{1,}#", '', $post['files']['name']));
+        $not_allow = aval($this->setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
+        $file_name = trim(preg_replace("#[ \r\n\t\*\%\\\/\?><\|\":]{1,}#", '', $post->getClientFilename()));
         if (!empty($file_name) && (preg_match("#\.(" . $not_allow . ")$#i", $file_name) || strpos($file_name, '.') === false)) {
-            @unlink($post['files']['tmp_name']);
-            return self::$output->withCode(23004);
+            @unlink($post->getFilePath());
+            return $this->output->withCode(23004);
         }
 
         //防止伪装成图片的木马上传
-        $checkWords = aval(self::$setting, 'security/uploadCheckWords');
-        if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', file_get_contents($post['files']['tmp_name']))) {
-            @unlink($post['files']['tmp_name']);
-            return self::$output->withCode(23005);
+        $checkWords = aval($this->setting, 'security/uploadCheckWords');
+        if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', file_get_contents($post->getFilePath()))) {
+            @unlink($post->getFilePath());
+            return $this->output->withCode(23005);
         }
         $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
         //源文件类型检查
         $code = '';
-        switch ($post['type']) {
+        switch ($type) {
             case 'image':
-                if (strpos(self::$config['imgtype'], $ext) === false) {
+                if (strpos($this->config['imgtype'], $ext) === false) {
                     $code = 23006;
                     break;
                 }
-                $info = getimagesize($post['files']['tmp_name']);
-                //检测文件类型
-                if (!is_array($info) || !in_array($info[2], [1, 2, 3, 6])) {
-                    $code = 23001;
+                if ($post->getFilePath() != 'php://temp') {
+                    $info = getimagesize($post->getFilePath());
+                    //检测文件类型
+                    if (!is_array($info) || !in_array($info[2], [1, 2, 3, 6])) {
+                        $code = 23001;
+                    }
                 }
                 break;
             case 'flash':
@@ -139,12 +131,12 @@ class Upload extends ModelAbstract implements UploadInterface
                 }
                 break;
             case 'media':
-                if (strpos(self::$config['mediatype'], $ext) === false) {
+                if (strpos($this->config['mediatype'], $ext) === false) {
                     $code = 23008;
                 }
                 break;
             case 'addon':
-                $subject = self::$config['imgtype'] . '|' . self::$config['mediatype'] . '|' . self::$config['softtype'];
+                $subject = $this->config['imgtype'] . '|' . $this->config['mediatype'] . '|' . $this->config['softtype'];
                 $allAllowType = str_replace('||', '|', $subject);
                 if (strpos($allAllowType, $ext) === false) {
                     $code = 23009;
@@ -153,29 +145,20 @@ class Upload extends ModelAbstract implements UploadInterface
             default:
                 $code = 23010;
         }
-        if (@filesize($post['files']['tmp_name']) > self::$config['maxUploadSize'] * 1024) {
+        if ($post->getSize() > $this->config['maxUploadSize'] * 1024) {
             $code = 23012;
         }
         if ($code) {
-            @unlink($post['files']['tmp_name']);
-            return self::$output->withCode($code);
+            @unlink($post->getFilePath());
+            return $this->output->withCode($code);
         }
 
         $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip()), 20), true)) . '.' . $ext;
-        $uploadPost = [];
-        $uploadPost['attachment'] = new UploadedFile($post['files']['tmp_name'], $post['files']['name'], $post['files']['type']);
-        $upload = self::$request->getRequest()->withUploadedFiles($uploadPost)->getUploadedFiles();
-        $upload['attachment']->moveTo($filename);
-        //加水印或缩小图片
-        if ($post['type'] == 'image') {
-            Image::imageResize($filename, aval($post, 'width'), aval($post, 'height'));
-            (!empty($post['water']) || !empty(self::$config['waterMark'])) && Image::waterImg($filename);
-        }
-
+        $post->moveTo($filename);
         $fileurl = str_replace(CSPUBLIC, '/', $filename);
         //保存信息到数据库
         $this->save($fileurl, 1);
-        return self::$output->withCode(200)->withData(['fileurl' => $fileurl]);
+        return $this->output->withCode(200)->withData(['fileurl' => $fileurl]);
     }
 
     /**
@@ -213,46 +196,38 @@ class Upload extends ModelAbstract implements UploadInterface
         $data['isfirst'] = $isfirst == 1 ? 1 : 2;
         $data['createtime'] = TIMESTAMP;
         $data['ip'] = Ipdata::getip();
-        return self::t('uploads')->insert($data, true);
+        return $this->t('uploads')->insert($data, true);
     }
 
     /**
      * @inheritDoc
      */
-    public function webupload(array $post): OutputInterface
+    public function webupload(UploadedFile $file, array $option = []): OutputInterface
     {
-        isset($_SESSION) ? '' : @session_start();
-
-        if (empty($post['fileid'])) {
-            return self::$output->withCode(23001);
+        if (empty($file)) {
+            return $this->output->withCode(23001);
         }
-        if (!empty($_SESSION['bigfile_info']) && count($_SESSION['bigfile_info']) >= 10) {
-            return self::$output->withCode(23002);
+        $session = $this->session();
+        if ($session->has('bigfile_info') && count($session->get('bigfile_info')) >= 10) {
+            return $this->output->withCode(23002);
         }
-        $post['width'] = aval($post, 'width');
-        $post['height'] = aval($post, 'height');
-        $post['type'] = 'image';
-        $result = $this->upload($post);
+        $result = $this->upload($file, 'image');
         if ($result->getCode() != 200) {
             return $result;
         }
+        $fileurl = $result->getData()['fileurl'];
 
-        $file = $result->getData();
-        $img120 = $this->copyImage($file['fileurl'], 120, 120);
-        $imagevariable = file_get_contents(CSPUBLIC . str_replace(self::$config['basehost'], '', $img120));
+        //加水印或缩小图片
+        $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl, aval($option, 'width'), aval($option, 'height'));
+        (!empty($option['water']) || !empty($this->config['waterMark'])) && $this->i(Image::class)->waterImg(CSPUBLIC . $fileurl);
 
         //保存信息到 session
-        if (!isset($_SESSION['file_info'])) {
-            $_SESSION['file_info'] = [];
-        }
-        if (!isset($_SESSION['bigfile_info'])) {
-            $_SESSION['bigfile_info'] = [];
-        }
-        $_SESSION['fileid'] = $post['fileid'];
-        $_SESSION['bigfile_info'][$post['fileid']] = $file['fileurl'];
-        $_SESSION['file_info'][$post['fileid']] = $imagevariable;
-        $data = ['fileid' => $post['fileid'], 'imgurl' => $img120];
-        return self::$output->withCode(200)->withData($data);
+        $bigfile_info = $session->get('bigfile_info');
+        $bigfile_info[$option['fileid']] = $fileurl;
+        $session->set('bigfile_info', $bigfile_info);
+        $session->set('fileid', $option['fileid']);
+        $data = ['fileid' => $option['fileid'], 'imgurl' => $this->copyImage($fileurl, 120, 120)];
+        return $this->output->withCode(200)->withData($data);
     }
 
     /**
@@ -261,29 +236,28 @@ class Upload extends ModelAbstract implements UploadInterface
     public function getWebupload(): OutputInterface
     {
         $imgurls = [];
-        isset($_SESSION) ? '' : @session_start();
-        if (!empty($_SESSION['bigfile_info'])) {
-            if (count($_SESSION['bigfile_info']) > 10) {
-                $_SESSION['bigfile_info'] = [];
-                foreach ($_SESSION['bigfile_info'] as $_v) {
+        $session = $this->session();
+        if ($session->has('bigfile_info')) {
+            if (count($session->get('bigfile_info')) > 10) {
+                foreach ($session->get('bigfile_info') as $_v) {
                     $this->uploadDel($_v['img']);
                 }
-                return self::$output->withCode(21045);
+                return $this->output->withCode(21045);
             }
-            if (is_array($_SESSION['bigfile_info'])) {
-                foreach ($_SESSION['bigfile_info'] as $_k => $_v) {
+            if (is_array($session->get('bigfile_info'))) {
+                foreach ($session->get('bigfile_info') as $_k => $_v) {
                     if ($imginfos = getimagesize(CSPUBLIC . ltrim($_v, '/'))) {
                         $key = md5($_v);
                         $imgurls[$key]['img'] = $_v;
-                        $imgurls[$key]['text'] = self::input('picinfook' . $_k);
+                        $imgurls[$key]['text'] = $this->i(Request::class)->input('picinfook' . $_k);
                         $imgurls[$key]['width'] = $imginfos[0];
                         $imgurls[$key]['height'] = $imginfos[1];
                     }
                 }
             }
         }
-        $_SESSION['bigfile_info'] = [];
-        return self::$output->withCode(200)->withData($imgurls);
+        $session->delete('bigfile_info');
+        return $this->output->withCode(200)->withData($imgurls);
     }
 
     /**
@@ -292,7 +266,7 @@ class Upload extends ModelAbstract implements UploadInterface
     public function uploadDel(string $url): OutputInterface
     {
         if (empty($url)) {
-            return self::$output->withCode(21002);
+            return $this->output->withCode(21002);
         }
         if ($pics = $this->listByUrl($url)) {
             $ids = [];
@@ -304,9 +278,9 @@ class Upload extends ModelAbstract implements UploadInterface
                     @unlink($upfile);
                 }
             }
-            self::t('uploads')->withWhere(['id' => $ids])->delete();
+            $this->t('uploads')->withWhere(['id' => $ids])->delete();
         }
-        return self::$output->withCode(200);
+        return $this->output->withCode(200);
     }
 
     /**
@@ -317,20 +291,20 @@ class Upload extends ModelAbstract implements UploadInterface
      */
     protected function listByUrl(string $url): array
     {
-        $url = str_replace(self::$config['basehost'], '', $url);
-        $ext = self::$config['imgtype'] . '|' . self::$config['softtype'] . '|' . self::$config['mediatype'];
+        $url = str_replace($this->config['basehost'], '', $url);
+        $ext = $this->config['imgtype'] . '|' . $this->config['softtype'] . '|' . $this->config['mediatype'];
         if (empty($url) || preg_match('#http:\/\/#i', $url) || !preg_match('#\.(' . $ext . ')#', $url)) {
             return [];
         }
         if (strpos($url, '_')) {
-            $url = preg_replace('#(.*)(_)?(\d+)?(x)?(\d+)?(\.(' . self::$config['imgtype'] . ')){1}#isU', '\\1', $url);
+            $url = preg_replace('#(.*)(_)?(\d+)?(x)?(\d+)?(\.(' . $this->config['imgtype'] . ')){1}#isU', '\\1', $url);
         } else {
             $url = pathinfo($url, PATHINFO_DIRNAME) . '/' . pathinfo($url, PATHINFO_FILENAME);
         }
         $url = str_replace("'", '', $url);
         $where = [];
-        $where[] = self::t('uploads')->field('url', $url . '%', 'like');
-        return self::t('uploads')->withWhere($where)->fetchList();
+        $where[] = $this->t('uploads')->field('url', $url . '%', 'like');
+        return $this->t('uploads')->withWhere($where)->fetchList();
     }
 
     /**
@@ -339,12 +313,12 @@ class Upload extends ModelAbstract implements UploadInterface
     public function metaInfo(string $url, string $info = 'url,size'): OutputInterface
     {
         if (empty($url)) {
-            return self::$output->withCode(21002);
+            return $this->output->withCode(21002);
         }
         $data = [];
         $arr = explode(',', $info);
         if (in_array('url', $arr)) {
-            $data['url'] = trim(self::$config['attachmentHost'], '/') . $url;
+            $data['url'] = trim($this->config['attachmentHost'], '/') . $url;
         }
         if (in_array('size', $arr)) {
             $data['size'] = filesize(CSPUBLIC . $url);
@@ -354,7 +328,7 @@ class Upload extends ModelAbstract implements UploadInterface
             $data['width'] = $info[0];
             $data['height'] = $info[1];
         }
-        return self::$output->withCode(200)->withData($data);
+        return $this->output->withCode(200)->withData($data);
     }
 
     /**
@@ -366,17 +340,17 @@ class Upload extends ModelAbstract implements UploadInterface
         if (empty($pic)) {
             return $nopic;
         }
-        $attachmentHost = !empty(self::$config['attachmentHost']) ? self::$config['attachmentHost'] : self::$config['basehost'];
+        $attachmentHost = !empty($this->config['attachmentHost']) ? $this->config['attachmentHost'] : $this->config['basehost'];
         $attachmentHost = rtrim($attachmentHost, '/') . '/';
-        if (preg_match('/' . self::$config['domain'] . '/i', $pic)) {
-            $pic = str_replace(rtrim(self::$config['basehost'], '/'), '', $pic);
+        if (preg_match('/' . $this->config['domain'] . '/i', $pic)) {
+            $pic = str_replace(rtrim($this->config['basehost'], '/'), '', $pic);
         }
         if (preg_match("/^(https?:\/\/)/i", $pic)) {
             return $pic;
         }
         $ext = pathinfo($pic, PATHINFO_EXTENSION);
         if (!in_array(strtolower($ext), ['jpg', 'jpeg', 'png'])) {
-            return rtrim(self::$config['basehost'], '/') . $pic;
+            return rtrim($this->config['basehost'], '/') . $pic;
         }
 
         $pic = ltrim($pic, '/');
@@ -400,7 +374,7 @@ class Upload extends ModelAbstract implements UploadInterface
             if (is_file($newurl)) {
                 return $attachmentHost . $newpic;
             }
-            if (@copy($oldurl, $newurl) && is_file($newurl) && Image::resize($newurl, $width, $height)) {
+            if (@copy($oldurl, $newurl) && is_file($newurl) && $this->i(Image::class)->resize($newurl, $width, $height)) {
                 $this->save('/' . $newpic);
             }
             return $attachmentHost . $newpic;
@@ -411,26 +385,26 @@ class Upload extends ModelAbstract implements UploadInterface
     /**
      * @inheritDoc
      */
-    public function superFileUpload(array $file, int $index, string $filename, string $diyDir = ''): OutputInterface
+    public function superFileUpload(UploadedFile $file, int $index, string $filename, string $diyDir = ''): OutputInterface
     {
-        if (empty($file['tmp_name']) || empty($index) || empty($filename)) {
-            return self::$output->withCode(21002);
+        if (empty($file) || empty($index) || empty($filename)) {
+            return $this->output->withCode(21002);
         }
 
-        $not_allow = aval(self::$setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
+        $not_allow = aval($this->setting, 'security/uploadForbidFile', 'php|pl|cgi|asp|aspx|jsp|php3|shtm|shtml|js');
         if (preg_match("#\.(" . $not_allow . ")$#i", $filename)) {
-            @unlink($file['tmp_name']);
-            return self::$output->withCode(23004);
+            @unlink($file->getFilePath());
+            return $this->output->withCode(23004);
         }
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        $subject = self::$config['imgtype'] . '|' . self::$config['mediatype'] . '|' . self::$config['softtype'];
+        $subject = $this->config['imgtype'] . '|' . $this->config['mediatype'] . '|' . $this->config['softtype'];
         $allAllowType = str_replace('||', '|', $subject);
         if (strpos($allAllowType, $ext) === false) {
-            return self::$output->withCode(23009);
+            return $this->output->withCode(23009);
         }
 
         $cachekey = __FUNCTION__;
-        $cookie = self::$container->get(CookieInterface::class);
+        $cookie = $this->container->get(CookieInterface::class);
         if ($index == 1) {
             $cookie->set($cachekey, md5((string)microtime(true) . mt_rand(1000, 9999)), 3600);
         }
@@ -440,7 +414,7 @@ class Upload extends ModelAbstract implements UploadInterface
         File::mkdir(CSPUBLIC . $dir);
         $path = CSPUBLIC . $dir . $md5filename . '_' . $index;
         $json = [];
-        if (!move_uploaded_file($file['tmp_name'], $path)) {
+        if (!move_uploaded_file($file->getFilePath(), $path)) {
             $json['src'] = $file;
         } else {
             $fileurl = $dir . $md5filename . '.' . $ext;
@@ -454,6 +428,6 @@ class Upload extends ModelAbstract implements UploadInterface
                 $this->save('/' . $fileurl, 1);
             }
         }
-        return self::$output->withCode(200)->withData($json);
+        return $this->output->withCode(200)->withData($json);
     }
 }

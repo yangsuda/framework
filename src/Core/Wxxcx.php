@@ -10,38 +10,38 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 
-use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Http;
 use SlimCMS\Interfaces\OutputInterface;
 
-class Wxxcx extends ModelAbstract
+class Wxxcx extends BaseAbstract
 {
-    protected static $accessToken = '';
+    protected $accessToken = '';
 
     /**
      * 获取access_token
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getAccessToken(OutputInterface $output): OutputInterface
+    public function getAccessToken(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $url = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' . $data['appid'] . '&secret=' . $data['appsecret'];
-        if (self::$redis->isAvailable()) {
-            $cachekey = self::cacheKey(__FUNCTION__, $data['appid']);
-            self::$accessToken = self::$redis->get($cachekey);
-            if (!self::$accessToken) {
+        if ($this->redis->isAvailable()) {
+            $cachekey = $this->cacheKey(__FUNCTION__, $data['appid']);
+            $this->accessToken = $this->redis->get($cachekey);
+            if (!$this->accessToken) {
                 $str = Http::curlGet($url);
                 $obj = json_decode($str, true);
                 if (!empty($obj['access_token'])) {
-                    self::$accessToken = $obj['access_token'];
-                    self::$redis->set($cachekey, self::$accessToken, 7000);
+                    $this->accessToken = $obj['access_token'];
+                    $this->redis->set($cachekey, $this->accessToken, 7000);
                 } else {
-                    return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+                    return $this->output->withCode(21000, $obj['errmsg']);
                 }
             }
         } else {
@@ -50,19 +50,19 @@ class Wxxcx extends ModelAbstract
             $cacheFile = $dir . 'xcx_' . $data['appid'] . '.txt';
             $filemtime = is_file($cacheFile) ? filemtime($cacheFile) : 0;
             if (TIMESTAMP - $filemtime < 7000) {
-                self::$accessToken = file_get_contents($cacheFile);
+                $this->accessToken = file_get_contents($cacheFile);
             } else {
                 $str = Http::curlGet($url);
                 $obj = json_decode($str, true);
                 if (!empty($obj['access_token'])) {
                     file_put_contents($cacheFile, $obj['access_token']);
-                    self::$accessToken = $obj['access_token'];
+                    $this->accessToken = $obj['access_token'];
                 } else {
-                    return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+                    return $this->output->withCode(21000, $obj['errmsg']);
                 }
             }
         }
-        return self::$output->withCode(200)->withData(['accessToken' => self::$accessToken]);
+        return $this->output->withCode(200)->withData(['accessToken' => $this->accessToken]);
     }
 
     /**
@@ -70,17 +70,17 @@ class Wxxcx extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getwxacodeunlimit(OutputInterface $output): OutputInterface
+    public function getwxacodeunlimit(OutputInterface $output): OutputInterface
     {
-        if (!self::$accessToken) {
-            $res = static::getAccessToken($output);
+        if (!$this->accessToken) {
+            $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
         }
         $data = $output->getData();
         if (empty($data['scene'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $val = [];
         $val['scene'] = $data['scene'];
@@ -90,9 +90,9 @@ class Wxxcx extends ModelAbstract
         !empty($data['lineColor']) && $val['lineColor'] = $data['lineColor'];
         !empty($data['isHyaline']) && $val['isHyaline'] = $data['isHyaline'];
 
-        $url = 'https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=' . self::$accessToken;
+        $url = 'https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=' . $this->accessToken;
         $result = Http::curlPost($url, json_encode($val));
-        return self::$output->withCode(200)->withData(['qrcode' => base64_encode($result)]);
+        return $this->output->withCode(200)->withData(['qrcode' => base64_encode($result)]);
     }
 
     /**
@@ -100,18 +100,18 @@ class Wxxcx extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getOpenid(OutputInterface $output): OutputInterface
+    public function getOpenid(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret']) || empty($data['code'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $str = Http::curlGet('https://api.weixin.qq.com/sns/jscode2session?appid=' . $data['appid'] . '&secret=' . $data['appsecret'] . '&js_code=' . $data['code'] . '&grant_type=authorization_code');
         $obj = json_decode($str, true);
         if (!empty($obj['openid'])) {
-            return self::$output->withCode(200)->withData($obj);
+            return $this->output->withCode(200)->withData($obj);
         }
-        return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+        return $this->output->withCode(21000, $obj['errmsg']);
     }
 
     /**
@@ -123,24 +123,24 @@ class Wxxcx extends ModelAbstract
      * @param $output->getData()[code] string 登录时获取的code
      * @return array
      */
-    public static function decryptData(OutputInterface $output): OutputInterface
+    public function decryptData(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['code']) || empty($data['iv']) || empty($data['encrypteddata'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
-        $res = self::getOpenid($output);
+        $res = $this->getOpenid($output);
         if ($res->getCode() != 200) {
             return $res;
         }
         $data['sessionkey'] = $res->getData()['session_key'];
         if (strlen($data['sessionkey']) != 24) {
-            return self::$output->withCode(22000);
+            return $this->output->withCode(22000);
         }
         $aesKey = base64_decode($data['sessionkey']);
 
         if (strlen($data['iv']) != 24) {
-            return self::$output->withCode(22001);
+            return $this->output->withCode(22001);
         }
         $aesIV = base64_decode($data['iv']);
 
@@ -150,12 +150,12 @@ class Wxxcx extends ModelAbstract
 
         $dataObj = !empty($result) ? json_decode($result, true) : null;
         if ($dataObj == NULL) {
-            return self::$output->withCode(22002);
+            return $this->output->withCode(22002);
         }
         if ($dataObj['watermark']['appid'] != $data['appid']) {
-            return self::$output->withCode(22002);
+            return $this->output->withCode(22002);
         }
-        return self::$output->withCode(200)->withData($dataObj);
+        return $this->output->withCode(200)->withData($dataObj);
     }
 
 
@@ -166,17 +166,17 @@ class Wxxcx extends ModelAbstract
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public static function sendTemplateMessage(OutputInterface $output): OutputInterface
+    public function sendTemplateMessage(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
-        if (!self::$accessToken) {
-            $res = static::getAccessToken($output);
+        if (!$this->accessToken) {
+            $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
         }
         if (empty($data['touser']) || empty($data['template_id']) || empty($data['data'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $vals = [];
         $vals['touser'] = $data['touser'];
@@ -186,13 +186,13 @@ class Wxxcx extends ModelAbstract
         foreach ($data['data'] as $k => $v) {
             $vals['data'][$k]['value'] = $v;
         }
-        $result = Http::curlPost('https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=' . self::$accessToken, json_encode($vals));
+        $result = Http::curlPost('https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=' . $this->accessToken, json_encode($vals));
         $obj = json_decode($result, true);
         if (!empty($obj['errcode'])) {
             File::log('wx/sendTemplateMessage')->info('发送小程序订阅消息', $obj);
-            return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+            return $this->output->withCode(21000, $obj['errmsg']);
         }
-        return self::$output->withCode(200);
+        return $this->output->withCode(200);
     }
 
     /**
@@ -202,27 +202,27 @@ class Wxxcx extends ModelAbstract
      * @param $output->getData()[code] string 登录时获取的code
      * @return OutputInterface[phoneNumber用户绑定的手机号,purePhoneNumber没有区号的手机号,countryCode区号]
      */
-    public static function getuserphonenumber(OutputInterface $output): OutputInterface
+    public function getuserphonenumber(OutputInterface $output): OutputInterface
     {
-        if (!self::$accessToken) {
-            $res = static::getAccessToken($output);
+        if (!$this->accessToken) {
+            $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
         }
         $data = $output->getData();
         if (empty($data['code'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $val = [];
         $val['code'] = $data['code'];
-        $url = 'https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=' . self::$accessToken;
+        $url = 'https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=' . $this->accessToken;
         $result = Http::curlPost($url, json_encode($val));
         $obj = json_decode($result, true);
         if (!empty($obj['errcode'])) {
             File::log('wx/getuserphonenumber')->info('获取手机号码', $obj);
-            return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+            return $this->output->withCode(21000, $obj['errmsg']);
         }
-        return self::$output->withCode(200)->withData($obj['phone_info']);
+        return $this->output->withCode(200)->withData($obj['phone_info']);
     }
 }

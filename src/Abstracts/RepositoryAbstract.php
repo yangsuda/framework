@@ -7,13 +7,18 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
-use App\Core\Forms;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Respect\Validation\Exceptions\ValidationException;
+use Slim\App;
+use SlimCMS\Core\Forms;
 use SlimCMS\Error\TextException;
 use SlimCMS\Interfaces\OutputInterface;
 
-abstract class TableAbstract extends ServiceAbstract
+abstract class RepositoryAbstract extends BaseAbstract
 {
+    use \SlimCMS\Traits\table;
+
     protected $where = [];
     protected $by = '';
     protected $order = '';
@@ -31,10 +36,16 @@ abstract class TableAbstract extends ServiceAbstract
     private $tableName = '';
     private $formId = 0;
 
+    public function __construct(App $app, ServerRequestInterface $request = null)
+    {
+        parent::__construct($app, $request);
+        $this->initialize();
+    }
+
     protected function initialize()
     {
-        $this->tableName = preg_replace('/service$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
-        $this->formId = (int)self::t('forms')->withWhere(['table' => $this->tableName])->fetch('id');
+        $this->tableName = preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
+        $this->formId = (int)$this->t('forms')->withWhere(['table' => $this->tableName])->fetch('id');
         if (empty($this->formId)) {
             throw new TextException(21039);
         }
@@ -50,21 +61,22 @@ abstract class TableAbstract extends ServiceAbstract
     protected function getData(array $param, array $valiIgnore = []): array
     {
         $data = [];
-        $list = self::t('forms_fields')
+        $list = $this->t('forms_fields')
             ->withWhere(['formid' => $this->formId, 'available' => 1])
             ->fetchList('identifier,datatype,rules');
         foreach ($list as $v) {
-            if (empty($valiIgnore) || aval($valiIgnore, $v['identifier']) !== true) {
+            $identifier = $v['identifier'];
+            if (empty($valiIgnore) || aval($valiIgnore, $identifier) !== true) {
                 //有效性校验
-                $class = '\App\Model\vali\\' . ucfirst($this->tableName) . 'Vali';
-                if (!empty($class) && method_exists($class, $v['identifier']) && is_callable([$class, $v['identifier']])) {
-                    $callback = $class . '::' . $v['identifier'];
+                $class = '\app\Model\vali\\' . ucfirst($this->tableName) . 'Vali';
+                if (!empty($class) && method_exists($class, $identifier) && ($obj = $this->i($class)) && is_callable([$obj, $identifier])) {
+                    $callback = $obj->$identifier();
                     try {
-                        $callback()->assert($param[$v['identifier']]);
+                        $callback->assert($param[$identifier]);
                     } catch (ValidationException $e) {
                         $messages = $e->getMessages();
                         foreach ($messages as $message) {
-                            throw new TextException(21000, ['msg' => $message]);
+                            throw new TextException(21000, $message);
                         }
                     }
                 }
@@ -92,6 +104,11 @@ abstract class TableAbstract extends ServiceAbstract
         return $data;
     }
 
+    protected function forms(): Forms
+    {
+        return $this->i(Forms::class);
+    }
+
     /**
      * 添加
      * @param array $param
@@ -101,9 +118,9 @@ abstract class TableAbstract extends ServiceAbstract
     {
         $data = $this->getData($param, $valiIgnore);
         if (empty($data)) {
-            return self::$output->withCode(21020);
+            return $this->output->withCode(21020);
         }
-        return Forms::dataSave($this->formId, [], $data);
+        return $this->forms()->dataSave($this->formId, [], $data);
     }
 
     /**
@@ -115,13 +132,13 @@ abstract class TableAbstract extends ServiceAbstract
     public function edit(int $id, array $param, array $options = [], array $valiIgnore = []): OutputInterface
     {
         if (empty($id) || empty($param)) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $data = $this->getData($param, $valiIgnore);
         if (empty($data)) {
-            return self::$output->withCode(21020);
+            return $this->output->withCode(21020);
         }
-        $res = Forms::dataView($this->formId, $id);
+        $res = $this->forms()->dataView($this->formId, $id);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -130,7 +147,7 @@ abstract class TableAbstract extends ServiceAbstract
         if ($res->getCode() != 200) {
             return $res;
         }
-        return Forms::dataSave($this->formId, $val, $data);
+        return $this->forms()->dataSave($this->formId, $val, $data);
     }
 
     /**
@@ -142,7 +159,7 @@ abstract class TableAbstract extends ServiceAbstract
      */
     protected function editPreHandle($val, $param, $options): OutputInterface
     {
-        return self::$output->withCode(200);
+        return $this->output->withCode(200);
     }
 
     /**
@@ -154,32 +171,35 @@ abstract class TableAbstract extends ServiceAbstract
     public function delete(int $id): OutputInterface
     {
         if (empty($id)) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
-        return Forms::dataDel($this->formId, [$id]);
+        return $this->forms()->dataDel($this->formId, [$id]);
     }
 
     /**
      * 详细
      * @param int $id 信息ID
      * @param string $fields 读取字段，多个字段用,隔开
-     * @param string $respExtraRowFields 自定义返回值对应的key，多个key用,隔开
      * @param array $param 其它自定义参数
      * @return OutputInterface
      * @throws \SlimCMS\Error\TextException
      */
-    public function detail(int $id, string $fields, string $respExtraRowFields = '', array $param = []): OutputInterface
+    public function detail(int $id, string $fields, array $param = []): OutputInterface
     {
         if (empty($id) || empty($fields)) {
-            return self::$output->withCode(21002);
+            return $this->output->withCode(21002);
         }
-        $res = Forms::dataView($this->formId, $id, $fields);
+        $res = $this->forms()->dataView($this->formId, $id, $fields);
         if ($res->getCode() != 200) {
             return $res;
         }
         $data = (array)$res->getData()['row'];
-        $this->listRowHandle($data);
-        return self::$output->withCode(200)->withData($data);
+        if (!empty($this->respExtraRowFields)) {
+            $data = [$data];
+            $this->listRowHandle([$data]);
+            $data = $data[0];
+        }
+        return $this->output->withCode(200)->withData($data);
     }
 
     /**
@@ -192,10 +212,9 @@ abstract class TableAbstract extends ServiceAbstract
     public function withWhere(array $param, bool $append = true, array $valiIgnore = []): self
     {
         $clone = clone $this;
-        $class = '\App\Model\req\\' . ucfirst($this->tableName) . 'Req';
-        if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
-            $callback = $class . '::instance';
-            $req = $callback()->getReq();
+        $class = '\app\Model\req\\' . ucfirst($this->tableName) . 'Req';
+        if (!empty($class) && class_exists($class)) {
+            $req = $this->i($class)->getReq();
             if ($append === false) {
                 $clone->where = [];
             }
@@ -375,9 +394,9 @@ abstract class TableAbstract extends ServiceAbstract
      * @param string $fields 字段
      * @param int $page 页码
      * @param int $pagesize 每页数量
-     * @return OutputInterface
+     * @return array
      */
-    public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): OutputInterface
+    public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
     {
         $params = [
             'fid' => $this->formId,
@@ -395,9 +414,9 @@ abstract class TableAbstract extends ServiceAbstract
             'groupby' => $this->groupBy,
         ];
         $params['where'] = $this->where;
-        $res = Forms::dataList($params);
+        $res = $this->forms()->dataList($params);
         if ($res->getCode() != 200) {
-            return $res;
+            throw new TextException($res->getCode(), $res->getMsg());
         }
         $data = $res->getData();
         if (!empty($this->respExtraRowFields)) {
@@ -411,9 +430,13 @@ abstract class TableAbstract extends ServiceAbstract
             'pagesize' => $pagesize
         ];
         if (!empty($this->respExtraFields)) {
-            $this->listHandle($val);
+            $this->listHandle($data);
+            $fields = explode(',', $this->respExtraFields);
+            foreach ($fields as $v) {
+                isset($data[$v]) && $val[$v] = $data[$v];
+            }
         }
-        return self::$output->withCode(200)->withData($val);
+        return $val;
     }
 
     /**
@@ -423,10 +446,9 @@ abstract class TableAbstract extends ServiceAbstract
      */
     protected function listHandle(&$data)
     {
-        $class = '\App\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
-        if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
-            $callback = $class . '::instance';
-            return $callback()->getRespExtraData($data, $this);
+        $class = '\app\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
+        if (!empty($class) && class_exists($class)) {
+            return $this->i($class)->getRespExtraData($data, $this);
         }
         return [];
     }
@@ -438,10 +460,9 @@ abstract class TableAbstract extends ServiceAbstract
      */
     protected function listRowHandle(&$data)
     {
-        $class = '\App\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
-        if (!empty($class) && method_exists($class, 'instance') && is_callable([$class, 'instance'])) {
-            $callback = $class . '::instance';
-            $callback()->getRespExtraRowData($data, $this);
+        $class = '\app\Model\resp\\' . ucfirst($this->tableName) . 'Resp';
+        if (!empty($class) && class_exists($class)) {
+            $this->i($class)->getRespExtraRowData($data, $this);
         }
     }
 
@@ -450,7 +471,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->delete();
+        return $this->t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->delete();
     }
 
     /**
@@ -464,7 +485,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where) || empty($value)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->update($value);
+        return $this->t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->update($value);
     }
 
     /**
@@ -479,7 +500,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($id) || empty($value)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)->withWhere($id)->update($value);
+        return $this->t($this->tableName)->withWhere($id)->update($value);
     }
 
     /**
@@ -491,7 +512,7 @@ abstract class TableAbstract extends ServiceAbstract
      */
     public function count(string $fields = 'id', int $cacheTime = 0): int
     {
-        return self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->count($this->transFields($fields), $cacheTime);
+        return $this->t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->count($this->transFields($fields), $cacheTime);
     }
 
     /**
@@ -505,7 +526,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        return (float)self::t($this->tableName)
+        return (float)$this->t($this->tableName)
             ->withWhere($this->where)
             ->withJoin($this->joins)
             ->sum($this->transFields($field));
@@ -516,7 +537,7 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field) || empty($func)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)
+        return $this->t($this->tableName)
             ->withWhere($this->where)
             ->withJoin($this->joins)
             ->fetchColumn($this->transFields($field), $func);
@@ -528,15 +549,21 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($this->where) || (empty($field) && empty($this->joinFields))) {
             throw new TextException(21010);
         }
-        $field = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
-        $row = self::t($this->tableName)->withWhere($this->where)->withJoin($this->joins)->fetch($field, $cacheTime);
+        $fields = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
+        $row = $this->t($this->tableName)
+            ->withWhere($this->where)
+            ->withJoin($this->joins)
+            ->withOrderby($this->order, $this->by)
+            ->fetch($fields, $cacheTime);
         if (!empty($row)) {
-            if(!is_array($row)){
-                return $row;
+            if (!is_array($row)) {
+                $row = [$field => $row];
             }
-            $row = [$row];
-            $this->listRowHandle($row);
-            $row = $row[0];
+            if (!empty($this->respExtraRowFields)) {
+                $row = [$row];
+                $this->listRowHandle($row);
+                $row = $row[0];
+            }
         }
         return $row;
     }
@@ -547,7 +574,7 @@ abstract class TableAbstract extends ServiceAbstract
             throw new TextException(21010);
         }
         $field = $this->joinFields ? $this->transFields($field) . ',' . $this->joinFields : $this->transFields($field);
-        $list = self::t($this->tableName)
+        $list = $this->t($this->tableName)
             ->withWhere($this->where)
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
@@ -565,12 +592,16 @@ abstract class TableAbstract extends ServiceAbstract
         if (empty($field)) {
             throw new TextException(21010);
         }
-        return self::t($this->tableName)
+        $data = $this->t($this->tableName)
             ->withWhere($this->where)
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
             ->pageList($page, $this->transFields($fields), $pagesize, $cacheTime, $indexField);
+        if (!empty($this->respExtraRowFields)) {
+            $this->listRowHandle($data['list']);
+        }
+        return $data;
     }
 
     /**
@@ -582,7 +613,7 @@ abstract class TableAbstract extends ServiceAbstract
      */
     public function validCheck(array $data, int $id = 0): array
     {
-        return Forms::validCheck($this->formId, $data, $id);
+        return $this->forms()->validCheck($this->formId, $data, $id);
     }
 
     /**
@@ -604,5 +635,26 @@ abstract class TableAbstract extends ServiceAbstract
             }
         }
         return implode(',', $arr);
+    }
+
+    public function insert(array $data): int
+    {
+        return $this->t($this->tableName)->insert($data);
+    }
+
+    /**
+     * 获取某字段对应的某字段的map
+     * @param string $columnField
+     * @param string $indexField
+     * @return array
+     * @throws TextException
+     */
+    public function map(string $columnField, string $indexField): array
+    {
+        if (empty($columnField) || empty($indexField)) {
+            throw new TextException(21010);
+        }
+        $list = $this->fetchList($columnField . ',' . $indexField);
+        return $list ? array_column($list, $columnField, $indexField) : [];
     }
 }

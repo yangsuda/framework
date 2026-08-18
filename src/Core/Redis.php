@@ -12,12 +12,12 @@ use SlimCMS\Error\TextException;
 
 class Redis
 {
-    public static $redis;
+    public $redis;
     protected $setting;
 
     public function __construct(ContainerInterface $container)
     {
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             $this->setting = $container->get('settings');
             $config = &$this->setting['redis'];
             if (!empty($config['server'])) {
@@ -34,7 +34,7 @@ class Redis
                         $redis->setOption(\Redis::OPT_SERIALIZER, 0);
                         $dbindex = !empty($config['dbindex']) ? $config['dbindex'] : 1;
                         $redis->select($dbindex);
-                        self::$redis = &$redis;
+                        $this->redis = &$redis;
                     }
                 } catch (RedisException $e) {
                     throw new TextException(21057, $e->getMessage(), 'redis');
@@ -50,10 +50,10 @@ class Redis
      */
     public function selectDB(int $dbindex = 1)
     {
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return $this;
         }
-        self::$redis->select($dbindex);
+        $this->redis->select($dbindex);
         return $this;
     }
 
@@ -63,7 +63,7 @@ class Redis
      */
     public function isAvailable()
     {
-        return !empty(self::$redis);
+        return !empty($this->redis);
     }
 
     protected function cacheKey(&$key)
@@ -77,19 +77,19 @@ class Redis
      */
     public function info()
     {
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->info();
+        return $this->redis->info();
     }
 
     public function get($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $data = self::$redis->get($key);
+        $data = $this->redis->get($key);
         if (is_numeric($data)) {
             return $data;
         }
@@ -99,14 +99,14 @@ class Redis
     public function set($key, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (!empty($data)) {
             if (!is_numeric($data)) {
                 $data = serialize($data);
             }
-            self::$redis->set($key, $data, $ttl);
+            $this->redis->set($key, $data, $ttl);
             return true;
         }
         return $this->del($key);
@@ -121,16 +121,16 @@ class Redis
     public function setnx($key, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (!empty($data)) {
             if (!is_numeric($data)) {
                 $data = serialize($data);
             }
-            $res = self::$redis->setnx($key, $data);
+            $res = $this->redis->setnx($key, $data);
             if ($res && $ttl) {
-                self::$redis->expire($key, $ttl);
+                $this->redis->expire($key, $ttl);
             }
             return $res;
         }
@@ -146,12 +146,12 @@ class Redis
     public function incr($key, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->incr($key);
+        $res = $this->redis->incr($key);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -165,12 +165,12 @@ class Redis
     public function decr($key, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->decr($key);
+        $res = $this->redis->decr($key);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -185,12 +185,12 @@ class Redis
     public function decrby($key, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->decrBy($key, $num);
+        $res = $this->redis->decrBy($key, $num);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -205,12 +205,12 @@ class Redis
     public function incrby($key, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->incrby($key, $num);
+        $res = $this->redis->incrby($key, $num);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -223,10 +223,10 @@ class Redis
     public function exists($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->exists($key);
+        return $this->redis->exists($key);
     }
 
     /**
@@ -238,19 +238,19 @@ class Redis
     public function expire($key, $ttl)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->expire($key, $ttl);
+        return $this->redis->expire($key, $ttl);
     }
 
     public function del($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->del($key);
+        return $this->redis->del($key);
     }
 
     /**
@@ -263,12 +263,12 @@ class Redis
     public function hmset($key, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->hmset($key, $data);
+        $this->redis->hmset($key, $data);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return true;
     }
@@ -282,10 +282,10 @@ class Redis
     public function hmget($key, $hashKeys)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->hMGet($key, $hashKeys);
+        return $this->redis->hMGet($key, $hashKeys);
     }
 
     /**
@@ -299,12 +299,12 @@ class Redis
     public function hset($key, $field, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->hset($key, $field, $data);
+        $this->redis->hset($key, $field, $data);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return true;
     }
@@ -320,12 +320,12 @@ class Redis
     public function hsetnx($key, $field, $data, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->hsetnx($key, $field, $data);
+        $res = $this->redis->hsetnx($key, $field, $data);
         if ($res && $ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -339,10 +339,10 @@ class Redis
     public function hget($key, $field)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->hget($key, $field);
+        return $this->redis->hget($key, $field);
     }
 
     /**
@@ -356,12 +356,12 @@ class Redis
     public function hincrby($key, $field, $num = 1, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->hincrby($key, $field, $num);
+        $res = $this->redis->hincrby($key, $field, $num);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -375,10 +375,10 @@ class Redis
     public function hexists($key, $field)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->hexists($key, $field);
+        return $this->redis->hexists($key, $field);
     }
 
     /**
@@ -389,10 +389,10 @@ class Redis
     public function hlen($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->hlen($key);
+        return $this->redis->hlen($key);
     }
 
     /**
@@ -403,10 +403,10 @@ class Redis
     public function hgetall($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->hgetall($key);
+        return $this->redis->hgetall($key);
     }
 
     /**
@@ -418,14 +418,14 @@ class Redis
     public function hdel($key, $fields)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($fields)) {
             // 使用可变参数传递数组
-            $res = self::$redis->hdel($key, ...array_values($fields));
+            $res = $this->redis->hdel($key, ...array_values($fields));
         } else {
-            $res = self::$redis->hdel($key, $fields);
+            $res = $this->redis->hdel($key, $fields);
         }
         return $res;
     }
@@ -441,12 +441,12 @@ class Redis
     public function zadd($key, $score, $member, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->zadd($key, $score, $member);
+        $this->redis->zadd($key, $score, $member);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return true;
     }
@@ -462,12 +462,12 @@ class Redis
     public function zincrby($key, $value, $member, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->zIncrBy($key, $value, $member);
+        $this->redis->zIncrBy($key, $value, $member);
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return true;
     }
@@ -481,14 +481,14 @@ class Redis
     public function zrem($key, $members)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($members)) {
             // 使用可变参数传递数组
-            $res = self::$redis->zrem($key, ...array_values($members));
+            $res = $this->redis->zrem($key, ...array_values($members));
         } else {
-            $res = self::$redis->zrem($key, $members);
+            $res = $this->redis->zrem($key, $members);
         }
         return $res;
     }
@@ -503,10 +503,10 @@ class Redis
     public function zrangebyscore($key, $start, $end)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zrangebyscore($key, (string)$start, (string)$end);
+        return $this->redis->zrangebyscore($key, (string)$start, (string)$end);
     }
 
     /**
@@ -519,10 +519,10 @@ class Redis
     public function zrevrangebyscore($key, $start, $end)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zrevrangebyscore($key, (string)$start, (string)$end);
+        return $this->redis->zrevrangebyscore($key, (string)$start, (string)$end);
     }
 
     /**
@@ -535,10 +535,10 @@ class Redis
     public function zremrangebyscore($key, $start, $end)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zRemRangeByScore($key, (string)$start, (string)$end);
+        return $this->redis->zRemRangeByScore($key, (string)$start, (string)$end);
     }
 
     /**
@@ -549,10 +549,10 @@ class Redis
     public function zcard($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zCard($key);
+        return $this->redis->zCard($key);
     }
 
     /**
@@ -566,10 +566,10 @@ class Redis
     public function zrange($key, $start, $end, $withscores = null)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zRange($key, $start, $end, $withscores);
+        return $this->redis->zRange($key, $start, $end, $withscores);
     }
 
     /**
@@ -583,10 +583,10 @@ class Redis
     public function zrevrange($key, $start, $end, $withscores = null)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zRevRange($key, $start, $end, $withscores);
+        return $this->redis->zRevRange($key, $start, $end, $withscores);
     }
 
     /**
@@ -598,10 +598,10 @@ class Redis
     public function zrevRank($key, $member)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zRevRank($key, $member);
+        return $this->redis->zRevRank($key, $member);
     }
 
     /**
@@ -613,10 +613,10 @@ class Redis
     public function zrank($key, $member)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zrank($key, $member);
+        return $this->redis->zrank($key, $member);
     }
 
     /**
@@ -628,10 +628,10 @@ class Redis
     public function zscore($key, $member)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zScore($key, $member);
+        return $this->redis->zScore($key, $member);
     }
 
     /**
@@ -644,10 +644,10 @@ class Redis
     public function zcount($key, $start, $end)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->zCount($key, $start, $end);
+        return $this->redis->zCount($key, $start, $end);
     }
 
     /**
@@ -659,16 +659,16 @@ class Redis
     public function zInterStore(string $key, array $members)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         array_walk($members, array($this, "cacheKey"));
         foreach ($members as $v) {
             $this->cacheKey($key);
         }
-        $res = self::$redis->zInterStore($key, $members);
+        $res = $this->redis->zInterStore($key, $members);
         // 获取交集结果
-        return self::$redis->zRange($key, 0, -1, true);
+        return $this->redis->zRange($key, 0, -1, true);
     }
 
     /**
@@ -680,13 +680,13 @@ class Redis
     public function zUnionStore(string $key, array $members)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         array_walk($members, array($this, "cacheKey"));
-        $res = self::$redis->zUnionStore($key, $members);
+        $res = $this->redis->zUnionStore($key, $members);
         // 获取交集结果
-        return self::$redis->zRange($key, 0, -1, true);
+        return $this->redis->zRange($key, 0, -1, true);
     }
 
     /**
@@ -697,10 +697,10 @@ class Redis
     public function ttl($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->ttl($key);
+        return $this->redis->ttl($key);
     }
 
     /**
@@ -713,7 +713,7 @@ class Redis
     public function sadd($key, $member, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($member)) {
@@ -723,14 +723,14 @@ class Redis
                     break;
                 }
                 // 使用可变参数传递数组
-                $res = self::$redis->sadd($key, ...array_values($slice));
+                $res = $this->redis->sadd($key, ...array_values($slice));
             }
             unset($member);
         } else {
-            self::$redis->sadd($key, $member);
+            $this->redis->sadd($key, $member);
         }
         if ($ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return true;
     }
@@ -744,7 +744,7 @@ class Redis
     public function srem($key, $member)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($member)) {
@@ -754,11 +754,11 @@ class Redis
                     break;
                 }
                 // 使用可变参数传递数组
-                $res = self::$redis->srem($key, ...array_values($slice));
+                $res = $this->redis->srem($key, ...array_values($slice));
             }
             unset($member);
         } else {
-            self::$redis->srem($key, $member);
+            $this->redis->srem($key, $member);
         }
         return true;
     }
@@ -782,10 +782,10 @@ class Redis
     public function scard($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->scard($key);
+        return $this->redis->scard($key);
     }
 
     /**
@@ -796,10 +796,10 @@ class Redis
     public function smembers($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->sMembers($key);
+        return $this->redis->sMembers($key);
     }
 
     /**
@@ -811,10 +811,10 @@ class Redis
     public function sismember($key, $val)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->sismember($key, $val);
+        return $this->redis->sismember($key, $val);
     }
 
     /**
@@ -826,17 +826,17 @@ class Redis
     public function lpush($key, $value, $ttl = 5184000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($value)) {
             // 使用可变参数传递数组
-            $res = self::$redis->lpush($key, ...array_values($value));
+            $res = $this->redis->lpush($key, ...array_values($value));
         } else {
-            $res = self::$redis->lpush($key, $value);
+            $res = $this->redis->lpush($key, $value);
         }
         if ($ttl && $res !== false) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -851,10 +851,10 @@ class Redis
     public function lrange($key, $stat = 0, $end = -1)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->lrange($key, $stat, $end);
+        return $this->redis->lrange($key, $stat, $end);
     }
 
     /**
@@ -866,17 +866,17 @@ class Redis
     public function rpush($key, $value, $ttl = 5184000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if (is_array($value)) {
             // 使用可变参数传递数组
-            $res = self::$redis->rpush($key, ...array_values($value));
+            $res = $this->redis->rpush($key, ...array_values($value));
         } else {
-            $res = self::$redis->rpush($key, $value);
+            $res = $this->redis->rpush($key, $value);
         }
         if ($ttl && $res !== false) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -890,10 +890,10 @@ class Redis
     public function lindex($key, $index = 0)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->lindex($key, $index);
+        return $this->redis->lindex($key, $index);
     }
 
     /**
@@ -904,10 +904,10 @@ class Redis
     public function llen($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->llen($key);
+        return $this->redis->llen($key);
     }
 
     /**
@@ -918,10 +918,10 @@ class Redis
     public function lpop($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->lpop($key);
+        return $this->redis->lpop($key);
     }
 
     /**
@@ -934,10 +934,10 @@ class Redis
     public function lrem($key, $value, $count = 0)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->lrem($key, $value, $count);
+        return $this->redis->lrem($key, $value, $count);
     }
 
     /**
@@ -950,10 +950,10 @@ class Redis
     public function ltrim($key, $stat = 0, $end = '-1')
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->ltrim($key, $stat, $end);
+        return $this->redis->ltrim($key, $stat, $end);
     }
 
     /**
@@ -964,10 +964,10 @@ class Redis
     public function keys($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->keys($key);
+        return $this->redis->keys($key);
     }
 
     /**
@@ -978,15 +978,15 @@ class Redis
     public function delKeys($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
         if ($key == '*') {
             return false;
         }
-        $res = self::$redis->keys($key);
+        $res = $this->redis->keys($key);
         foreach ($res as $v) {
-            self::$redis->del($v);
+            $this->redis->del($v);
         }
         return true;
     }
@@ -998,13 +998,13 @@ class Redis
      */
     public function scan($pattern)
     {
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+        $this->redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         $iterator = null;
         $key_array = array();
-        while ($keys = self::$redis->scan($iterator, $pattern)) {
+        while ($keys = $this->redis->scan($iterator, $pattern)) {
             $key_array = array_merge($key_array, $keys);
         }
         return $key_array;
@@ -1018,13 +1018,13 @@ class Redis
     public function hscan($key)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        self::$redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+        $this->redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         $iterator = null;
         $key_array = array();
-        while ($keys = self::$redis->hScan($key, $iterator)) {
+        while ($keys = $this->redis->hScan($key, $iterator)) {
             $key_array += $keys;
         }
         return $key_array;
@@ -1039,10 +1039,10 @@ class Redis
     public function sRandMember($key, $count = null)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->sRandMember($key, $count);
+        return $this->redis->sRandMember($key, $count);
     }
 
     /**
@@ -1051,10 +1051,10 @@ class Redis
      */
     public function flushall()
     {
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->flushall();
+        return $this->redis->flushall();
     }
 
 
@@ -1070,12 +1070,12 @@ class Redis
     public function geoAdd($key, $longitude, $latitude, $member, $ttl = 12960000)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        $res = self::$redis->geoadd($key, $longitude, $latitude, $member);
+        $res = $this->redis->geoadd($key, $longitude, $latitude, $member);
         if ($res && $ttl) {
-            self::$redis->expire($key, $ttl);
+            $this->redis->expire($key, $ttl);
         }
         return $res;
     }
@@ -1091,10 +1091,10 @@ class Redis
     public function geoDist($key, $member1, $member2, $unit)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->geodist($key, $member1, $member2, $unit);
+        return $this->redis->geodist($key, $member1, $member2, $unit);
     }
 
     /**
@@ -1106,10 +1106,10 @@ class Redis
     public function geoPos($key, $member)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->geopos($key, $member);
+        return $this->redis->geopos($key, $member);
     }
 
     /**
@@ -1136,10 +1136,10 @@ class Redis
     public function geoRadius($key, $longitude, $latitude, $radius, $unit, $options)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->georadius($key, $longitude, $latitude, $radius, $unit, $options);
+        return $this->redis->georadius($key, $longitude, $latitude, $radius, $unit, $options);
     }
 
     /**
@@ -1164,10 +1164,10 @@ class Redis
     public function geoRadiusByMember($key, $member, $radius, $units, $options)
     {
         $this->cacheKey($key);
-        if (empty(self::$redis)) {
+        if (empty($this->redis)) {
             return null;
         }
-        return self::$redis->georadiusbymember($key, $member, $radius, $units, $options);
+        return $this->redis->georadiusbymember($key, $member, $radius, $units, $options);
     }
 
     /**

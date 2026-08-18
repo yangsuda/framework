@@ -5,39 +5,10 @@
 
 namespace SlimCMS\Helper;
 
+use SlimCMS\Core\Session;
+
 class Str
 {
-    /**
-     * 解析伪静态或加密q参数
-     * @param $q
-     */
-    public static function QAnalysis($q)
-    {
-        $data = [];
-        if (!empty($q)) {
-            if (strpos($q, '-')) {
-                $str = urldecode(urldecode($q));
-                $gets = explode('_', $str);
-                foreach ($gets as $v) {
-                    $keyval = explode('-', $v);
-                    if (!empty($keyval[1]) || $keyval[1] == '0') {
-                        $key = str_replace(['&#045;', '&#095;', '&#47;'], ['-', '_', '/'], $keyval[0]);
-                        $val = str_replace(['&#045;', '&#095;', '&#47;'], ['-', '_', '/'], $keyval[1]);
-                        $data[$key] = $val;
-                    }
-                }
-            } else {
-                $q = Crypt::decrypt((string)$q);
-                if ($q) {
-                    foreach ($q as $k => $v) {
-                        $data[$k] = $v;
-                    }
-                }
-            }
-        }
-        return $data;
-    }
-
     /**
      * 将缓存KEY中含有的时间戳后3位改成000，否则缓存会一直生成，失去缓存意义
      */
@@ -476,5 +447,17 @@ class Str
             $v1['img'] = copyImage($v1['img'], $width, $height);
         }
         return $data;
+    }
+
+    /**
+     * 获取表单检验KEY
+     * @return bool|string
+     */
+    public static function formHash(Session $session): string
+    {
+        $timestamp = substr((string)TIMESTAMP, 0, -1) . '0' . session_id();
+        $formHash = substr(md5($timestamp), 8, 8);
+        $session->set('formHash', $formHash);
+        return $formHash;
     }
 }

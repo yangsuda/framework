@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Abstracts\BaseAbstract;
 
-class Page extends ModelAbstract
+class Page extends BaseAbstract
 {
     /**
      * 生成分页链接
@@ -23,7 +23,7 @@ class Page extends ModelAbstract
      * @param type $shownum
      * @return type
      */
-    public static function multi($num, $perpage, $curpage, $mpurl = '', $maxpages = 0, $page = 5, $autogoto = false, $shownum = false)
+    public function multi($num, $perpage, $curpage, $mpurl = '', $maxpages = 0, $page = 5, $autogoto = false, $shownum = false)
     {
         $mpurl = (string)$mpurl;
         $a_name = '';
@@ -62,17 +62,17 @@ class Page extends ModelAbstract
                     $to = $pages;
                 }
             };
-            $multipage = ($curpage - $offset > 1 && $pages > $page ? '<li class="paginate_button page-item previous"><a href="' . self::url($mpurl . 'page=1') . $a_name . '" class="page-link">首页</a></li>' : '') .
-                ($curpage > 1 ? '<li class="paginate_button page-item previous"><a href="' . self::url($mpurl . 'page=' . ($curpage - 1)) . $a_name . '" page="' . ($curpage - 1) . '" class="page-link">上一页</a></li>' : '') .
-                ($curpage - $offset > 1 && $pages > $page ? '<li class="paginate_button page-item previous"><a href="' . self::url($mpurl . 'page=1') . $a_name . '" class="page-link">1 ...</a></li>' : '');
+            $multipage = ($curpage - $offset > 1 && $pages > $page ? '<li class="paginate_button page-item previous"><a href="' . $this->url($mpurl . 'page=1') . $a_name . '" class="page-link">首页</a></li>' : '') .
+                ($curpage > 1 ? '<li class="paginate_button page-item previous"><a href="' . $this->url($mpurl . 'page=' . ($curpage - 1)) . $a_name . '" page="' . ($curpage - 1) . '" class="page-link">上一页</a></li>' : '') .
+                ($curpage - $offset > 1 && $pages > $page ? '<li class="paginate_button page-item previous"><a href="' . $this->url($mpurl . 'page=1') . $a_name . '" class="page-link">1 ...</a></li>' : '');
 
             for ($i = $from; $i <= $to; $i++) {
                 $multipage .= $i == $curpage ? '<li class="paginate_button page-item active"><a href="#" class="page-link">' . $i . '</a></li>' :
-                    '<li class="paginate_button page-item"><a href="' . self::url($mpurl . 'page=' . $i) . $a_name . '" page="' . $i . '" class="page-link">' . $i . '</a></li>';
+                    '<li class="paginate_button page-item"><a href="' . $this->url($mpurl . 'page=' . $i) . $a_name . '" page="' . $i . '" class="page-link">' . $i . '</a></li>';
             }
-            $multipage .= ($to < $pages ? '<li class="paginate_button page-item"><a href="' . self::url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">... ' . $realpages . '</a></li>' : '') .
-                ($curpage < $pages ? '<li class="paginate_button page-item next"><a href="' . self::url($mpurl . 'page=' . ($curpage + 1)) . $a_name . '" page="' . ($curpage + 1) . '" class="page-link">下一页</a></li><li class="paginate_button page-item next"><a href="' . self::url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">末页</a></li>' : '') .
-                ($autogoto && $pages > $page && $curpage>4 ? ' <li class="paginate_button page-item previous"><input style="border-radius:0rem;" placeholder="快速跳转" type="text" name="custompage" size="7" class="form-control fa-1x p-1" id="custompage" onkeydown="if(event.keyCode==13) {var page=this.value;window.location=\'' . self::url($mpurl . 'page=\'+page+\'') . '\';}" /></li>' : '');
+            $multipage .= ($to < $pages ? '<li class="paginate_button page-item"><a href="' . $this->url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">... ' . $realpages . '</a></li>' : '') .
+                ($curpage < $pages ? '<li class="paginate_button page-item next"><a href="' . $this->url($mpurl . 'page=' . ($curpage + 1)) . $a_name . '" page="' . ($curpage + 1) . '" class="page-link">下一页</a></li><li class="paginate_button page-item next"><a href="' . $this->url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">末页</a></li>' : '') .
+                ($autogoto && $pages > $page && $curpage>4 ? ' <li class="paginate_button page-item previous"><input style="border-radius:0rem;" placeholder="快速跳转" type="text" name="custompage" size="7" class="form-control fa-1x p-1" id="custompage" onkeydown="if(event.keyCode==13) {var page=this.value;window.location=\'' . $this->url($mpurl . 'page=\'+page+\'') . '\';}" /></li>' : '');
 
             $multipage .= ($shownum ? '<li class="paginate_button page-item previous disabled"><a  class="page-link">共' . $pages . '页 | 共' . $num . '条</a></li>': '');
             if($shownum){
@@ -103,7 +103,7 @@ $(function() {
      * @param type $mpurl 链接地址
      * @return string
      */
-    public static function simplepage($num, $perpage, $curpage, $mpurl, $shownum = false)
+    public function simplepage($num, $perpage, $curpage, $mpurl, $shownum = false)
     {
         $a_name = '';
         $mpurl = (string)$mpurl;
@@ -114,8 +114,8 @@ $(function() {
         }
         $return = '';
         $stat = $num > 0 ? '<li class="paginate_button page-item previous disabled"><a  class="page-link">' . $curpage . '页 / 共' . ceil($num / $perpage) . '页</a></li> ' : '';
-        $next = $num > $perpage * $curpage ? '<li class="paginate_button page-item next" title="下一页"><a class="page-link" href="' . self::url($mpurl . '&page=' . ($curpage + 1)) . $a_name . '">下一页</a></li>' : '<li class="paginate_button page-item next disabled"><a class="page-link">下一页</a></li>';
-        $prev = $curpage > 1 ? '<li class="paginate_button page-item previous" title="上一页"><a class="page-link" href="' . self::url($mpurl . '&page=' . ($curpage - 1)) . $a_name . '"><span>上一页</a></li>' : '<li class="paginate_button page-item previous disabled"><a class="page-link">上一页</a></li>';
+        $next = $num > $perpage * $curpage ? '<li class="paginate_button page-item next" title="下一页"><a class="page-link" href="' . $this->url($mpurl . '&page=' . ($curpage + 1)) . $a_name . '">下一页</a></li>' : '<li class="paginate_button page-item next disabled"><a class="page-link">下一页</a></li>';
+        $prev = $curpage > 1 ? '<li class="paginate_button page-item previous" title="上一页"><a class="page-link" href="' . $this->url($mpurl . '&page=' . ($curpage - 1)) . $a_name . '"><span>上一页</a></li>' : '<li class="paginate_button page-item previous disabled"><a class="page-link">上一页</a></li>';
         if ($next || $prev) {
             $return = '<ul class="pagination">' . $prev . $next . ($shownum ? $stat : '') . '</ul>';
         }

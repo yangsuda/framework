@@ -43,7 +43,7 @@ class Output implements OutputInterface
      * 容器
      * @var \DI\Container|mixed
      */
-    private $container;
+    public $container;
 
     private $attribute = [];
 
@@ -75,15 +75,12 @@ class Output implements OutputInterface
      * @param array $para
      * @return mixed|string
      */
-    protected function promptMsg($code, $para = []): string
+    protected function promptMsg($code, $para = ''): string
     {
         $prompt = $this->prompts();
         $str = aval($prompt, $code);
         if ($para) {
-            if (is_array($para)) {
-                extract($para);
-                eval("\$str = \"$str\";");
-            } elseif (is_numeric($para)) {
+            if (is_numeric($para)) {
                 $str = $this->promptMsg($para);
             } elseif (is_string($para)) {
                 $str = $para;

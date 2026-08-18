@@ -41,7 +41,7 @@ class Request extends BaseAbstract
         if (isset($post[$k])) {
             return $this->wordsFilter($post[$k], $k);
         }
-        $get = $request->getQueryParams();
+        $get = $this->request->getQueryParams();
         if (isset($get[$k])) {
             return $this->wordsFilter($get[$k], $k);
         }

@@ -7,28 +7,24 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
-abstract class RespAbstract extends ServiceAbstract
+use SlimCMS\Error\TextException;
+
+abstract class RespAbstract extends BaseAbstract
 {
-
-    protected $relations = [];
-
     /**
      * 返回每行的额外数据
-     * @param array $data
+     * @param array $list
      * @param string $respExtraRowFields
      * @return void
      */
-    public function getRespExtraRowData(array &$data, TableAbstract $table): void
+    public function getRespExtraRowData(array &$list, RepositoryAbstract $table): void
     {
         $fields = $table->getRespExtraRowFields() ? explode(',', $table->getRespExtraRowFields()) : [];
-        $clone = clone $this;
-        $clone->getRelation($data, $table);
         if ($fields) {
-            foreach ($data as &$v) {
-                foreach ($fields as $field) {
-                    if (is_callable([$this, $field])) {
-                        $clone->$field($v, $table);
-                    }
+            $clone = clone $this;
+            foreach ($fields as $field) {
+                if (is_callable([$this, $field])) {
+                    $clone->$field($list, $table);
                 }
             }
         }
@@ -40,11 +36,12 @@ abstract class RespAbstract extends ServiceAbstract
      * @param string $respExtraFields
      * @return void
      */
-    public function getRespExtraData(array &$data, TableAbstract $table): void
+    public function getRespExtraData(array &$data, RepositoryAbstract $table): void
     {
         $fields = $table->getRespExtraFields() ? explode(',', $table->getRespExtraFields()) : [];
         $clone = clone $this;
         foreach ($fields as $v) {
+            $func = $field . 'Extra';
             if (is_callable([$this, $v])) {
                 $clone->$v($data, $table);
             }
@@ -52,19 +49,15 @@ abstract class RespAbstract extends ServiceAbstract
     }
 
     /**
-     * 关联查询
-     * @param array $data
-     * @param string $respExtraRowFields
-     * @return void
+     * @template T of RepositoryAbstract
+     * @param class-string<T> $className
+     * @return T|null
      */
-    public function getRelation(array &$data, TableAbstract $table): void
+    public function r(string $className): ?RepositoryAbstract
     {
-        $fields = $table->getRespExtraRowFields() ? explode(',', $table->getRespExtraRowFields()) : [];
-        foreach ($fields as $field) {
-            $func = $field . 'Relation';
-            if (is_callable([$this, $func])) {
-                $this->relations[$field] = $this->$func($data, $table);
-            }
+        if (!class_exists($className)) {
+            throw new TextException(503, "Repository class not found");
         }
+        return $this->i($className);
     }
 }

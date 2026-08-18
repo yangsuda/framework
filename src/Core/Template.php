@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use App\Core\ErrorCode;
 use SlimCMS\Error\TextException;
 use SlimCMS\Interfaces\TemplateInterface;
 
@@ -27,10 +26,10 @@ class Template implements TemplateInterface
             $template = static::getPHPTemplate(@fread($fp, filesize($filename)));
             fclose($fp);
         } else {
-            throw new TextException(21052, ['title' => $tplfile]);
+            throw new TextException(21052, '模板:'.$tplfile.'，不存在');
         }
         if (!@$fp = fopen(CSDATA . $cachefile, 'w')) {
-            throw new TextException(21053, ['title' => $cachefile]);
+            throw new TextException(21053,'模板缓存文件：'.$cachefile.'，打开失败');
         }
         $template = static::formatTemplate($template);
 
@@ -47,9 +46,7 @@ class Template implements TemplateInterface
         $template = preg_replace("/([\n\r]+)\t+/s", "\\1", $template);
         $template = preg_replace("/\<\!\-\-\{(.+?)\}\-\-\>/s", "{\\1}", $template);
         $template = preg_replace_callback("/[\n\r\t]*\{eval\s+(.+?)\s*\}[\n\r\t]*/is", [get_called_class(), 'evalTag'], $template);
-        $template = preg_replace_callback("/[\n\r\t]*\{list\s+(.+?)\s*\}[\n\r\t]*/is", [get_called_class(), 'listTag'], $template);
         $template = preg_replace("/\{\/list\}/i", "<?php }} ?>", $template);
-        $template = preg_replace_callback("/[\n\r\t]*\{data\s+(.+?)\s*\}[\n\r\t]*/is", [get_called_class(), 'dataTag'], $template);
         $template = preg_replace("/\{(\\\$[a-zA-Z0-9_\-\>\[\]\'\"\$\.\x7f-\xff]+)\}/s", "<?=\\1?>", $template);
         $template = preg_replace_callback("/$var_regexp/s", [get_called_class(), 'addquote'], $template);
         $template = preg_replace_callback("/\<\?\=\<\?\=$var_regexp\?\>\?\>/s", [get_called_class(), 'addquote'], $template);
@@ -150,33 +147,6 @@ class Template implements TemplateInterface
         return implode("\n", $files);
     }
 
-    protected static function dataTag($matches)
-    {
-        $tagcode = $matches[1];
-        $row = [];
-        $tags = explode(' ', $tagcode);
-        foreach ($tags as $v) {
-            if ($v) {
-                $v = preg_replace('/["\']/', '', $v);
-                list($key, $val) = explode('=', $v);
-                if (strpos($val, '$') !== false) {
-                    $val = preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val));
-                    $val = str_replace("\\\"", "\"", $val);
-                    $row[trim($key)] = '\'.(isset(' . $val . ')?' . $val . ':\'\').\'';
-                } else {
-                    $row[trim($key)] = trim($val);
-                }
-            }
-        }
-        $data = json_encode($row);
-        $func = aval($row, 'func', 'dataCount');
-        $key = aval($row, 'key', 'count');
-        $i = count(static::$replacecode['search']);
-        static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        static::$replacecode['replace'][$i] = "<?php \$_tagData = \App\Model\main\TagsModel::$func('$data'); echo aval(\$_tagData,'$key');?>";
-        return $search;
-    }
-
     protected static function echoTag($matches)
     {
         $expr = '<?php echo ' . $matches[1] . '??\'\'; ?>';
@@ -235,37 +205,6 @@ class Template implements TemplateInterface
         return $expr . $statement;
     }
 
-    protected static function listTag($matches)
-    {
-        $tagcode = $matches[1];
-        $row = [];
-        $tags = explode(' ', $tagcode);
-        foreach ($tags as $v) {
-            if ($v) {
-                $v = preg_replace('/["\']/', '', $v);
-                list($key, $val) = explode('=', $v);
-                if (strpos($val, '$') !== false) {
-                    $val = preg_replace("/\[([\w\-\.]+)\]/s", "['\\1']", trim($val));
-                    $val = str_replace("\\\"", "\"", $val);
-                    $row[trim($key)] = '\'.(isset(' . $val . ')?' . $val . ':\'\').\'';
-                } else {
-                    $row[trim($key)] = trim($val);
-                }
-            }
-        }
-        $indexk = aval($row, 'index-key', 'k');
-        $indexv = aval($row, 'index-value', 'v');
-
-        $data = json_encode($row);
-        $func = aval($row, 'func', 'dataList');
-        $listkey = aval($row, 'listKey', 'list');
-        $i = count(static::$replacecode['search']);
-        static::$replacecode['search'][$i] = $search = "<!--" . __FUNCTION__ . "_$i-->";
-        static::$replacecode['replace'][$i] = "<?php \$_tagList = \App\Model\main\TagsModel::$func('$data'); " .
-            "if(!empty(\$_tagList['$listkey'])){foreach(\$_tagList['$listkey'] as \${$indexk}=>\${$indexv}){?>";
-        return $search;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -300,7 +239,7 @@ class Template implements TemplateInterface
         }
 
         if (!is_file(CSROOT . $tplfile)) {
-            throw new TextException(21052, ['title' => $tplfile]);
+            throw new TextException(21052, '模板:'.$tplfile.'，不存在');
         }
         if (static::$cacheFile) {
             static::checktplrefresh($tplfile, static::$cacheFile);

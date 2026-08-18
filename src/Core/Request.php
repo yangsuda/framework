@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use Respect\Validation\Exceptions\ValidationException;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
-use SlimCMS\Abstracts\MessageAbstract;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\UploadInterface;
 
-class Request extends MessageAbstract
+class Request extends BaseAbstract
 {
     /**
      * 获取外部传参
@@ -41,8 +41,9 @@ class Request extends MessageAbstract
         if (isset($post[$k])) {
             return $this->wordsFilter($post[$k], $k);
         }
-        if (isset($_GET[$k])) {
-            return $this->wordsFilter($_GET[$k], $k);
+        $get = $request->getQueryParams();
+        if (isset($get[$k])) {
+            return $this->wordsFilter($get[$k], $k);
         }
         return NULL;
     }
@@ -60,7 +61,7 @@ class Request extends MessageAbstract
             }
         } else {
             $word = trim((string)$word);
-            foreach (explode('|', $this->cfg['notallowstr']) as $key => $val) {
+            foreach (explode('|', $this->config['notallowstr']) as $key => $val) {
                 if (empty($val)) {
                     continue;
                 }
@@ -71,7 +72,7 @@ class Request extends MessageAbstract
                     }
                 }
             }
-            foreach (explode('|', $this->cfg['replacestr']) as $key => $val) {
+            foreach (explode('|', $this->config['replacestr']) as $key => $val) {
                 if (empty($val)) {
                     continue;
                 }
@@ -98,7 +99,7 @@ class Request extends MessageAbstract
                     $v->assert($val);
                 } catch (ValidationException $e) {
                     !empty($e->getParams()['template']) && $e->updateTemplate($e->getParams()['template']);
-                    throw new TextException(21000, ['msg' => $e->getMessage()]);
+                    throw new TextException(21000, $e->getMessage());
                 }
                 isset($val) && $data[$k] = $val;
                 continue;
@@ -107,10 +108,10 @@ class Request extends MessageAbstract
                 list($v, $title) = explode('*', $v);
                 if (empty($val)) {
                     $msg = $title ? $title . '必填' : '必填参数不能为空(' . $k . ')';
-                    throw new TextException(21000, ['msg' => $msg]);
+                    throw new TextException(21000, $msg);
                 }
             }
-            if (!isset($val) && empty($_FILES[$k]['tmp_name'])) {
+            if (!isset($val) && empty($this->request->getUploadedFiles()[$k])) {
                 continue;
             }
             switch ($v) {
@@ -166,18 +167,23 @@ class Request extends MessageAbstract
                     $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
                     break;
                 case 'json':
-                    $val && $val= json_decode($val, true);
+                    $val && $val = json_decode($val, true);
                     $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars', (array)$val) : $val;
                     break;
                 case 'media':
                 case 'addon':
-                    $upload = $this->container->get(UploadInterface::class);
-                    $uploadData = is_string($val) ? $val : ['files' => $_FILES[$k], 'type' => $v];
-                    $res = $upload->upload($uploadData);
+                    $upload = $this->i(UploadInterface::class);
+                    $res = is_string($val) ? $upload->h5($val) : $upload->upload($this->request->getUploadedFiles()[$k], $v);
                     if ($res->getCode() != 200 && $res->getCode() != 23001) {
                         throw new TextException($res->getCode());
                     }
-                    $data[$k] = $res->getData()['fileurl'] ?: '';
+                    $fileurl = $res->getData()['fileurl'] ?? '';
+                    if ($fileurl && !empty($this->config['waterMark'])) {
+                        //加水印或缩小图片
+                        $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl);
+                        $this->i(Image::class)->waterImg(CSPUBLIC . $fileurl);
+                    }
+                    $data[$k] = $fileurl;
                     break;
                 default:
                     if (preg_match('/^int/i', $v)) {
@@ -195,17 +201,20 @@ class Request extends MessageAbstract
                         if (strpos($v, ',')) {
                             list(, $width, $height) = explode(',', $v);
                         }
-                        $upload = $this->container->get(UploadInterface::class);
+                        $upload = $this->i(UploadInterface::class);
                         if (is_string($val)) {
                             $res = $upload->h5($val);
                         } else {
-                            $uploadData = ['files' => $_FILES[$k], 'width' => $width, 'height' => $height];
-                            $res = $upload->upload($uploadData);
+                            $res = $upload->upload($this->request->getUploadedFiles()[$k], 'image');
                         }
                         if ($res->getCode() != 200 && $res->getCode() != 23001) {
                             throw new TextException($res->getCode());
                         }
-                        $data[$k] = aval($res->getData(), 'fileurl') ?: '';
+                        $fileurl = aval($res->getData(), 'fileurl') ?: '';
+                        if ($fileurl && $width) {
+                            $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl, $width, $height);
+                        }
+                        $data[$k] = $fileurl;
                     } elseif (preg_match('/^isset/i', $v) && isset($_GET[$k])) {
                         $data[$k] = Str::htmlspecialchars($val);
                         if (strpos($v, ',')) {

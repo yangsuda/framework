@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace SlimCMS\Interfaces;
 
+use Slim\Psr7\UploadedFile;
+
 interface UploadInterface
 {
     /**
@@ -18,17 +20,20 @@ interface UploadInterface
 
     /**
      * 上传附件
-     * @param $post
+     * @param UploadedFile $post
+     * @param string $type
+     * @param string|null $dir
      * @return OutputInterface
      */
-    public function upload($post): OutputInterface;
+    public function upload(UploadedFile $post, string $type = 'image', string $dir = null): OutputInterface;
 
     /**
      * webupload上传
-     * @param array $post
+     * @param UploadedFile $file
+     * @param array $option
      * @return OutputInterface
      */
-    public function webupload(array $post): OutputInterface;
+    public function webupload(UploadedFile $file, array $option = []): OutputInterface;
 
     /**
      * 获取webupload上传的图片
@@ -62,13 +67,13 @@ interface UploadInterface
 
     /**
      * 超大文件上传(将大文件切成小文件上传后拼接成大文件)
-     * @param array $file 附件
+     * @param UploadedFile $file 附件
      * @param int $index 分片上传索引ID
      * @param string $filename 自定义文件名称
      * @return OutputInterface
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public function superFileUpload(array $file, int $index, string $filename, string $diyDir = ''): OutputInterface;
+    public function superFileUpload(UploadedFile $file, int $index, string $filename, string $diyDir = ''): OutputInterface;
 
 }

@@ -10,21 +10,28 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Slim\App;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\FileCache;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\DatabaseInterface;
-use App\Core\Redis;
-use App\Core\Forms;
 
-class Table
+class Table extends BaseAbstract
 {
-
     /**
      * 表名
      * @var string
      */
     protected $tableName = '';
+
+    /**
+     * 分表名
+     * @var string
+     */
+    protected $extendName = '';
 
     /**
      * 数据库连接实例
@@ -37,13 +44,6 @@ class Table
      * @var int
      */
     protected $fetchTTL = 952000;
-
-    /**
-     * redis实例
-     * @var \Redis|null
-     *
-     */
-    protected $redis;
 
     /**
      * 查询条件
@@ -76,12 +76,6 @@ class Table
     private $tablepre = '';
 
     /**
-     * 系统参数
-     * @var array|\DI\T|mixed
-     */
-    private $settings = [];
-
-    /**
      * 排序
      * @var string
      */
@@ -89,24 +83,11 @@ class Table
 
     protected $groupby = '';
 
-    protected static $container;
-
-    /**
-     * 请求对象实例
-     * @var Request
-     */
-    protected static $request;
-
-    public function __construct(Request $request, string $tableName, string $extendName = null)
+    public function __construct(App $app, ServerRequestInterface $request = null)
     {
-        self::$request = $request;
-        self::$container = self::$request->getContainer();
-
-        $this->settings = self::$container->get('settings');
-        $this->db = self::$container->get(DatabaseInterface::class);
-        $this->tablepre = $this->settings['db']['tablepre'];
-        $this->tableName = $this->tablepre . $tableName . ($extendName ?: '');
-        $this->redis = self::$container->get(Redis::class);
+        parent::__construct($app, $request);
+        $this->db = $this->container->get(DatabaseInterface::class);
+        $this->tablepre = $this->setting['db']['tablepre'];
     }
 
     /**
@@ -118,59 +99,60 @@ class Table
         return $this->db;
     }
 
-    protected static function t(string $name = '', string $extendName = null): Table
+    /**
+     * 设置表名
+     * @param string $tableName
+     * @param string|null $extendName
+     * @return $this
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
+    public function setTableName(string $tableName, string $extendName = null): self
     {
-        return Forms::t($name, $extendName);
+        $this->tableName = $this->tablepre . $tableName;
+        $this->extendName = $extendName;
+        $extendName && $this->subtable($extendName);
+        return $this;
+    }
+
+    public function getTableName(): string
+    {
+        return $this->tableName . $this->extendName;
     }
 
     /**
      * 分表操作（在调用父构造函数之前调用）
-     * @param string $tableName 原表名
      * @param string $index 表名后缀
      * @return bool
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    protected function subtable(string $tableName, string $index): bool
+    private function subtable(string $index): bool
     {
-        $tableName = preg_replace('/[^a-zA-Z0-9_]/', '', $tableName);
+        $tableName = $this->tableName;
         $index = preg_replace('/[^a-zA-Z0-9_]/', '', $index);
         $subTableName = $tableName . $index;
         $cachekey = __FUNCTION__ . '_' . $subTableName;
         $data = FileCache::get($cachekey);
         if (empty($data)) {
-            $db = self::t()->db();
-            $settings = self::$container->get('settings');
-            $tablepre = $settings['db']['tablepre'];
-            if ($db->fetch("SHOW TABLES LIKE '" . $tablepre . $subTableName . "'")) {
+            if ($this->db->fetch("SHOW TABLES LIKE '" . $subTableName . "'")) {
                 return false;
             }
             //防止新生成的表单自增ID不连续
-            if ($db->fetch("SHOW TABLES LIKE '" . $tablepre . $tableName . ($index - 1) . "'")) {
-                $sql = "show create table " . $tablepre . $tableName . ($index - 1);
-                $search = $tablepre . $tableName . ($index - 1);
+            if ($this->db->fetch("SHOW TABLES LIKE '" . $tableName . ($index - 1) . "'")) {
+                $sql = "show create table " . $tableName . ($index - 1);
+                $search = $tableName . ($index - 1);
             } else {
-                $sql = "show create table " . $tablepre . $tableName;
-                $search = $tablepre . $tableName;
+                $sql = "show create table " . $tableName;
+                $search = $tableName;
             }
-            $row = $db->fetch($sql);
-            $sql = str_replace($search, $tablepre . $subTableName, $row['Create Table']);
-            $query = $db->query($sql);
-            $db->affectedRows($query);
+            $row = $this->db->fetch($sql);
+            $sql = str_replace($search, $subTableName, $row['Create Table']);
+            $query = $this->db->query($sql);
+            $this->db->affectedRows($query);
             FileCache::set($cachekey, 1, 864000000);
         }
         return true;
-    }
-
-    /**
-     * 获取外部传入数据
-     * @param $name
-     * @param string $type
-     * @return array|mixed|\都不存在时的默认值|null
-     */
-    protected static function input($name, string $type = 'string')
-    {
-        return self::$request->input($name, $type);
     }
 
     /**
@@ -180,7 +162,7 @@ class Table
      */
     protected function selectSQL(string $fields): string
     {
-        $sql = 'SELECT ' . $fields . ' FROM ' . $this->tableName . ' main ' .
+        $sql = 'SELECT ' . $fields . ' FROM ' . $this->getTableName() . ' main ' .
             $this->join . $this->where . $this->groupby . $this->orderby . $this->limit;
         return $sql;
     }
@@ -208,12 +190,6 @@ class Table
         }
         return (int)$count;
     }
-
-    private function cacheKey($key): string
-    {
-        return $this->tableName . ':' . $key . ':';
-    }
-
 
     /**
      * 清除fetch缓存
@@ -252,7 +228,7 @@ class Table
             $cachekey = $this->cacheKey($indexid);
             $data = $this->redis->get($cachekey);
             if (empty($data)) {
-                $data = $this->db->fetch('SELECT * FROM ' . $this->tableName . ' main WHERE id=' . $indexid);
+                $data = $this->db->fetch('SELECT * FROM ' . $this->getTableName() . ' main WHERE id=' . $indexid);
                 $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
             }
         } else {
@@ -474,7 +450,7 @@ class Table
             if (!$this->where) {
                 return 0;
             }
-            $sql = 'UPDATE ' . $this->tableName . ' main SET ' . $this->implodeSave($data) . $this->where;
+            $sql = 'UPDATE ' . $this->getTableName() . ' main SET ' . $this->implodeSave($data) . $this->where;
             $query = $this->db->query($sql);
             return $this->db->affectedRows($query);
         }
@@ -497,7 +473,7 @@ class Table
         if (!$this->where) {
             return 0;
         }
-        $query = $this->db->query('DELETE main FROM ' . $this->tableName. ' main ' . $this->where);
+        $query = $this->db->query('DELETE main FROM ' . $this->getTableName() . ' main ' . $this->where);
         return $this->db->affectedRows($query);
     }
 
@@ -512,7 +488,7 @@ class Table
     {
         $sql = $this->implodeSave($data);
         $cmd = $replace ? 'REPLACE INTO ' : 'INSERT INTO ';
-        $query = $this->db->query($cmd . $this->tableName . ' set ' . $sql);
+        $query = $this->db->query($cmd . $this->getTableName() . ' set ' . $sql);
         if ($returnID) {
             return (int)$this->db->insertId();
         }
@@ -720,107 +696,6 @@ class Table
     }
 
     /**
-     * 某表的表单结构
-     * @return array
-     */
-    public function fetchAllField(): array
-    {
-        return $this->db->fetchList('SHOW FIELDS FROM ' . $this->tableName, 'Field');
-    }
-
-    /**
-     * 用于编辑添加模型时创建相应字段
-     * @param array $data
-     * @return int
-     */
-    public function fieldUpdate(array $data): int
-    {
-        $identifier = $data['identifier'];
-        $datatype = $data['datatype'];
-        $fields = $this->fetchAllField();
-        $length = !empty($data['fieldlength']) ? str_replace('.', ',', (string)$data['fieldlength']) : '';
-        if (!empty($fields[$identifier])) {
-            $sql = 'ALTER TABLE  `' . $this->tableName . '` MODIFY COLUMN `' . $identifier . '` ';
-        } else {
-            $sql = 'ALTER TABLE  `' . $this->tableName . '` ADD `' . $identifier . '` ';
-        }
-        if (in_array($datatype, ['multitext', 'multidate', 'htmltext', 'imgs', 'serialize', 'addons'])) {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'TEXT';
-            $sql .= $fieldtype . ' NOT NULL ';
-        } elseif ($datatype == 'int' || $datatype == 'datetime' || $datatype == 'date' || $datatype == 'stepselect') {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'bigint';
-            $length = $length ?: '11';
-            $default = !empty($data['default']) ? $data['default'] : 0;
-            $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL DEFAULT  \'' . $default . '\' ';
-        } elseif ($datatype == 'float') {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'double';
-            $length = $length ?: '15,4';
-            $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ';
-        } elseif ($datatype == 'price') {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'decimal';
-            $length = $length ?: '15,2';
-            $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ';
-        } elseif ($datatype == 'hidden') {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'VARCHAR';
-            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext'])) {
-                $sql .= $fieldtype . ' NOT NULL ';
-            } else {
-                $length = $length ?: '250';
-                $default = !empty($data['default']) ? ' DEFAULT  \'' . $data['default'] . '\' ' : '';
-                $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL ' . $default;
-            }
-        } else {
-            $fieldtype = !empty($data['fieldtype']) ? $data['fieldtype'] : 'VARCHAR';
-            if (in_array($fieldtype, ['text', 'mediumtext', 'longtext', 'year', 'date', 'datetime', 'timestamp', 'geometry',
-                'polygon', 'point', 'linestring', 'multipoint', 'multilinestring', 'multipolygon', 'geometrycollection', 'set', 'enum'])) {
-                $sql .= $fieldtype . ' NOT NULL ';
-            } else {
-                $length = $length ?: '250';
-                $default = !empty($data['default']) ? $data['default'] : (strpos($fieldtype, 'int') !== false ? '0' : '');
-                $sql .= $fieldtype . '( ' . $length . ' ) NOT NULL DEFAULT  \'' . $default . '\' ';
-            }
-        }
-
-        //生成字段注释
-        $comment = $data['title'];
-        if (!empty($data['rules'])) {
-            $arr = [];
-            foreach (unserialize($data['rules']) as $k1 => $v1) {
-                $arr[] = $k1 . '=' . $v1;
-            }
-            $comment .= '(' . implode(',', $arr) . ')';
-        }
-        $comment = mb_substr($comment, 0, 255, 'utf-8');
-        $query = $this->db->query($sql . ' COMMENT \'' . $comment . '\'');
-
-        //非多行文本才能创建索引
-        if (!in_array($datatype, ['multitext', 'htmltext', 'imgs', 'serialize'])) {
-            if (empty($fields[$identifier]['Key']) && aval($data, 'search') == 1) {
-                $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` ADD INDEX (`' . $identifier . '`)');
-            }
-            if (!empty($fields[$identifier]['Key']) && aval($data, 'search') == 2) {
-                $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` DROP INDEX `' . $identifier . '`');
-            }
-        }
-        return $this->db->affectedRows($query);
-    }
-
-    /**
-     * 删除字段
-     * @param string $identifier
-     * @return int
-     */
-    public function fieldDelete(string $identifier): int
-    {
-        $fields = $this->fetchAllField();
-        if (!empty($fields[$identifier])) {
-            $query = $this->db->query('ALTER TABLE  `' . $this->tableName . '` DROP `' . $identifier . '`');
-            return $this->db->affectedRows($query);
-        }
-        return 0;
-    }
-
-    /**
      * 某字段数量统计
      * @param string $field
      * @return string
@@ -889,19 +764,5 @@ class Table
         $condition[] = $this->where;
         $condition[] = $this->join;
         return Str::md5key($condition);
-    }
-
-    /**
-     * 在input方法获取数据前更新获取的数据
-     * @param array $data 要更新的数据
-     */
-    protected function mergeRequestData(array $data)
-    {
-        if (!empty($data)) {
-            $parse = self::$request->getRequest()->getParsedBody();
-            $parse = !empty($parse) ? array_merge($parse, $data) : $data;
-            $request = self::$request->getRequest()->withParsedBody($parse);
-            self::$request->withRequest($request);
-        }
     }
 }

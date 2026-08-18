@@ -18,17 +18,17 @@ use SlimCMS\Interfaces\DatabaseInterface;
 class Database implements DatabaseInterface
 {
     protected $setting;
-    public static $link;
+    public $link;
 
     public function __construct(ContainerInterface $container)
     {
         $this->setting = $container->get('settings');
-        self::$link = $this->connect();
-        $error = self::$link->errorInfo();
+        $this->link = $this->connect();
+        $error = $this->link->errorInfo();
         if (in_array($error[1], [2006, 2013])) {
-            self::$link = $this->connect();
+            $this->link = $this->connect();
         }
-        self::$link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        $this->link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
     }
 
     /**
@@ -36,7 +36,7 @@ class Database implements DatabaseInterface
      */
     public function connect()
     {
-        if (empty(self::$link)) {
+        if (empty($this->link)) {
             try {
                 $db = &$this->setting['db'];
                 $options = aval($db, 'pconnect') ? [\PDO::ATTR_PERSISTENT => true] : [];
@@ -56,7 +56,7 @@ class Database implements DatabaseInterface
      */
     public function getLink(): PDO
     {
-        return self::$link;
+        return $this->link;
     }
 
     /**
@@ -64,7 +64,7 @@ class Database implements DatabaseInterface
      */
     public function insertId()
     {
-        return self::$link->lastInsertId();
+        return $this->link->lastInsertId();
     }
 
     /**
@@ -73,9 +73,9 @@ class Database implements DatabaseInterface
     public function query($sql): PDOStatement
     {
         $this->checkQuery($sql);
-        $query = self::$link->query($sql);
+        $query = $this->link->query($sql);
         if (!$query) {
-            $error = self::$link->errorInfo();
+            $error = $this->link->errorInfo();
             $msg = $error[0] . " " . $error[2] . " " . $error[1] . " " . $sql;
             throw new TextException(21055, $msg, 'pdo');
         }
@@ -206,7 +206,7 @@ class Database implements DatabaseInterface
             if (is_array($querysafe['dfunction'])) {
                 foreach ($querysafe['dfunction'] as $fun) {
                     if (strpos($clean, $fun . '(') !== false) {
-                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$fun], 'pdo');
+                        throw new TextException(21000, '不安全的SQL请求：'.$fun, 'pdo');
                     }
                 }
             }
@@ -214,19 +214,19 @@ class Database implements DatabaseInterface
             if (is_array($querysafe['daction'])) {
                 foreach ($querysafe['daction'] as $action) {
                     if (strpos($clean, $action) !== false) {
-                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$action], 'pdo');
+                        throw new TextException(21000, '不安全的SQL请求：'.$action, 'pdo');
                     }
                 }
             }
 
             if ($querysafe['dlikehex'] && strpos($clean, 'like0x')) {
-                throw new TextException(21000, ['msg'=>'不安全的SQL请求：like0x'], 'pdo');
+                throw new TextException(21000, '不安全的SQL请求：like0x', 'pdo');
             }
 
             if (is_array($querysafe['dnote'])) {
                 foreach ($querysafe['dnote'] as $note) {
                     if (strpos($clean, $note) !== false) {
-                        throw new TextException(21000, ['msg'=>'不安全的SQL请求：'.$note], 'pdo');
+                        throw new TextException(21000, '不安全的SQL请求：'.$note, 'pdo');
                     }
                 }
             }

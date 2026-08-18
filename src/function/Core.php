@@ -8,7 +8,7 @@ use SlimCMS\Interfaces\UploadInterface;
  * @param $val 元素
  * @param $default 都不存在时的默认值
  */
-function aval($arr, $val, $default = null)
+function aval(array $arr, string|int $val, $default = null)
 {
     $arr = empty($arr) ? array() : (array)$arr;
     if (($pos = strpos((string)$val, '/')) !== false) {
@@ -93,17 +93,4 @@ function copyImage($pic, $width = 1000, $height = 1000, $more = [])
 {
     global $app;
     return $app->getContainer()->get(UploadInterface::class)->copyImage($pic, $width, $height, $more);
-}
-
-/**
- * 富文本编辑器
- * @param $identifier
- * @param string $default
- * @param array $config
- * @return string
- */
-function ueditor($identifier, $default = '', $config = ['identity' => 'small'])
-{
-    $data = \SlimCMS\Core\Ueditor::ueditor($identifier, $default, $config)->getData();
-    return $data['ueditor'];
 }

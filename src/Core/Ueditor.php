@@ -7,24 +7,24 @@
 
 namespace SlimCMS\Core;
 
-use App\Core\Upload;
-use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\UploadInterface;
 
-class Ueditor extends ModelAbstract
+class Ueditor extends BaseAbstract
 {
+    use \SlimCMS\Traits\table;
 
-    private static $uconfig = [];
+    private $uconfig = [];
 
-    public static function config(): OutputInterface
+    public function config(): OutputInterface
     {
-        if (!self::$uconfig) {
+        if (!$this->uconfig) {
             $data = file_get_contents(CSPUBLIC . 'ueditor/config.json');
             $data = preg_replace("/\/\*[\s\S]+?\*\//", "", $data);
-            self::$uconfig = json_decode($data, true);
+            $this->uconfig = json_decode($data, true);
         }
-        return self::$output->withCode(200)->withData(self::$uconfig);
+        return $this->output->withCode(200)->withData($this->uconfig);
     }
 
     /**
@@ -34,54 +34,54 @@ class Ueditor extends ModelAbstract
      * @param bool $water
      * @return OutputInterface
      */
-    public static function upload(string $fieldName, string $type = 'image', bool $water = false): OutputInterface
+    public function upload(string $fieldName, string $type = 'image', bool $water = false): OutputInterface
     {
-        $uconfig = self::config()->getData();
+        $uconfig = $this->config()->getData();
         if ($fieldName == 'scrawlFieldName') {
             $uploadData = 'data:image/jpeg;base64,' . $_POST[$uconfig[$fieldName]];
         } else {
-            if(empty($_FILES[$uconfig[$fieldName]])){
-                return self::$output->withCode(23001);
-            }
-            $uploadData = ['files' => $_FILES[$uconfig[$fieldName]], 'width' => self::$config['imgWidth'], 'height' => self::$config['imgHeight'], 'water' => $water, 'type' => $type];
+            $file = $this->request->getUploadedFiles();
+            $uploadData = $file[$uconfig[$fieldName]] ?? null;
         }
-        $upload = self::$container->get(UploadInterface::class);
-        if (is_string($uploadData)) {
-            $res = $upload->h5($uploadData);
-        } else {
-            $res = $upload->upload($uploadData);
-        }
+        $upload = $this->container->get(UploadInterface::class);
+        $res = is_string($uploadData) ? $upload->h5($uploadData) : $upload->upload($uploadData, $type);
         $result = [];
         if ($res->getCode() != 200 && $res->getCode() != 23001) {
             $result['state'] = $res->getMsg();
         } else {
             $data = $res->getData();
-            if(!empty($data)){
+            if (!empty($data)) {
+                $this->i(Image::class)->imageResize(CSPUBLIC . $data['fileurl']);
+                //加水印或缩小图片
+                if ($water === true) {
+                    $this->i(Image::class)->waterImg(CSPUBLIC . $data['fileurl']);
+                }
+
                 $result['state'] = 'SUCCESS';
-                $result['url'] = trim(self::$config['attachmentHost'], '/') . $data['fileurl'];
+                $result['url'] = trim($this->config['attachmentHost'], '/') . $data['fileurl'];
                 $result['title'] = basename($data['fileurl']);
                 $result['original'] = '';
                 $result['type'] = pathinfo($data['fileurl'], PATHINFO_EXTENSION);
                 $info = $upload->metaInfo($data['fileurl'])->getData();
-                $result['size'] = aval($info,'size');
+                $result['size'] = aval($info, 'size');
             }
         }
-        return self::$output->withCode(200)->withData($result);
+        return $this->output->withCode(200)->withData($result);
     }
 
     /**
      * 列出图片/文件
      */
-    public static function listData(int $size = 20, int $start = 0): OutputInterface
+    public function listData(int $size = 20, int $start = 0): OutputInterface
     {
-        $uconfig = self::config()->getData();
+        $uconfig = $this->config()->getData();
         $listSize = $uconfig['fileManagerListSize'];
         /* 获取参数 */
         $size = $size ?: $listSize;
         $end = $start + $size;
 
         /* 获取文件列表 */
-        $files = self::getFiles();
+        $files = $this->getFiles();
         if (!count($files)) {
             return ["state" => "no match file", "list" => [], "start" => $start, "total" => count($files)];
         }
@@ -97,24 +97,24 @@ class Ueditor extends ModelAbstract
         //}
 
         $data = ["state" => "SUCCESS", "list" => $list, "start" => $start, "total" => count($files)];
-        return self::$output->withCode(200)->withData($data);
+        return $this->output->withCode(200)->withData($data);
     }
 
     /**
      * 遍历获取目录下的指定类型的文件
      */
-    protected static function getFiles(): array
+    protected function getFiles(): array
     {
         $where = [];
         $where['isfirst'] = 1;
-        $list = self::t('uploads')->withWhere($where)->withLimit(1000)->fetchList('url,mediatype');
+        $list = $this->t('uploads')->withWhere($where)->withLimit(1000)->fetchList('url,mediatype');
         $files = [];
         foreach ($list as $v) {
             $url = ltrim($v['url'], '/');
             if (!is_file(CSPUBLIC . $url)) {
                 continue;
             }
-            $v['url'] = self::$config['basehost'] . $url;
+            $v['url'] = $this->config['basehost'] . $url;
             $files[] = ['url' => $v['url'], 'mtime' => filemtime(CSPUBLIC . $url)];
         }
         return $files;
@@ -126,7 +126,7 @@ class Ueditor extends ModelAbstract
      * @param string $fieldname 字段名称
      * @param array $config 配置参数
      */
-    public static function ueditor(string $fieldname = 'content', string $content = '', array $config = []): OutputInterface
+    public function ueditor(string $fieldname = 'content', string $content = '', array $config = []): string
     {
         static $has_load = false;
         $ue = [];
@@ -165,19 +165,19 @@ class Ueditor extends ModelAbstract
             $ue[] = $k . ':\'' . $v . '\'';
         }
         if (empty($config['serverUrl'])) {
-            $ue[] = 'serverUrl:"' . self::$config['basehost'] . '/admin/ueditor"';
+            $ue[] = 'serverUrl:"' . $this->config['basehost'] . '/admin/ueditor"';
         }
-        $ue[] = 'csrf_token:"'.\App\Core\Csrf::getToken().'"';
+        $ue[] = 'csrf_token:"' . $this->request->getAttribute('csrfToken') . '"';
         $ue[] = 'pageBreakTag:"#p#副标题#e#"';
         $data = [];
         $data['fieldname'] = $fieldname;
         $data['content'] = $content;
         $data['has_load'] = $has_load;
         $data['ue'] = implode(',', $ue);
-        $result = self::$output->withData($data)->withTemplate('block/fieldshtml/ueditor')->analysisTemplate(true);
+        $result = $this->output->withData($data)->withTemplate('block/fieldshtml/ueditor')->analysisTemplate(true);
         if (empty($has_load)) {
             $has_load = true;
         }
-        return self::$output->withCode(200)->withData(['ueditor' => $result]);
+        return $result;
     }
 }

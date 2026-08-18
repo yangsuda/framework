@@ -13,10 +13,6 @@ namespace SlimCMS\Error;
 use Slim\Error\AbstractErrorRenderer;
 use Throwable;
 
-use function get_class;
-use function sprintf;
-use function str_replace;
-
 /**
  * Default Slim application XML Error Renderer
  */

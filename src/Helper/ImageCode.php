@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace SlimCMS\Helper;
 
+use SlimCMS\Core\Session;
+
 class ImageCode
 {
     private static $charset = "123456789";   //随机因子
@@ -19,18 +21,18 @@ class ImageCode
     private static $lineNum = 10;//线条数量
     private static $snowNum = 20;//雪花数量
     private static $snows = ['*', '¤', '※', '☆', '§', '^', '$', '#'];//雪花各类
+
     /**
      * 创建随机码
      * @return mixed
      */
-    private static function createCode()
+    private static function createCode(Session $session)
     {
         $_leng = strlen(self::$charset) - 1;
         for ($i = 1; $i <= self::$codelen; $i++) {
             self::$code .= self::$charset[mt_rand(0, $_leng)];
         }
-        isset($_SESSION) ? '' : session_start();
-        $_SESSION['VerifyCode'] = strtolower(self::$code);
+        $session->set('VerifyCode', strtolower(self::$code));
         return self::$code;
     }
 
@@ -101,7 +103,7 @@ class ImageCode
      * 对外输出
      * @return void
      */
-    public static function doimg(array $param = [])
+    public static function doimg(Session $session, array $param = [])
     {
         !empty($param['charset']) && self::$charset = $param['charset'];//随机因子
         !empty($param['codelen']) && self::$codelen = $param['codelen'];    //验证码显示几个文字
@@ -115,7 +117,7 @@ class ImageCode
         //加载背景
         self::createBg();
         //加载文件
-        self::createCode();
+        self::createCode($session);
         //加载线条
         self::createLine();
         //加载字体
@@ -129,24 +131,10 @@ class ImageCode
      * @param $code
      * @return bool
      */
-    public static function checkCode($code)
+    public static function checkCode(Session $session, $code)
     {
-        isset($_SESSION) ? '' : session_start();
-        if ($code && aval($_SESSION,'VerifyCode') == strtolower($code)) {
-            self::clearCode();
-            return true;
-        }
-        self::clearCode();
-        return false;
-    }
-
-    /**
-     * 清除验证码
-     * @return void
-     */
-    private static function clearCode()
-    {
-        isset($_SESSION) ? '' : session_start();
-        unset($_SESSION['VerifyCode']);
+        $rs = $code && $session->get('VerifyCode') == strtolower($code);
+        $session->delete('VerifyCode');
+        return $rs;
     }
 }

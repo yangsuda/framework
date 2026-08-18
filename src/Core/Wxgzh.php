@@ -9,39 +9,39 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Http;
 use SlimCMS\Interfaces\OutputInterface;
 
-class Wxgzh extends ModelAbstract
+class Wxgzh extends BaseAbstract
 {
-    protected static $accessToken = '';
+    protected $accessToken = '';
 
     /**
      * 获取access_token
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getAccessToken(OutputInterface $output): OutputInterface
+    public function getAccessToken(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $url = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' . $data['appid'] . '&secret=' . $data['appsecret'];
-        if (self::$redis->isAvailable()) {
-            $cachekey = self::cacheKey(__FUNCTION__, $data['appid']);
-            self::$accessToken = self::$redis->get($cachekey);
-            if (!self::$accessToken) {
+        if ($this->redis->isAvailable()) {
+            $cachekey = $this->cacheKey(__FUNCTION__, $data['appid']);
+            $this->accessToken = $this->redis->get($cachekey);
+            if (!$this->accessToken) {
                 $str = Http::curlGet($url);
                 $obj = json_decode($str, true);
                 if (!empty($obj['access_token'])) {
-                    self::$accessToken = $obj['access_token'];
-                    self::$redis->set($cachekey, self::$accessToken, 7000);
+                    $this->accessToken = $obj['access_token'];
+                    $this->redis->set($cachekey, $this->accessToken, 7000);
                 } else {
-                    return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+                    return $this->output->withCode(21000, $obj['errmsg']);
                 }
             }
         } else {
@@ -50,19 +50,19 @@ class Wxgzh extends ModelAbstract
             $cacheFile = $dir . 'gzh_' . $data['appid'] . '.txt';
             $filemtime = is_file($cacheFile) ? filemtime($cacheFile) : 0;
             if (TIMESTAMP - $filemtime < 7000) {
-                self::$accessToken = file_get_contents($cacheFile);
+                $this->accessToken = file_get_contents($cacheFile);
             } else {
                 $str = Http::curlGet($url);
                 $obj = json_decode($str, true);
                 if (!empty($obj['access_token'])) {
                     file_put_contents($cacheFile, $obj['access_token']);
-                    self::$accessToken = $obj['access_token'];
+                    $this->accessToken = $obj['access_token'];
                 } else {
-                    return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+                    return $this->output->withCode(21000, $obj['errmsg']);
                 }
             }
         }
-        return self::$output->withCode(200)->withData(['accessToken' => self::$accessToken]);
+        return $this->output->withCode(200)->withData(['accessToken' => $this->accessToken]);
     }
 
 
@@ -71,17 +71,17 @@ class Wxgzh extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getCode(OutputInterface $output): OutputInterface
+    public function getCode(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $scope = aval($data, 'scope') == 'base' ? 'base' : 'userinfo';
         $referer = "https://open.weixin.qq.com/connect/oauth2/authorize?appid=" . $data['appid'] .
             "&redirect_uri=" . urlencode(aval($data, 'redirect')) . "&response_type=code&scope=snsapi_" . $scope .
             "&state=#wechat_redirect";
-        return self::$output->withReferer($referer);
+        return $this->output->withReferer($referer);
     }
 
     /**
@@ -89,11 +89,11 @@ class Wxgzh extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function getUserInfo(OutputInterface $output): OutputInterface
+    public function getUserInfo(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret']) || empty($data['code'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $wxinfo = Http::curlGet("https://api.weixin.qq.com/sns/oauth2/access_token?appid=" . $data['appid'] .
             "&secret=" . $data['appsecret'] . "&code=" . $data['code'] . "&grant_type=authorization_code");
@@ -103,9 +103,9 @@ class Wxgzh extends ModelAbstract
                 . $wxinfo['access_token'] . "&openid=" . $wxinfo['openid'] . "&lang=zh_CN"), true);
         }
         if (!empty($wxinfo['errcode'])) {
-            return self::$output->withCode(21000, ['msg' => $wxinfo['errmsg']]);
+            return $this->output->withCode(21000, $wxinfo['errmsg']);
         }
-        return self::$output->withCode(200)->withData(['wxuser' => $wxinfo]);
+        return $this->output->withCode(200)->withData(['wxuser' => $wxinfo]);
     }
 
     /**
@@ -113,17 +113,17 @@ class Wxgzh extends ModelAbstract
      * @param OutputInterface $output
      * @return OutputInterface
      */
-    public static function sendTemplateMessage(OutputInterface $output): OutputInterface
+    public function sendTemplateMessage(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
-        if (!self::$accessToken) {
-            $res = self::getAccessToken($output);
+        if (!$this->accessToken) {
+            $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
                 return $res;
             }
         }
         if (empty($data['touser']) || empty($data['template_id'])|| empty($data['data'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
         $val = [];
         $val['touser'] = $data['touser'];
@@ -132,13 +132,13 @@ class Wxgzh extends ModelAbstract
         isset($data['url']) && $val['url'] = $data['url'];
         !empty($data['miniprogram']) && $val['miniprogram'] = $data['miniprogram'];
 
-        $url = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=' . self::$accessToken;
+        $url = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=' . $this->accessToken;
         $result = Http::curlPost($url, json_encode($val));
         $obj = json_decode($result, true);
         if (!empty($obj['errcode'])) {
-            return self::$output->withCode(21000, ['msg' => $obj['errmsg']]);
+            return $this->output->withCode(21000, $obj['errmsg']);
         }
-        return self::$output->withCode(200);
+        return $this->output->withCode(200);
     }
 
     /**
@@ -146,15 +146,15 @@ class Wxgzh extends ModelAbstract
      * @param $url
      * @return array
      */
-    public static function wxJsapiConfig(OutputInterface $output): OutputInterface
+    public function wxJsapiConfig(OutputInterface $output): OutputInterface
     {
         $data = $output->getData();
         if (empty($data['appid']) || empty($data['appsecret']) || empty($data['url'])) {
-            return self::$output->withCode(21003);
+            return $this->output->withCode(21003);
         }
-        $ticket = self::jsapiTicket($output);
+        $ticket = $this->jsapiTicket($output);
         if (empty($ticket)) {
-            return self::$output->withCode(23003);
+            return $this->output->withCode(23003);
         }
         $val = [];
         $val['appid'] = $data['appid'];
@@ -164,7 +164,7 @@ class Wxgzh extends ModelAbstract
         $val['url'] = $data['url'];
         $val['signature'] = sha1('jsapi_ticket=' . $ticket . '&noncestr=' . $val['noncestr'] .
             '&timestamp=' . $val['timestamp'] . '&url=' . $val['url']);
-        return self::$output->withCode(200)->withData($val);
+        return $this->output->withCode(200)->withData($val);
     }
 
     /**
@@ -173,28 +173,28 @@ class Wxgzh extends ModelAbstract
      * @return bool|false|string
      * @throws TextException
      */
-    protected static function jsapiTicket(OutputInterface $output)
+    protected function jsapiTicket(OutputInterface $output)
     {
         $data = $output->getData();
-        if (!self::$accessToken) {
-            $res = self::getAccessToken($output);
+        if (!$this->accessToken) {
+            $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
                 throw new TextException($res->getCode(), ['msg'=>$res->getMsg()], 'wxgzh');
             }
         }
-        $url = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' . self::$accessToken . '&type=jsapi';
-        if (self::$redis->isAvailable()) {
-            $cachekey = self::cacheKey(__FUNCTION__, $data['appid']);
-            $ticket = self::$redis->get($cachekey);
+        $url = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' . $this->accessToken . '&type=jsapi';
+        if ($this->redis->isAvailable()) {
+            $cachekey = $this->cacheKey(__FUNCTION__, $data['appid']);
+            $ticket = $this->redis->get($cachekey);
             if (empty($ticket)) {
-                if (!self::$redis->setnx($cachekey . 'setnx', '1', 600)) {
+                if (!$this->redis->setnx($cachekey . 'setnx', '1', 600)) {
                     return false;
                 }
                 $str = Http::curlGet($url);
                 $re = json_decode($str, true);
                 File::log('wx/jsapiTicket')->info('获取api_ticket', $re);
                 if (!empty($re['ticket'])) {
-                    self::$redis->set($cachekey, $re['ticket'], 7000);
+                    $this->redis->set($cachekey, $re['ticket'], 7000);
                     return $re['ticket'];
                 }
                 return false;

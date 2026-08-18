@@ -13,9 +13,6 @@ namespace SlimCMS\Error;
 use Slim\Error\AbstractErrorRenderer;
 use Throwable;
 
-use function get_class;
-use function json_encode;
-
 use const JSON_PRETTY_PRINT;
 use const JSON_UNESCAPED_SLASHES;
 

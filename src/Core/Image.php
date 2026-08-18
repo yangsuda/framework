@@ -6,61 +6,61 @@
 
 namespace SlimCMS\Core;
 
-use SlimCMS\Abstracts\ModelAbstract;
+use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Interfaces\UploadInterface;
 
-class Image extends ModelAbstract
+class Image extends BaseAbstract
 {
-    private static $attachinfo;
-    private static $targetfile;    //图片路径
-    private static $imagecreatefromfunc;
-    private static $imagefunc;
-    private static $attach;
-    private static $cfg = [];
+    private $attachinfo;
+    private $targetfile;    //图片路径
+    private $imagecreatefromfunc;
+    private $imagefunc;
+    private $attach;
+    private $cfg = [];
 
-    private static function init()
+    private function init()
     {
         //检测用户系统支持的图片格式
-        self::$cfg['photo_type']['gif'] = FALSE;
-        self::$cfg['photo_type']['jpeg'] = FALSE;
-        self::$cfg['photo_type']['png'] = FALSE;
-        self::$cfg['photo_type']['wbmp'] = FALSE;
-        self::$cfg['photo_typenames'] = [];
-        self::$cfg['photo_support'] = '';
+        $this->cfg['photo_type']['gif'] = FALSE;
+        $this->cfg['photo_type']['jpeg'] = FALSE;
+        $this->cfg['photo_type']['png'] = FALSE;
+        $this->cfg['photo_type']['wbmp'] = FALSE;
+        $this->cfg['photo_typenames'] = [];
+        $this->cfg['photo_support'] = '';
         if (function_exists("imagecreatefromgif") && function_exists("imagegif")) {
-            self::$cfg['photo_type']["gif"] = TRUE;
-            self::$cfg['photo_typenames'][] = "image/gif";
-            self::$cfg['photo_support'] .= "GIF ";
+            $this->cfg['photo_type']["gif"] = TRUE;
+            $this->cfg['photo_typenames'][] = "image/gif";
+            $this->cfg['photo_support'] .= "GIF ";
         }
         if (function_exists("imagecreatefromjpeg") && function_exists("imagejpeg")) {
-            self::$cfg['photo_type']["jpeg"] = TRUE;
-            self::$cfg['photo_typenames'][] = "image/pjpeg";
-            self::$cfg['photo_typenames'][] = "image/jpeg";
-            self::$cfg['photo_support'] .= "JPEG ";
+            $this->cfg['photo_type']["jpeg"] = TRUE;
+            $this->cfg['photo_typenames'][] = "image/pjpeg";
+            $this->cfg['photo_typenames'][] = "image/jpeg";
+            $this->cfg['photo_support'] .= "JPEG ";
         }
         if (function_exists("imagecreatefrompng") && function_exists("imagepng")) {
-            self::$cfg['photo_type']["png"] = TRUE;
-            self::$cfg['photo_typenames'][] = "image/png";
-            self::$cfg['photo_typenames'][] = "image/xpng";
-            self::$cfg['photo_support'] .= "PNG ";
+            $this->cfg['photo_type']["png"] = TRUE;
+            $this->cfg['photo_typenames'][] = "image/png";
+            $this->cfg['photo_typenames'][] = "image/xpng";
+            $this->cfg['photo_support'] .= "PNG ";
         }
         if (function_exists("imagecreatefromwbmp") && function_exists("imagewbmp")) {
-            self::$cfg['photo_type']["wbmp"] = TRUE;
-            self::$cfg['photo_typenames'][] = "image/wbmp";
-            self::$cfg['photo_support'] .= "WBMP ";
+            $this->cfg['photo_type']["wbmp"] = TRUE;
+            $this->cfg['photo_typenames'][] = "image/wbmp";
+            $this->cfg['photo_support'] .= "WBMP ";
         }
     }
 
-    private static function watermark_gd($preview = 0)
+    private function watermark_gd($preview = 0)
     {
         if (function_exists('imagecopy') && function_exists('imagealphablending') && function_exists('imagecopymerge')) {
-            $imagecreatefunc = self::$imagecreatefromfunc;
-            $imagefunc = self::$imagefunc;
-            list($imagewidth, $imageheight) = self::$attachinfo;
-            if (empty(self::$config['markimg'])) {
+            $imagecreatefunc = $this->imagecreatefromfunc;
+            $imagefunc = $this->imagefunc;
+            list($imagewidth, $imageheight) = $this->attachinfo;
+            if (empty($this->config['markimg'])) {
                 return false;
             }
-            $watermark_file = CSPUBLIC . self::$config['markimg'];
+            $watermark_file = CSPUBLIC . $this->config['markimg'];
             $watermarkinfo = @getimagesize($watermark_file);
             $watermark_logo = @imagecreatefrompng($watermark_file);
             if (!$watermark_logo) {
@@ -70,11 +70,11 @@ class Image extends ModelAbstract
             $wmwidth = $imagewidth - $logowidth;
             $wmheight = $imageheight - $logoheight;
             if (is_readable($watermark_file) && $wmwidth > 10 && $wmheight > 10) {
-                if (self::$config['waterpos'] == 0) {
-                    self::$config['waterpos'] = mt_rand(1, 9);
+                if ($this->config['waterpos'] == 0) {
+                    $this->config['waterpos'] = mt_rand(1, 9);
                 }
                 $x = $y = 0;
-                switch (self::$config['waterpos']) {
+                switch ($this->config['waterpos']) {
                     case 1:
                         $x = +5;
                         $y = +5;
@@ -113,21 +113,21 @@ class Image extends ModelAbstract
                         break;
                 }
                 $dst_photo = @imagecreatetruecolor($imagewidth, $imageheight);
-                if (self::$attachinfo[2] == 3) {
+                if ($this->attachinfo[2] == 3) {
                     imagealphablending($dst_photo, false);//意思是不合并颜色,直接用图像颜色替换,包括透明色;
                     imagesavealpha($dst_photo, true);//意思是不要丢了图像的透明色;
                 }
-                $target_photo = $imagecreatefunc(self::$targetfile);
-                self::$attachinfo[2] == 3 && imagesavealpha($target_photo, true);//意思是不要丢了图像的透明色;
+                $target_photo = $imagecreatefunc($this->targetfile);
+                $this->attachinfo[2] == 3 && imagesavealpha($target_photo, true);//意思是不要丢了图像的透明色;
                 imagecopy($dst_photo, $target_photo, 0, 0, 0, 0, $imagewidth, $imageheight);
                 imagecopy($dst_photo, $watermark_logo, $x, $y, 0, 0, $logowidth, $logoheight);
-                $targetfile = !$preview ? self::$targetfile : './watermark_tmp.jpg';
-                if (self::$attachinfo['mime'] == 'image/jpeg') {
+                $targetfile = !$preview ? $this->targetfile : './watermark_tmp.jpg';
+                if ($this->attachinfo['mime'] == 'image/jpeg') {
                     $imagefunc($dst_photo, $targetfile, 100);
                 } else {
                     $imagefunc($dst_photo, $targetfile);
                 }
-                self::$attach['size'] = filesize(self::$targetfile);
+                $this->attach['size'] = filesize($this->targetfile);
                 return true;
             }
         }
@@ -140,14 +140,14 @@ class Image extends ModelAbstract
      * @param $width
      * @param $height
      */
-    public static function imageResize($file, $width = 0, $height = 0)
+    public function imageResize($file, $width = 0, $height = 0)
     {
-        $width = $width ?: self::$config['imgWidth'];
-        $height = $height ?: self::$config['imgHeight'];
-        if (self::$config['imgFull'] == '1') {
-            self::resizeNew($file, $width, $height);
+        $width = $width ?: $this->config['imgWidth'];
+        $height = $height ?: $this->config['imgHeight'];
+        if ($this->config['imgFull'] == '1') {
+            $this->resizeNew($file, $width, $height);
         } else {
-            self::resize($file, $width, $height);
+            $this->resize($file, $width, $height);
         }
     }
 
@@ -159,28 +159,28 @@ class Image extends ModelAbstract
      * @param string $toH 转换到的高度
      * @return    string
      */
-    public static function resize($srcFile, $toW, $toH)
+    public function resize($srcFile, $toW, $toH)
     {
-        self::init();
+        $this->init();
         $toFile = $srcFile;
         $info = '';
         $srcInfo = getimagesize($srcFile, $info);
         switch ($srcInfo[2]) {
             case 1:
-                if (!self::$cfg['photo_type']['gif']) return FALSE;
+                if (!$this->cfg['photo_type']['gif']) return FALSE;
                 $im = imagecreatefromgif($srcFile);
                 break;
             case 2:
-                if (!self::$cfg['photo_type']['jpeg']) return FALSE;
+                if (!$this->cfg['photo_type']['jpeg']) return FALSE;
                 $im = imagecreatefromjpeg($srcFile);
                 break;
             case 3:
-                if (!self::$cfg['photo_type']['png']) return FALSE;
-                $im = imagecreatefrompng($srcFile);
+                if (!$this->cfg['photo_type']['png']) return FALSE;
+                $im = @imagecreatefrompng($srcFile);
                 imagesavealpha($im, true);//意思是不要丢了图像的透明色;
                 break;
             case 6:
-                if (!self::$cfg['photo_type']['bmp']) return FALSE;
+                if (!$this->cfg['photo_type']['bmp']) return FALSE;
                 $im = imagecreatefromwbmp($srcFile);
                 break;
         }
@@ -219,7 +219,7 @@ class Image extends ModelAbstract
                     imagegif($ni, $toFile);
                     break;
                 case 2:
-                    $jpgQuality = aval(self::$config, 'jpgQuality', 95);
+                    $jpgQuality = aval($this->config, 'jpgQuality', 95);
                     imagejpeg($ni, $toFile, $jpgQuality);
                     break;
                 case 3:
@@ -243,34 +243,34 @@ class Image extends ModelAbstract
      * @param string $srcFile 图片源文件
      * @return    string
      */
-    public static function waterImg($srcFile)
+    public function waterImg($srcFile)
     {
-        if (empty(self::$config['markimg']) || !is_file(CSPUBLIC . self::$config['markimg'])) {
+        if (empty($this->config['markimg']) || !is_file(CSPUBLIC . $this->config['markimg'])) {
             return false;
         }
-        self::$targetfile = $srcFile;
-        self::$attachinfo = @getimagesize($srcFile);
-        if (self::$attachinfo['mime'] == 'image/gif') {
+        $this->targetfile = $srcFile;
+        $this->attachinfo = @getimagesize($srcFile);
+        if ($this->attachinfo['mime'] == 'image/gif') {
             return false;
         }
-        $markimgInfo = @getimagesize(CSPUBLIC . self::$config['markimg']);
-        if (self::$attachinfo[0] <= $markimgInfo[0] && self::$attachinfo[1] <= $markimgInfo[1]) {
+        $markimgInfo = @getimagesize(CSPUBLIC . $this->config['markimg']);
+        if ($this->attachinfo[0] <= $markimgInfo[0] && $this->attachinfo[1] <= $markimgInfo[1]) {
             return false;
         }
 
-        switch (self::$attachinfo['mime']) {
+        switch ($this->attachinfo['mime']) {
             case 'image/jpeg':
-                self::$imagecreatefromfunc = function_exists('imagecreatefromjpeg') ? 'imagecreatefromjpeg' : '';
-                self::$imagefunc = function_exists('imagejpeg') ? 'imagejpeg' : '';
+                $this->imagecreatefromfunc = function_exists('imagecreatefromjpeg') ? 'imagecreatefromjpeg' : '';
+                $this->imagefunc = function_exists('imagejpeg') ? 'imagejpeg' : '';
                 break;
             case 'image/png':
-                self::$imagecreatefromfunc = function_exists('imagecreatefrompng') ? 'imagecreatefrompng' : '';
-                self::$imagefunc = function_exists('imagepng') ? 'imagepng' : '';
+                $this->imagecreatefromfunc = function_exists('imagecreatefrompng') ? 'imagecreatefrompng' : '';
+                $this->imagefunc = function_exists('imagepng') ? 'imagepng' : '';
                 break;
         }//为空则匹配类型的函数不存在
 
-        self::$attach['size'] = empty(self::$attach['size']) ? @filesize($srcFile) : self::$attach['size'];
-        return self::watermark_gd(0);
+        $this->attach['size'] = empty($this->attach['size']) ? @filesize($srcFile) : $this->attach['size'];
+        return $this->watermark_gd(0);
     }
 
 
@@ -284,27 +284,27 @@ class Image extends ModelAbstract
      * @return    bool
      */
 
-    private static function resizeNew($srcFile, $toW, $toH)
+    private function resizeNew($srcFile, $toW, $toH)
     {
-        self::init();
+        $this->init();
         $toFile = $srcFile;
         $info = '';
         $srcInfo = getimagesize($srcFile, $info);
         switch ($srcInfo[2]) {
             case 1:
-                if (!self::$cfg['photo_type']['gif']) return FALSE;
+                if (!$this->cfg['photo_type']['gif']) return FALSE;
                 $img = imagecreatefromgif($srcFile);
                 break;
             case 2:
-                if (!self::$cfg['photo_type']['jpeg']) return FALSE;
+                if (!$this->cfg['photo_type']['jpeg']) return FALSE;
                 $img = imagecreatefromjpeg($srcFile);
                 break;
             case 3:
-                if (!self::$cfg['photo_type']['png']) return FALSE;
-                $img = imagecreatefrompng($srcFile);
+                if (!$this->cfg['photo_type']['png']) return FALSE;
+                $img = @imagecreatefrompng($srcFile);
                 break;
             case 6:
-                if (!self::$cfg['photo_type']['bmp']) return FALSE;
+                if (!$this->cfg['photo_type']['bmp']) return FALSE;
                 $img = imagecreatefromwbmp($srcFile);
                 break;
         }
@@ -339,7 +339,7 @@ class Image extends ModelAbstract
 
         $new_img = ImageCreateTrueColor($target_width, $target_height);
 
-        $bgcolor = self::$config['imgBgcolor'] == 0 ? ImageColorAllocate($new_img, 0xff, 0xff, 0xff) : 0;
+        $bgcolor = $this->config['imgBgcolor'] == 0 ? ImageColorAllocate($new_img, 0xff, 0xff, 0xff) : 0;
 
         if (!@imagefilledrectangle($new_img, 0, 0, $target_width - 1, $target_height - 1, $bgcolor)) {
             return FALSE;

@@ -3,13 +3,10 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use App\Core\RouteAction;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use SlimCMS\Interfaces\RouteInterface;
-use App\Core\Request;
-use App\Core\Response;
 
 class Routes implements RouteInterface
 {
@@ -31,7 +28,6 @@ class Routes implements RouteInterface
 
         // 加载路由文件（先加载具体路由）
         $this->loadRouteFiles($app);
-
         //其它未匹配到路由兜底
         RouteAction::any('/{path:.*}', 'Main\MainController@notFound');
     }

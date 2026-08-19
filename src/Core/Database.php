@@ -13,6 +13,7 @@ use PDOException;
 use PDOStatement;
 use Psr\Container\ContainerInterface;
 use SlimCMS\Error\TextException;
+use SlimCMS\Helper\File;
 use SlimCMS\Interfaces\DatabaseInterface;
 
 class Database implements DatabaseInterface
@@ -40,6 +41,7 @@ class Database implements DatabaseInterface
             try {
                 $db = &$this->setting['db'];
                 $options = aval($db, 'pconnect') ? [\PDO::ATTR_PERSISTENT => true] : [];
+                $options[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION; // [SQL安全改造] 开启异常模式，统一错误处理
                 $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET character_set_connection=' . aval($db, 'dbcharset') .
                     ', character_set_results=' . aval($db, 'dbcharset') . ', character_set_client=binary, sql_mode=\'\'';
                 $connecttype = aval($db, 'connecttype') == ':' ? ':' : ';port=';
@@ -70,24 +72,71 @@ class Database implements DatabaseInterface
     /**
      * {@inheritDoc}
      */
-    public function query($sql): PDOStatement
+    public function query($sql, $params = []): PDOStatement
     {
-        $this->checkQuery($sql);
-        $query = $this->link->query($sql);
-        if (!$query) {
-            $error = $this->link->errorInfo();
-            $msg = $error[0] . " " . $error[2] . " " . $error[1] . " " . $sql;
+        try {
+            if ($params) {
+                // [SQL安全改造] 有参数时走预处理，杜绝SQL注入
+                $query = $this->link->prepare($sql);
+                $query->execute($params);
+            } else {
+                $query = $this->link->query($sql);
+            }
+            if (defined('CORE_DEBUG') && CORE_DEBUG === true) {
+                $realSql = $this->interpolateQuery($sql, $params);
+                File::log('SQL')->info($realSql);
+            }
+        } catch (PDOException $e) {
+            $msg = $e->getMessage() . " " . $sql;
             throw new TextException(21055, $msg, 'pdo');
         }
         return $query;
     }
 
     /**
+     * 将参数绑定到SQL中，生成真实SQL
+     */
+    private function interpolateQuery(string $sql, array $params = [])
+    {
+        $keys = array();
+        $values = $params;
+
+        // 处理命名参数 :name 或 ? 占位符
+        foreach ($params as $key => $value) {
+            if (is_string($key)) {
+                $keys[] = '/:' . $key . '/';
+            } else {
+                $keys[] = '/\?/';
+            }
+
+            // 转义字符串
+            if (is_string($value)) {
+                $values[$key] = "'" . addslashes($value) . "'";
+            } elseif (is_null($value)) {
+                $values[$key] = 'NULL';
+            } elseif (is_bool($value)) {
+                $values[$key] = $value ? '1' : '0';
+            }
+        }
+
+        // 替换占位符
+        if (strpos($sql, ':') !== false) {
+            // 命名参数
+            $realSql = preg_replace($keys, $values, $sql, 1);
+        } else {
+            // ? 占位符
+            $realSql = preg_replace($keys, $values, $sql, 1);
+        }
+
+        return $realSql;
+    }
+
+    /**
      * {@inheritDoc}
      */
-    public function fetch(string $sql)
+    public function fetch(string $sql, $params = [])
     {
-        $query = $this->query($sql);
+        $query = $this->query($sql, $params);
         $data = $query->fetch(PDO::FETCH_ASSOC);
         $query->closeCursor();
         return $data ?? [];
@@ -96,10 +145,10 @@ class Database implements DatabaseInterface
     /**
      * {@inheritDoc}
      */
-    public function fetchList(string $sql, string $keyfield = ''): array
+    public function fetchList(string $sql, string $keyfield = '', $params = []): array
     {
         $data = [];
-        $query = $this->query($sql);
+        $query = $this->query($sql, $params);
         while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
             if ($keyfield && isset($row[$keyfield])) {
                 $data[$row[$keyfield]] = $row;
@@ -114,9 +163,9 @@ class Database implements DatabaseInterface
     /**
      * {@inheritDoc}
      */
-    public function fetchColumn(string $sql, $columnNumber = 0)
+    public function fetchColumn(string $sql, $columnNumber = 0, $params = [])
     {
-        $query = $this->query($sql);
+        $query = $this->query($sql, $params);
         $data = $query->fetchColumn($columnNumber);
         $query->closeCursor();
         return $data;
@@ -130,106 +179,5 @@ class Database implements DatabaseInterface
         $data = $query->rowCount();
         $query->closeCursor();
         return $data;
-    }
-
-    /**
-     * SQL安全检测
-     * @param string $sql
-     * @throws TextException
-     */
-    private function checkQuery(string $sql)
-    {
-        if (!preg_match('/^(SELECT|UPDATE|INSERT|REPLACE|DELETE)/i',$sql)) {
-            return '';
-        }
-        $querysafe = $this->setting['security']['querysafe'];
-        if ($querysafe['status']) {
-            $sql = str_replace(array('\\\\', '\\\'', '\\"', '\'\''), '', $sql);
-            if (strpos($sql, '/') === false && strpos($sql, '#') === false && strpos($sql, '-- ') === false) {
-                $clean = preg_replace("/'(.+?)'/s", '', $sql);
-            } else {
-                $len = strlen($sql);
-                $mark = $clean = '';
-                for ($i = 0; $i < $len; $i++) {
-                    $str = $sql[$i];
-                    switch ($str) {
-                        case '\'':
-                            if (!$mark) {
-                                $mark = '\'';
-                                $clean .= $str;
-                            } elseif ($mark == '\'') {
-                                $mark = '';
-                            }
-                            break;
-                        case '/':
-                            if (empty($mark) && $sql[$i + 1] == '*') {
-                                $mark = '/*';
-                                $clean .= $mark;
-                                $i++;
-                            } elseif ($mark == '/*' && $sql[$i - 1] == '*') {
-                                $mark = '';
-                                $clean .= '*';
-                            }
-                            break;
-                        case '#':
-                            if (empty($mark)) {
-                                $mark = $str;
-                                $clean .= $str;
-                            }
-                            break;
-                        case "\n":
-                            if ($mark == '#' || $mark == '--') {
-                                $mark = '';
-                            }
-                            break;
-                        case '-':
-                            if (empty($mark) && substr($sql, $i, 3) == '-- ') {
-                                $mark = '-- ';
-                                $clean .= $mark;
-                            }
-                            break;
-
-                        default:
-
-                            break;
-                    }
-                    $clean .= $mark ? '' : $str;
-                }
-            }
-
-            $clean = preg_replace("/[^a-z0-9_\-\(\)#\*\/\"]+/is", "", strtolower($clean));
-
-            if ($querysafe['afullnote']) {
-                $clean = str_replace('/**/', '', $clean);
-            }
-
-            if (is_array($querysafe['dfunction'])) {
-                foreach ($querysafe['dfunction'] as $fun) {
-                    if (strpos($clean, $fun . '(') !== false) {
-                        throw new TextException(21000, '不安全的SQL请求：'.$fun, 'pdo');
-                    }
-                }
-            }
-
-            if (is_array($querysafe['daction'])) {
-                foreach ($querysafe['daction'] as $action) {
-                    if (strpos($clean, $action) !== false) {
-                        throw new TextException(21000, '不安全的SQL请求：'.$action, 'pdo');
-                    }
-                }
-            }
-
-            if ($querysafe['dlikehex'] && strpos($clean, 'like0x')) {
-                throw new TextException(21000, '不安全的SQL请求：like0x', 'pdo');
-            }
-
-            if (is_array($querysafe['dnote'])) {
-                foreach ($querysafe['dnote'] as $note) {
-                    if (strpos($clean, $note) !== false) {
-                        throw new TextException(21000, '不安全的SQL请求：'.$note, 'pdo');
-                    }
-                }
-            }
-        }
     }
 }

@@ -18,7 +18,9 @@ class Session
             session_start();
         }
         $this->started = true;
-        $this->data = &$_SESSION; // 引用绑定，改动实时生效
+        if(isset($_SESSION)){
+            $this->data = &$_SESSION; // 引用绑定，改动实时生效
+        }
     }
 
     public function get(string $key, mixed $default = null): mixed

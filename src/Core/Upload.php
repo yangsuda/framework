@@ -303,7 +303,8 @@ class Upload extends BaseAbstract implements UploadInterface
         }
         $url = str_replace("'", '', $url);
         $where = [];
-        $where[] = $this->t('uploads')->field('url', $url . '%', 'like');
+        // [SQL安全改造] 惰性条件：参数由 withWhere->implode 统一收集，避免预收集参数被重置
+        $where[] = ['url' => ['like', $url . '%']];
         return $this->t('uploads')->withWhere($where)->fetchList();
     }
 

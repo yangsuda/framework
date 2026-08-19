@@ -63,7 +63,7 @@ abstract class ReqAbstract extends BaseAbstract
             $words = strtotime($words);
         }
         $field = $param['dateField'] ?? 'main.createtime';
-        $words && $this->where[] = $this->i(Table::class)->field($field, $words, '>=');
+        $words && $this->where[] = [$field => ['>=', $words]];
     }
 
     protected function end(array $param, $words = null): void
@@ -72,7 +72,7 @@ abstract class ReqAbstract extends BaseAbstract
             $words = strtotime($words);
         }
         $field = $param['dateField'] ?? 'main.createtime';
-        $words && $this->where[] = $this->i(Table::class)->field($field, $words, '<=');
+        $words && $this->where[] = [$field => ['<=', $words]];
     }
 
     protected function ids(array $param, $words = null): void

@@ -701,16 +701,18 @@ class Forms extends BaseAbstract
                 if (empty($v['rules']) && $val && preg_match('/,/', (string)$val)) {
                     list($s, $e) = explode(',', $val);
                     if (is_numeric($s) && is_numeric($e)) {
-                        $where[] = $this->t()->field($v['identifier'], $val, 'between');
+                        // [SQL安全改造] 惰性条件：参数由 withWhere->implode 统一收集
+                        $where[] = [$v['identifier'] => ['between', $val]];
                     } elseif (is_numeric($s)) {
-                        $where[] = $this->t()->field($v['identifier'], $s, '>=');
+                        $where[] = [$v['identifier'] => ['>=', $s]];
                     } elseif (is_numeric($e)) {
-                        $where[] = $this->t()->field($v['identifier'], $e, '<=');
+                        $where[] = [$v['identifier'] => ['<=', $e]];
                     }
                 } elseif ($v['datatype'] == 'checkbox') {
                     if (!empty($val)) {
                         foreach (explode(',', $val) as $val1) {
-                            $where[] = $this->t()->field($v['identifier'], $val1, 'find');
+                            // [SQL安全改造] 惰性条件：参数由 withWhere->implode 统一收集
+                            $where[] = [$v['identifier'] => ['find', $val1]];
                         }
                     }
                 } elseif (in_array($v['datatype'], ['text', 'multitext', 'htmltext'])) {
@@ -718,7 +720,8 @@ class Forms extends BaseAbstract
                         if (aval($v, 'precisesearch') == 1) {
                             $where[$v['identifier']] = $val;
                         } else {
-                            $where[] = $this->t()->field($v['identifier'], $val, 'like');
+                            // [SQL安全改造] 惰性条件：参数由 withWhere->implode 统一收集
+                            $where[] = [$v['identifier'] => ['like', $val]];
                         }
                     }
                 } elseif ($v['datatype'] == 'stepselect') {
@@ -1559,7 +1562,8 @@ class Forms extends BaseAbstract
         $tablepre = $this->setting['db']['tablepre'];
         $db = $this->t()->db();
         $tableName = $tablepre . str_replace($tablepre, '', $table);
-        if ($db->fetch("SHOW TABLES LIKE '" . $tableName . "'")) {
+        // [SQL安全改造] SHOW TABLES LIKE 参数化，防止规则中的表名注入
+        if ($db->fetch('SHOW TABLES LIKE ?', [$tableName])) {
             $result = Str::htmlspecialchars($rules[$table], 'de');
             //筛选条件支持外部传参
             preg_match_all('|&#036;(\w+)&#036;|isU', $result, $mat);

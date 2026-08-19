@@ -45,10 +45,6 @@ class ShutdownHandler
     {
         $error = error_get_last();
         if ($error) {
-            // 生产环境下只处理真正的致命错误，忽略 Warning、Notice 等
-            if (!CORE_DEBUG && !in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
-                return;
-            }
             $errorFile = $error['file'];
             $errorLine = $error['line'];
             $errorMessage = $error['message'];

@@ -52,6 +52,12 @@ class Table extends BaseAbstract
     protected $where = '';
 
     /**
+     * [SQL安全改造] 查询条件绑定参数（配合 where 中的 ? 占位符）
+     * @var array
+     */
+    protected $whereParams = [];
+
+    /**
      * 查询条件是否纯数字,>0为对应数字
      * @var bool
      */
@@ -185,7 +191,7 @@ class Table extends BaseAbstract
             if ($this->groupby) {
                 $sql = 'select count(*) from (' . $sql . ') as tmp';
             }
-            $count = $this->db->fetchColumn($sql);
+            $count = $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
             $this->redis->isAvailable() && $cacheTime && $this->redis->set($cacheKey, $count, $cacheTime);
         }
         return (int)$count;
@@ -218,7 +224,7 @@ class Table extends BaseAbstract
                 $indexid = $cacheTime ? $this->redis->get($key) : '';
                 if (empty($indexid)) {
                     $sql = $this->selectSQL('id');
-                    $indexid = $this->db->fetchColumn($sql);
+                    $indexid = $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
                     $cacheTime && $this->redis->set($key, $indexid, $cacheTime);
                 }
             }
@@ -235,7 +241,7 @@ class Table extends BaseAbstract
             $data = [];
             if (!empty($this->where)) {
                 $sql = $this->selectSQL('*');
-                $data = $this->db->fetch($sql);
+                $data = $this->db->fetch($sql, $this->whereParams); // [SQL安全改造] 透传绑定参数
             }
         }
 
@@ -278,11 +284,11 @@ class Table extends BaseAbstract
         $func = function ($fields, $indexField, $cacheTime) {
             if (preg_match('/distinct /i', $fields) || $this->join) {
                 $sql = $this->selectSQL($fields);
-                $list = $this->db->fetchList($sql);
+                $list = $this->db->fetchList($sql, '', $this->whereParams); // [SQL安全改造] 透传绑定参数
             } else {
                 $field1 = $cacheTime ? 'id' : (strpos($fields, ',') ? implode(',', $this->quoteField(explode(',', $fields))) : $fields);
                 $sql = $this->selectSQL($field1);
-                $list = $this->db->fetchList($sql, $indexField);
+                $list = $this->db->fetchList($sql, $indexField, $this->whereParams); // [SQL安全改造] 透传绑定参数
                 if ($this->redis->isAvailable()) {
                     foreach ($list as $k => $v) {
                         $data = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($fields) : [];
@@ -323,7 +329,7 @@ class Table extends BaseAbstract
         $func = function ($field, $cacheTime) {
             $field1 = $cacheTime ? 'id' : $field;
             $sql = $this->selectSQL($field1);
-            $list = $this->db->fetchList($sql);
+            $list = $this->db->fetchList($sql, '', $this->whereParams); // [SQL安全改造] 透传绑定参数
             $arr = [];
             foreach ($list as $k => $v) {
                 //如果开启缓存，读取缓存中数据
@@ -374,7 +380,13 @@ class Table extends BaseAbstract
     {
         if (!empty($limit)) {
             $clone = clone $this;
-            $clone->limit = strpos((string)$limit, 'limit') !== false ? ' ' . $limit : ' limit ' . $limit;
+            $limit = trim((string)$limit);
+            // [SQL安全改造] 允许 "limit N" / "N" / "N,M" 三种形态，最终只保留纯数字部分
+            $limit = preg_replace('/^limit\s+/i', '', $limit);
+            if (!preg_match('/^\d+(,\d+)?$/', $limit)) {
+                throw new TextException(21058, '', 'SQL');
+            }
+            $clone->limit = ' limit ' . $limit;
             return $clone;
         }
         return $this;
@@ -389,7 +401,11 @@ class Table extends BaseAbstract
     public function withOrderby(string $order = '', string $way = 'desc'): Table
     {
         $clone = clone $this;
-        $order = $order ?: 'main.id';
+        $order = trim($order ?: 'main.id');
+        // [SQL安全改造] 排序字段仅允许字母数字反引号点空格，rand()为框架内置随机排序特殊放行
+        if ($order != 'rand()' && (!preg_match('/^[\w`.,\s]+$/i', $order) || stripos($order, 'union') !== false || stripos($order, 'select') !== false)) {
+            throw new TextException(21058, '', 'SQL');
+        }
         if (!preg_match('/^group by /i', $order)) {
             $order = ' order by ' . $order;
         }
@@ -401,7 +417,10 @@ class Table extends BaseAbstract
     public function withGroupby(string $field = ''): Table
     {
         $clone = clone $this;
-        $field && $clone->groupby = ' group by ' . $field . ' ';
+        // [SQL安全改造] 分组字段仅允许字母数字反引号点空格，非法值忽略
+        if ($field && preg_match('/^[\w`.,\s]+$/i', $field)) {
+            $clone->groupby = ' group by ' . $field . ' ';
+        }
         return $clone;
     }
 
@@ -450,8 +469,12 @@ class Table extends BaseAbstract
             if (!$this->where) {
                 return 0;
             }
+            // [SQL安全改造] 记录WHERE参数数，SET参数后入栈，执行时按SQL顺序重排
+            $whereCount = count($this->whereParams);
             $sql = 'UPDATE ' . $this->getTableName() . ' main SET ' . $this->implodeSave($data) . $this->where;
-            $query = $this->db->query($sql);
+            $setParams = array_slice($this->whereParams, $whereCount);
+            $whereParams = array_slice($this->whereParams, 0, $whereCount);
+            $query = $this->db->query($sql, array_merge($setParams, $whereParams));
             return $this->db->affectedRows($query);
         }
         return 0;
@@ -473,7 +496,7 @@ class Table extends BaseAbstract
         if (!$this->where) {
             return 0;
         }
-        $query = $this->db->query('DELETE main FROM ' . $this->getTableName() . ' main ' . $this->where);
+        $query = $this->db->query('DELETE main FROM ' . $this->getTableName() . ' main ' . $this->where, $this->whereParams); // [SQL安全改造] 透传绑定参数
         return $this->db->affectedRows($query);
     }
 
@@ -486,9 +509,12 @@ class Table extends BaseAbstract
      */
     public function insert(array $data, bool $returnID = false, bool $replace = false): int
     {
+        // [SQL安全改造] 只取本次INSERT产生的SET参数
+        $before = count($this->whereParams);
         $sql = $this->implodeSave($data);
+        $params = array_slice($this->whereParams, $before);
         $cmd = $replace ? 'REPLACE INTO ' : 'INSERT INTO ';
-        $query = $this->db->query($cmd . $this->getTableName() . ' set ' . $sql);
+        $query = $this->db->query($cmd . $this->getTableName() . ' set ' . $sql, $params);
         if ($returnID) {
             return (int)$this->db->insertId();
         }
@@ -504,6 +530,7 @@ class Table extends BaseAbstract
     public function withWhere($val): Table
     {
         $this->whereIsNumber = 0;
+        $this->whereParams = []; // [SQL安全改造] 每次重建条件时重置绑定参数，防止残留
         if (empty($val)) {
             $where = '';
         } elseif (is_array($val)) {
@@ -512,6 +539,11 @@ class Table extends BaseAbstract
             $this->whereIsNumber = $val;
             $where = $this->field('id', $val);
         } else {
+            $val = (string)$val;
+            // [SQL安全改造] 字符串条件收紧：阻断注释/分号注入（保留常规SQL条件写法）
+            if (preg_match('/;|\/\*|#|--/i', $val)) {
+                throw new TextException(21058, '', 'SQL');
+            }
             $where = str_replace(' where ', '', $val);
         }
         $clone = clone $this;
@@ -525,7 +557,14 @@ class Table extends BaseAbstract
         $glue = ' ' . trim($glue) . ' ';
         foreach ($array as $k => $v) {
             if (is_numeric($k)) {
-                $sql .= $comma . $v;
+                // [SQL安全改造] 支持 ['field' => ['glue', $val]] 惰性条件（由 field 在 implode 时收集参数，顺序正确）
+                if (is_array($v) && count($v) == 1) {
+                    $f = key($v);
+                    $cond = reset($v);
+                    $sql .= $comma . $this->field($this->quoteField($f), $cond);
+                } else {
+                    $sql .= $comma . $v;
+                }
             } elseif (is_array($v)) {
                 $sql .= $comma . $this->field($this->quoteField($k), $v);
             } else {
@@ -539,14 +578,17 @@ class Table extends BaseAbstract
     protected function quote($str, $noarray = false)
     {
         if (is_string($str)) {
+            // [SQL安全改造] 自增/自减表达式格式已校验，直接嵌入SQL不占位（如 #@#hits+1 → hits+1）
             if (preg_match('/^(#@#){1}[A-Za-z]{2,}([\w])*(\+|\-)([\d.]{1,20})$/i', $str)) {
-                return addcslashes(preg_replace('/^#@#/i', '', $str), "\n\r\\'\"\032");
+                return preg_replace('/^#@#/i', '', $str);
             }
-            return '\'' . addcslashes($str, "\n\r\\'\"\032") . '\'';
+            $this->whereParams[] = $str;
+            return '?';
         }
 
         if (is_int($str) or is_float($str)) {
-            return '\'' . $str . '\'';
+            $this->whereParams[] = $str;
+            return '?';
         }
 
         if (is_array($str)) {
@@ -556,13 +598,16 @@ class Table extends BaseAbstract
                 }
                 return $str;
             }
-            return '\'\'';
+            $this->whereParams[] = '';
+            return '?';
         }
 
         if (is_bool($str)) {
-            return $str ? '1' : '0';
+            $this->whereParams[] = $str ? 1 : 0;
+            return '?';
         }
-        return '\'\'';
+        $this->whereParams[] = '';
+        return '?';
     }
 
     protected function quoteField($field)
@@ -604,7 +649,15 @@ class Table extends BaseAbstract
             $val = '';
         }
         if (is_array($val)) {
-            $glue = $glue == 'notin' ? 'notin' : 'in';
+            // [SQL安全改造] 数组值支持 [glue, value] 惰性条件（如 ['like','xx%']），
+            // 参数由 withWhere->implode 按 SQL 字面顺序统一收集，避免预收集被重置或顺序错位
+            if (isset($val[0]) && array_key_exists(1, $val) && !is_array($val[1])
+                && in_array(strtolower((string)$val[0]), ['like', 'unlike', 'find', 'nofind', 'between', 'regexp', '>', '<', '<>', '>=', '<='], true)) {
+                $glue = strtolower((string)$val[0]);
+                $val = $val[1];
+            } else {
+                $glue = $glue == 'notin' ? 'notin' : 'in';
+            }
         } elseif ($glue == 'in') {
             $glue = '=';
         }
@@ -624,17 +677,14 @@ class Table extends BaseAbstract
             case '<>':
             case '<=':
             case '>=':
-                if (is_int($val) || is_float($val)) {
-                    return $field . $glue . $val;
-                }
                 return $field . $glue . $this->quote($val);
             case 'unlike':
             case 'like':
                 $not = $glue == 'unlike' ? ' not ' : '';
                 if (preg_match('/%/', $val)) {
-                    return $field . $not . ' LIKE(' . $this->quote($val) . ')';
+                    return $field . $not . ' LIKE ' . $this->quote($val); // [SQL安全改造] 使用标准 LIKE ? 语法
                 }
-                return $field . $not . ' LIKE(' . $this->quote('%' . $val . '%') . ')';
+                return $field . $not . ' LIKE ' . $this->quote('%' . $val . '%'); // [SQL安全改造] 使用标准 LIKE ? 语法
             case 'in':
             case 'notin':
                 $val = $val ? implode(',', $this->quote($val)) : '\'\'';
@@ -665,9 +715,9 @@ class Table extends BaseAbstract
                 return '(' . implode(' or ', $arr) . ')';
             case 'between':
                 list($min, $max) = explode(',', $val);
-                $min = preg_replace('/[^\d.-]/', '', $min);
-                $max = preg_replace('/[^\d.-]/', '', $max);
-                return '(' . $field . ' between  ' . $min . ' and ' . $max . ')';
+                $min = (int)preg_replace('/[^\d.-]/', '', $min);
+                $max = (int)preg_replace('/[^\d.-]/', '', $max);
+                return '(' . $field . ' between  ' . $this->quote($min) . ' and ' . $this->quote($max) . ')';
             case 'regexp':
                 return $field . ' REGEXP ' . $this->quote($val);
             default:
@@ -724,7 +774,7 @@ class Table extends BaseAbstract
     public function fetchColumn(string $field, string $func)
     {
         $sql = $this->selectSQL($func . '(' . $field . ')');
-        return $this->db->fetchColumn($sql);
+        return $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
     }
 
     /**
@@ -762,6 +812,7 @@ class Table extends BaseAbstract
     protected function md5key(array $condition = []): string
     {
         $condition[] = $this->where;
+        $condition[] = $this->whereParams; // [SQL安全改造] 绑定参数参与缓存KEY，防止不同参数命中同一缓存
         $condition[] = $this->join;
         return Str::md5key($condition);
     }

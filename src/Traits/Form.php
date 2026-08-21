@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Traits;
 
-use SlimCMS\Helper\ImageCode;
+use SlimCMS\Helper\Captcha;
 use SlimCMS\Interfaces\OutputInterface;
 
 trait Form
@@ -32,10 +32,9 @@ trait Form
             $this->output = $this->output->withCode(24024);
         }
         //如启用验证码，对验证码验证
-        if (isset($ccode)) {
-            if (ImageCode::checkCode($this->session(), $ccode) === false) {
-                $this->output = $this->output->withCode(24023);
-            }
+        if (isset($ccode) && $this->session()->get('VerifyCode') != strtolower($ccode)) {
+            $this->session()->delete('VerifyCode');
+            $this->output = $this->output->withCode(24023);
         }
         return $this;
     }

@@ -138,7 +138,7 @@ class Forms extends BaseAbstract
             //判断删除文章附件变量是否开启；
             if ($this->config['isDelAttachment'] == '1') {
                 //判断属性；
-                $fields = $this->fieldList(['formid' => $fid, 'available' => 1, 'datatype' => ['htmltext', 'imgs', 'img', 'media', 'addon', 'superfile']]);
+                $fields = $this->fieldList(['formid' => $fid, 'available' => 1, 'datatype' => ['htmltext', 'imgs', 'img', 'media', 'addon', 'superfile', 'addons']]);
                 if ($fields) {
                     $this->delAttachment($fields, $v);
                 }
@@ -1049,7 +1049,7 @@ class Forms extends BaseAbstract
 
             $rules = [];
             if (!empty($val['rules'])) {
-                $rules = unserialize($val['rules']);
+                $rules = json_decode($val['rules'], true);
 
                 //读取由表数据转成的规则
                 if (!empty($rules) && count($rules) == 1) {
@@ -1201,7 +1201,7 @@ class Forms extends BaseAbstract
             }
             $identifier = &$v['identifier'];
             if (!empty($v['rules'])) {
-                $v['rules'] = unserialize($v['rules']);
+                $v['rules'] = json_decode($v['rules'], true);
             }
             //读取由表数据转成的规则
             if (!empty($v['rules']) && count($v['rules']) == 1) {
@@ -1407,6 +1407,11 @@ class Forms extends BaseAbstract
                         $upload->uploadDel($p['img']);
                     }
                     break;
+                case 'addons':
+                    foreach (json_decode($data[$v['identifier']], true) as $p) {
+                        $upload->uploadDel($p['url']);
+                    }
+                    break;
                 default:
                     $upload->uploadDel($data[$v['identifier']]);
                     break;
@@ -1428,7 +1433,7 @@ class Forms extends BaseAbstract
     {
         foreach ($fields as $k => $v) {
             $v['maxlength'] = $maxlength = !empty($v['maxlength']) ? 'maxlength="' . $v['maxlength'] . '"' : '';
-            $v['rules'] = !empty($v['rules']) ? unserialize($v['rules']) : array();
+            $v['rules'] = !empty($v['rules']) ? json_decode($v['rules'], true) : array();
 
             $datatype = $v['datatype'];
             if ($datatype == 'int' && !empty($v['rules']) && count($v['rules']) == 1) {
@@ -1695,8 +1700,8 @@ class Forms extends BaseAbstract
         }
         if (!empty($searchFields)) {
             foreach ($searchFields as &$v) {
-                if (!empty($v['rules']) && count(unserialize($v['rules'])) == 1) {
-                    $v['rules'] = serialize($this->tableDataRules(unserialize($v['rules'])));
+                if (!empty($v['rules']) && count(json_decode($v['rules'], true)) == 1) {
+                    $v['rules'] = json_encode($this->tableDataRules(json_decode($v['rules'], true)));
                 } elseif ($v['datatype'] == 'stepselect') {
                     $v['default'] = $this->request()->input($v['egroup'], 'int');
                     static $loadonce = 0;
@@ -1780,7 +1785,7 @@ class Forms extends BaseAbstract
                     $v['rules'][$v1['evalue']] = $v1['ename'];
                 }
             } elseif (!empty($v['rules'])) {
-                $v['rules'] = unserialize($v['rules']);
+                $v['rules'] = json_decode($v['rules'], true);
                 //读取由表数据转成的规则
                 count($v['rules']) == 1 && $v['rules'] = $this->tableDataRules($v['rules']);
             }

@@ -13,7 +13,7 @@ trait Table
         $className = ucfirst($name);
         $classname = '\app\Table\\' . $className . 'Table';
         if (!class_exists($classname)) {
-            $classname = 'app\Core\Table';
+            $classname = 'SlimCMS\Core\Table';
         }
         if (empty($objs[$name . $extendName])) {
             $objs[$name . $extendName] = $this->i($classname)->setTableName($name, $extendName);

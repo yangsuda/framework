@@ -47,7 +47,7 @@ abstract class ControlAbstract extends BaseAbstract
         $output = $output ?? $this->output;
         $template = $template ?: $this->p;
         if (empty($template)) {
-            return $this->response($output->withCode(21017));
+            return $this->resp($output->withCode(21017));
         }
         $data = [];
         $data['formhash'] = Str::formhash($this->session());
@@ -126,7 +126,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param OutputInterface|null $output
      * @return ResponseInterface
      */
-    protected function response(OutputInterface $output = null): ResponseInterface
+    protected function resp(OutputInterface $output = null): ResponseInterface
     {
         $contentType = $this->determineContentType();
         $contentType = $contentType ?: 'application/json';

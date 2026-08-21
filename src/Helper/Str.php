@@ -218,7 +218,7 @@ class Str
                     $row[$keys] = trim($value);
                 }
             }
-            return serialize($row);
+            return json_encode($row);
         }
         return '';
     }
@@ -232,7 +232,7 @@ class Str
     {
         $str = '';
         if (!empty($data)) {
-            $arr = unserialize($data);
+            $arr = json_decode($data, true);
             if (empty($arr)) {
                 return $data;
             }
@@ -425,7 +425,7 @@ class Str
                 $imgurls[$key]['text'] = !empty($v['text']) ? Str::htmlspecialchars($v['text']) : '';
             }
         }
-        return $imgurls ? serialize($imgurls) : '';
+        return $imgurls ? json_encode($imgurls) : '';
     }
 
     /**
@@ -440,7 +440,7 @@ class Str
         if (empty($imgs)) {
             return [];
         }
-        $data = array_values(unserialize($imgs));
+        $data = array_values(json_decode($imgs, true));
         foreach ($data as &$v1) {
             $ext = pathinfo($v1['img'], PATHINFO_EXTENSION);
             $v1['originImg'] = $v1['img'];

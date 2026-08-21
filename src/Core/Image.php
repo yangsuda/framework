@@ -6,6 +6,7 @@
 
 namespace SlimCMS\Core;
 
+use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Interfaces\UploadInterface;
 
@@ -17,6 +18,14 @@ class Image extends BaseAbstract
     private $imagefunc;
     private $attach;
     private $cfg = [];
+
+    private array $config;//后台配置参数
+
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->config = $this->container->get('cfg');
+    }
 
     private function init()
     {

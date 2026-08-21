@@ -19,6 +19,15 @@ class Wxgzh extends BaseAbstract
 {
     protected $accessToken = '';
 
+    private Redis $redis;
+    private OutputInterface $output;
+
+    public function __construct(App $app, Redis $redis)
+    {
+        parent::__construct($app);
+        $this->redis = $redis;
+        $this->output = $this->container->get(OutputInterface::class)($app);
+    }
     /**
      * 获取access_token
      * @param OutputInterface $output

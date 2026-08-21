@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Respect\Validation\Exceptions\ValidationException;
 use Slim\App;
 use SlimCMS\Core\Forms;
@@ -17,7 +15,7 @@ use SlimCMS\Interfaces\OutputInterface;
 
 abstract class RepositoryAbstract extends BaseAbstract
 {
-    use \SlimCMS\Traits\table;
+    use \SlimCMS\Traits\Table;
 
     protected $where = [];
     protected $by = '';
@@ -35,10 +33,18 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected $query = [];//查询参数
     private $tableName = '';
     private $formId = 0;
+    protected $setting;//站点初始化参数
+    protected array $config;//后台配置参数
+    protected OutputInterface $output;
+    protected Forms $forms;
 
-    public function __construct(App $app, ServerRequestInterface $request = null)
+    public function __construct(App $app, Forms $forms)
     {
-        parent::__construct($app, $request);
+        parent::__construct($app);
+        $this->setting = $this->container->get('settings');
+        $this->config = $this->container->get('cfg');
+        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->forms = $forms;
         $this->initialize();
     }
 
@@ -104,11 +110,6 @@ abstract class RepositoryAbstract extends BaseAbstract
         return $data;
     }
 
-    protected function forms(): Forms
-    {
-        return $this->i(Forms::class);
-    }
-
     /**
      * 添加
      * @param array $param
@@ -120,7 +121,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        return $this->forms()->dataSave($this->formId, [], $data);
+        return $this->forms->dataSave($this->formId, [], $data);
     }
 
     /**
@@ -138,7 +139,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        $res = $this->forms()->dataView($this->formId, $id);
+        $res = $this->forms->dataView($this->formId, $id);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -147,7 +148,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if ($res->getCode() != 200) {
             return $res;
         }
-        return $this->forms()->dataSave($this->formId, $val, $data);
+        return $this->forms->dataSave($this->formId, $val, $data);
     }
 
     /**
@@ -173,7 +174,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id)) {
             return $this->output->withCode(21003);
         }
-        return $this->forms()->dataDel($this->formId, [$id]);
+        return $this->forms->dataDel($this->formId, [$id]);
     }
 
     /**
@@ -189,7 +190,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id) || empty($fields)) {
             return $this->output->withCode(21002);
         }
-        $res = $this->forms()->dataView($this->formId, $id, $fields);
+        $res = $this->forms->dataView($this->formId, $id, $fields);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -414,7 +415,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             'groupby' => $this->groupBy,
         ];
         $params['where'] = $this->where;
-        $res = $this->forms()->dataList($params);
+        $res = $this->forms->dataList($params);
         if ($res->getCode() != 200) {
             throw new TextException($res->getCode(), $res->getMsg());
         }
@@ -613,7 +614,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public function validCheck(array $data, int $id = 0): array
     {
-        return $this->forms()->validCheck($this->formId, $data, $id);
+        return $this->forms->validCheck($this->formId, $data, $id);
     }
 
     /**

@@ -11,6 +11,7 @@ use SlimCMS\Abstracts\BaseAbstract;
 
 class Page extends BaseAbstract
 {
+    use \SlimCMS\Traits\Url;
     /**
      * 生成分页链接
      * @param type $num 总数

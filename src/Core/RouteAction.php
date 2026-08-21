@@ -119,8 +119,8 @@ class RouteAction
     {
         return function (ServerRequestInterface $request, ResponseInterface $response, array $args = []) use ($action) {
             [$controller, $method] = self::parseAction($request, $action, $args);
-            $instance = self::$collector->getContainer()->make($controller,  ['app' => self::$collector,'request' => $request]);
-            return $instance->$method();
+            $instance = self::$collector->getContainer()->make($controller,  ['app' => self::$collector]);
+            return $instance->setRequest($request)->$method();
         };
     }
 

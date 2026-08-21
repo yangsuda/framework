@@ -19,6 +19,16 @@ class Wxxcx extends BaseAbstract
 {
     protected $accessToken = '';
 
+    private Redis $redis;
+    private OutputInterface $output;
+
+    public function __construct(App $app, Redis $redis)
+    {
+        parent::__construct($app);
+        $this->redis = $redis;
+        $this->output = $this->container->get(OutputInterface::class)($app);
+    }
+
     /**
      * 获取access_token
      * @param OutputInterface $output
@@ -116,11 +126,11 @@ class Wxxcx extends BaseAbstract
 
     /**
      * 检验数据的真实性，并且获取解密后的明文.
-     * @param $output->getData()[appid] string 小程序appid
-     * @param $output->getData()[appsecret] string 小程序appsecret
-     * @param $output->getData()[encrypteddata] string 加密的用户数据
-     * @param $output->getData()[iv] string 与用户数据一同返回的初始向量
-     * @param $output->getData()[code] string 登录时获取的code
+     * @param $output ->getData()[appid] string 小程序appid
+     * @param $output ->getData()[appsecret] string 小程序appsecret
+     * @param $output ->getData()[encrypteddata] string 加密的用户数据
+     * @param $output ->getData()[iv] string 与用户数据一同返回的初始向量
+     * @param $output ->getData()[code] string 登录时获取的code
      * @return array
      */
     public function decryptData(OutputInterface $output): OutputInterface
@@ -197,9 +207,9 @@ class Wxxcx extends BaseAbstract
 
     /**
      * 通过code获取手机号码
-     * @param $output->getData()[appid] string 小程序appid
-     * @param $output->getData()[appsecret] string 小程序appsecret
-     * @param $output->getData()[code] string 登录时获取的code
+     * @param $output ->getData()[appid] string 小程序appid
+     * @param $output ->getData()[appsecret] string 小程序appsecret
+     * @param $output ->getData()[code] string 登录时获取的code
      * @return OutputInterface[phoneNumber用户绑定的手机号,purePhoneNumber没有区号的手机号,countryCode区号]
      */
     public function getuserphonenumber(OutputInterface $output): OutputInterface

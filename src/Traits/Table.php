@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Traits;
 
-trait table
+trait Table
 {
     public function t(string $name = '', string $extendName = null): \SlimCMS\Core\Table
     {

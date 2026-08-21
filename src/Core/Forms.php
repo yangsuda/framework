@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use Slim\App;
 use SlimCMS\Core\Ueditor;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
@@ -21,8 +22,24 @@ use SlimCMS\Interfaces\UploadInterface;
 
 class Forms extends BaseAbstract
 {
-    use \SlimCMS\Traits\table;
+    use \SlimCMS\Traits\Table;
     use \SlimCMS\Traits\Form;
+    use \SlimCMS\Traits\Url;
+
+    protected Redis $redis;
+
+    protected $setting;//站点初始化参数
+    protected array $config;//后台配置参数
+    protected OutputInterface $output;
+
+    public function __construct(App $app, Redis $redis)
+    {
+        parent::__construct($app);
+        $this->redis = $redis;
+        $this->setting = $this->container->get('settings');
+        $this->config = $this->container->get('cfg');
+        $this->output = $this->container->get(OutputInterface::class)($app);
+    }
 
     /**
      * 某表单详细
@@ -116,7 +133,7 @@ class Forms extends BaseAbstract
                 }
             }
 
-            aval($form, 'isarchive') == 1 && $this->dataSave(7, '', ['formid' => $fid, 'aid' => $v['id'], 'content' => serialize($v)]);//归档记录
+            aval($form, 'isarchive') == 1 && $this->dataSave(7, '', ['formid' => $fid, 'aid' => $v['id'], 'content' => json_encode($v)]);//归档记录
 
             //判断删除文章附件变量是否开启；
             if ($this->config['isDelAttachment'] == '1') {
@@ -1119,7 +1136,7 @@ class Forms extends BaseAbstract
                 case 'imgs':
                     $width = aval($this->config, 'imgWidth', 800);
                     $height = aval($this->config, 'imgHeight', 800);
-                    $img = !empty($v[$identifier]) ? unserialize($v[$identifier]) : [];
+                    $img = !empty($v[$identifier]) ? json_decode($v[$identifier], true) : [];
                     if (is_array($img)) {
                         foreach ($img as $k1 => $v1) {
                             $v1['originalImg'] = $v1['img'];
@@ -1135,7 +1152,7 @@ class Forms extends BaseAbstract
                     break;
                 case 'addons':
                 case 'serialize':
-                    $v['_' . $identifier] = unserialize($v[$identifier]);
+                    $v['_' . $identifier] = json_decode($v[$identifier], true);
                     break;
                 case 'int':
                     if (!empty($val['rules'])) {
@@ -1264,7 +1281,8 @@ class Forms extends BaseAbstract
                     case 'imgs':
                         $imgurls = array();
                         if (!empty($olddata[$identifier])) {
-                            $imgurls = unserialize($olddata[$identifier]);
+                            $imgurls = json_decode($olddata[$identifier], true);
+                            $imgurls = $imgurls ?: [];
                             foreach ($imgurls as $_k => $_v) {
                                 $_v['text'] = str_replace("'", "`", $this->request()->input('imgmsg' . $_k));
                                 $imgurls[$_k] = $_v;
@@ -1289,7 +1307,7 @@ class Forms extends BaseAbstract
                                 $imgurls += (array)$res->getData();
                             }
                         }
-                        $data[$identifier] = $imgurls ? serialize($imgurls) : '';
+                        $data[$identifier] = $imgurls ? json_encode($imgurls) : '';
                         break;
                     case 'img':
                     case 'media':
@@ -1319,7 +1337,7 @@ class Forms extends BaseAbstract
                     case 'addons':
                         $addons = [];
                         if (!empty($olddata[$identifier])) {
-                            $addons = unserialize($olddata[$identifier]);
+                            $addons = json_decode($olddata[$identifier], true);
                         }
                         $uploads = $this->request->getUploadedFiles();
                         if (!empty($uploads[$identifier])) {
@@ -1333,11 +1351,11 @@ class Forms extends BaseAbstract
                                 }
                             }
                         }
-                        $data[$identifier] = $addons ? serialize($addons) : '';
+                        $data[$identifier] = $addons ? json_encode($addons) : '';
                         break;
                     case 'serialize':
                         $val = $this->request()->input($identifier);
-                        $data[$identifier] = is_array($val) ? serialize($val) : Str::htmlspecialchars($val, 'de');
+                        $data[$identifier] = is_array($val) ? json_encode($val) : Str::htmlspecialchars($val, 'de');
                         break;
                     case 'password':
                         $val = $this->request()->input($identifier);
@@ -1385,7 +1403,7 @@ class Forms extends BaseAbstract
                     }
                     break;
                 case 'imgs':
-                    foreach (unserialize($data[$v['identifier']]) as $p) {
+                    foreach (json_decode($data[$v['identifier']], true) as $p) {
                         $upload->uploadDel($p['img']);
                     }
                     break;
@@ -1508,7 +1526,7 @@ class Forms extends BaseAbstract
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'imgs':
-                    $v['imgs'] = !empty($v['default']) ? unserialize($v['default']) : [];
+                    $v['imgs'] = !empty($v['default']) ? json_decode($v['default'], true) : [];
                     $v['fid'] = $fid;
                     $v['row'] = $row;
 
@@ -1531,7 +1549,7 @@ class Forms extends BaseAbstract
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'serialize':
-                    $val = var_export(unserialize($v['default']), true);
+                    $val = var_export(json_decode($v['default'], true), true);
                     $v['val'] = nl2br(str_replace(["array (\n", "),\n", ")"], '', $val));
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;

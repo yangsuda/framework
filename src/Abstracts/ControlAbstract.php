@@ -7,9 +7,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Abstracts;
 
-use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use SlimCMS\Core\Request;
 use SlimCMS\Error\TextException;
@@ -24,10 +22,19 @@ abstract class ControlAbstract extends BaseAbstract
      */
     protected $p = '';
 
-    public function __construct(App $app, ServerRequestInterface $request = null)
+    protected OutputInterface $output;
+    /**
+     * 响应实例
+     * @var ResponseInterface
+     */
+    protected ResponseInterface $response;
+
+    public function __construct(App $app)
     {
-        parent::__construct($app, $request);
+        parent::__construct($app);
         $this->p = $this->request->getUri()->getPath();
+        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->response = $this->container->get(ResponseInterface::class);
     }
 
     /**
@@ -35,7 +42,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param array $result
      * @return array|\Psr\Http\Message\ResponseInterface
      */
-    protected function view(OutputInterface $output = null, string $template = ''): MessageInterface
+    protected function view(OutputInterface $output = null, string $template = ''): ResponseInterface
     {
         $output = $output ?? $this->output;
         $template = $template ?: $this->p;
@@ -104,9 +111,9 @@ abstract class ControlAbstract extends BaseAbstract
     /**
      * JSON输出
      * @param OutputInterface|null $output
-     * @return MessageInterface
+     * @return ResponseInterface
      */
-    protected function json(OutputInterface $output = null): MessageInterface
+    protected function json(OutputInterface $output = null): ResponseInterface
     {
         $response = $this->response->withHeader('Content-type', 'application/json');
         $encodedOutput = json_encode($output, JSON_PRETTY_PRINT);
@@ -117,9 +124,9 @@ abstract class ControlAbstract extends BaseAbstract
     /**
      * 自动判断输出方式
      * @param OutputInterface|null $output
-     * @return MessageInterface
+     * @return ResponseInterface
      */
-    protected function response(OutputInterface $output = null): MessageInterface
+    protected function response(OutputInterface $output = null): ResponseInterface
     {
         $contentType = $this->determineContentType();
         $contentType = $contentType ?: 'application/json';

@@ -9,9 +9,6 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-use Psr\Container\ContainerInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
@@ -89,9 +86,15 @@ class Table extends BaseAbstract
 
     protected $groupby = '';
 
-    public function __construct(App $app, ServerRequestInterface $request = null)
+    protected Redis $redis;
+
+    protected $setting;//站点初始化参数
+
+    public function __construct(App $app, Redis $redis)
     {
-        parent::__construct($app, $request);
+        parent::__construct($app);
+        $this->redis = $redis;
+        $this->setting = $this->container->get('settings');
         $this->db = $this->container->get(DatabaseInterface::class);
         $this->tablepre = $this->setting['db']['tablepre'];
     }
@@ -460,18 +463,21 @@ class Table extends BaseAbstract
     public function update(array $data): int
     {
         if (!empty($data)) {
+            if (!$this->where) {
+                return 0;
+            }
+            // [SQL安全改造] 先保存WHERE条件与绑定参数，防止下方fetchList内部withWhere重置whereParams造成参数错位
+            $where = $this->where;
+            $whereParams = $this->whereParams;
             if ($this->redis->isAvailable()) {
                 $row = $this->fetchList('main.id');
                 foreach ($row as $v) {
                     $this->updateFetchCache((int)$v['id'], $data);
                 }
             }
-            if (!$this->where) {
-                return 0;
-            }
             // [SQL安全改造] 记录WHERE参数数，SET参数后入栈，执行时按SQL顺序重排
-            $whereCount = count($this->whereParams);
-            $sql = 'UPDATE ' . $this->getTableName() . ' main SET ' . $this->implodeSave($data) . $this->where;
+            $whereCount = count($whereParams);
+            $sql = 'UPDATE ' . $this->getTableName() . ' main SET ' . $this->implodeSave($data) . $where;
             $setParams = array_slice($this->whereParams, $whereCount);
             $whereParams = array_slice($this->whereParams, 0, $whereCount);
             $query = $this->db->query($sql, array_merge($setParams, $whereParams));
@@ -486,6 +492,12 @@ class Table extends BaseAbstract
      */
     public function delete(): int
     {
+        if (!$this->where) {
+            return 0;
+        }
+        // [SQL安全改造] 先保存WHERE条件与绑定参数，防止下方fetchList内部withWhere重置whereParams造成参数错位
+        $where = $this->where;
+        $params = $this->whereParams;
         if ($this->redis->isAvailable()) {
             $row = $this->fetchList('main.id');
             foreach ($row as $v) {
@@ -493,10 +505,8 @@ class Table extends BaseAbstract
                 $this->redis->del($cachekey);
             }
         }
-        if (!$this->where) {
-            return 0;
-        }
-        $query = $this->db->query('DELETE main FROM ' . $this->getTableName() . ' main ' . $this->where, $this->whereParams); // [SQL安全改造] 透传绑定参数
+        // [兼容性] 单表DELETE在MySQL 5.x不支持别名，改用多表DELETE兼容语法（5.x/8.x均支持）
+        $query = $this->db->query('DELETE main FROM ' . $this->getTableName() . ' main ' . $where, $params); // [SQL安全改造] 透传绑定参数
         return $this->db->affectedRows($query);
     }
 
@@ -737,7 +747,7 @@ class Table extends BaseAbstract
         $glue = ' ' . trim($glue) . ' ';
         foreach ($array as $k => $v) {
             if (is_array($v)) {
-                $v = serialize($v);
+                $v = json_encode($v);
             }
             $sql .= $comma . $this->quoteField($k) . '=' . $this->quote($v);
             $comma = $glue;

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use Slim\App;
 use Slim\Psr7\UploadedFile;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Helper\Ipdata;
@@ -18,7 +19,19 @@ use SlimCMS\Interfaces\UploadInterface;
 
 class Upload extends BaseAbstract implements UploadInterface
 {
-    use \SlimCMS\Traits\table;
+    use \SlimCMS\Traits\Table;
+
+    private $setting;//站点初始化参数
+    private array $config;//后台配置参数
+    private OutputInterface $output;
+
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->setting = $this->container->get('settings');
+        $this->config = $this->container->get('cfg');
+        $this->output = $this->container->get(OutputInterface::class)($app);
+    }
 
     /**
      * @param string|null $dirrule

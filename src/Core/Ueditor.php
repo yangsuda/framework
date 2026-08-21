@@ -7,15 +7,26 @@
 
 namespace SlimCMS\Core;
 
+use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\UploadInterface;
 
 class Ueditor extends BaseAbstract
 {
-    use \SlimCMS\Traits\table;
+    use \SlimCMS\Traits\Table;
 
     private $uconfig = [];
+
+    private array $config;//后台配置参数
+    private OutputInterface $output;
+
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->config = $this->container->get('cfg');
+        $this->output = $this->container->get(OutputInterface::class)($app);
+    }
 
     public function config(): OutputInterface
     {
@@ -42,6 +53,9 @@ class Ueditor extends BaseAbstract
         } else {
             $file = $this->request->getUploadedFiles();
             $uploadData = $file[$uconfig[$fieldName]] ?? null;
+        }
+        if (empty($uploadData)) {
+            return $this->output->withCode(27013);
         }
         $upload = $this->container->get(UploadInterface::class);
         $res = is_string($uploadData) ? $upload->h5($uploadData) : $upload->upload($uploadData, $type);
@@ -83,7 +97,8 @@ class Ueditor extends BaseAbstract
         /* 获取文件列表 */
         $files = $this->getFiles();
         if (!count($files)) {
-            return ["state" => "no match file", "list" => [], "start" => $start, "total" => count($files)];
+            return $this->output->withCode(200)
+                ->withData(["state" => "no match file", "list" => [], "start" => $start, "total" => count($files)]);
         }
 
         /* 获取指定范围的列表 */

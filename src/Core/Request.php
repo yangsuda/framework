@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace SlimCMS\Core;
 
 use Respect\Validation\Exceptions\ValidationException;
+use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Str;
@@ -15,6 +16,15 @@ use SlimCMS\Interfaces\UploadInterface;
 
 class Request extends BaseAbstract
 {
+
+    private array $config;//后台配置参数
+
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->config = $this->container->get('cfg');
+    }
+
     /**
      * 获取外部传参
      * @param $name
@@ -131,7 +141,7 @@ class Request extends BaseAbstract
                     $data[$k] = strtotime($val);
                     break;
                 case 'serialize':
-                    $data[$k] = $val ? serialize(Str::htmlspecialchars($val)) : '';
+                    $data[$k] = $val ? json_encode(Str::htmlspecialchars($val)) : '';
                     break;
                 case 'url':
                     $data[$k] = str_replace(

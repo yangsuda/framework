@@ -24,13 +24,15 @@ class Upload extends BaseAbstract implements UploadInterface
     private $setting;//站点初始化参数
     private array $config;//后台配置参数
     private OutputInterface $output;
+    private Image $image;
 
-    public function __construct(App $app)
+    public function __construct(App $app, OutputInterface $output,Image $image)
     {
         parent::__construct($app);
         $this->setting = $this->container->get('settings');
         $this->config = $this->container->get('cfg');
-        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->output = $output;
+        $this->image = $image;
     }
 
     /**
@@ -62,13 +64,13 @@ class Upload extends BaseAbstract implements UploadInterface
             $str = preg_replace('/^data:image\/\w+;base64,/', '', $str);
             $data = base64_decode($str);
             if (empty($data)) {
-                return self::$output->withCode(27013);
+                return $this->output->withCode(27013);
             }
 
             //防止伪装成图片的木马上传
             $checkWords = aval($this->setting, 'security/uploadCheckWords');
             if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
-                return self::$output->withCode(23005);
+                return $this->output->withCode(23005);
             }
 
             $dirname = $this->getSaveDir('tmp');
@@ -78,7 +80,7 @@ class Upload extends BaseAbstract implements UploadInterface
             $fileUrl = $tmpPath . $file;
             $success = file_put_contents($fileUrl, $data);
             if (!$success) {
-                return self::$output->withCode(23014);
+                return $this->output->withCode(23014);
             }
 
             if (in_array($matches[2], explode('|', $this->config['mediatype']))) {
@@ -166,7 +168,7 @@ class Upload extends BaseAbstract implements UploadInterface
             return $this->output->withCode($code);
         }
 
-        $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip()), 20), true)) . '.' . $ext;
+        $filename = $imgdir . str_replace('.', '', uniqid(substr(md5(Ipdata::getip($this->request)), 20), true)) . '.' . $ext;
         $post->moveTo($filename);
         $fileurl = str_replace(CSPUBLIC, '/', $filename);
         //保存信息到数据库
@@ -208,7 +210,7 @@ class Upload extends BaseAbstract implements UploadInterface
         is_file($file) && $data['filesize'] = @filesize($file);
         $data['isfirst'] = $isfirst == 1 ? 1 : 2;
         $data['createtime'] = TIMESTAMP;
-        $data['ip'] = Ipdata::getip();
+        $data['ip'] = Ipdata::getip($this->request);
         return $this->t('uploads')->insert($data, true);
     }
 
@@ -231,8 +233,8 @@ class Upload extends BaseAbstract implements UploadInterface
         $fileurl = $result->getData()['fileurl'];
 
         //加水印或缩小图片
-        $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl, aval($option, 'width'), aval($option, 'height'));
-        (!empty($option['water']) || !empty($this->config['waterMark'])) && $this->i(Image::class)->waterImg(CSPUBLIC . $fileurl);
+        $this->image->imageResize(CSPUBLIC . $fileurl, aval($option, 'width'), aval($option, 'height'));
+        (!empty($option['water']) || !empty($this->config['waterMark'])) && $this->image->waterImg(CSPUBLIC . $fileurl);
 
         //保存信息到 session
         $bigfile_info = $session->get('bigfile_info');
@@ -388,7 +390,7 @@ class Upload extends BaseAbstract implements UploadInterface
             if (is_file($newurl)) {
                 return $attachmentHost . $newpic;
             }
-            if (@copy($oldurl, $newurl) && is_file($newurl) && $this->i(Image::class)->resize($newurl, $width, $height)) {
+            if (@copy($oldurl, $newurl) && is_file($newurl) && $this->image->resize($newurl, $width, $height)) {
                 $this->save('/' . $newpic);
             }
             return $attachmentHost . $newpic;

@@ -6,6 +6,8 @@
 
 namespace SlimCMS\Helper;
 
+use Psr\Http\Message\ServerRequestInterface;
+
 class Ipdata
 {
     /**
@@ -131,17 +133,16 @@ class Ipdata
         }
         return $area;
     }
-
+    
     /**
-     * 根据所给 IP 地址或域名返回所在地区信息
-     *
-     * @access public
-     * @param string $ip
+     * 根据请求对象获取IP地址
+     * @param ServerRequestInterface $request
+     * @param $ip
      * @return array
      */
-    public static function getlocation($ip='')
+    public static function getlocation(ServerRequestInterface $request,$ip='')
     {
-        $ip = $ip?:self::getip();
+        $ip = $ip?:self::getip($request);
         self::init();
         $location['ip'] = gethostbyname($ip); // 将输入的域名转化为IP地址
         $ip = self::packip($location['ip']); // 将输入的IP地址转化为可比较的IP地址
@@ -219,21 +220,32 @@ class Ipdata
 
     /**
      * 获取IP
-     * @return mixed
+     * @param ServerRequestInterface $request
+     * @return string
      */
-    public static function getip()
+    public static function getip(ServerRequestInterface $request)
     {
-        $ip = $_SERVER['REMOTE_ADDR'];
-        if (isset($_SERVER['HTTP_CLIENT_IP']) && preg_match('/^([0-9]{1,3}\.){3}[0-9]{1,3}$/', $_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR']) AND preg_match_all('#\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}#s', $_SERVER['HTTP_X_FORWARDED_FOR'], $matches)) {
-            foreach ($matches[0] AS $xip) {
-                if (!preg_match('#^(10|172\.16|192\.168)\.#', $xip)) {
-                    $ip = $xip;
-                    break;
-                }
+        $server = $request->getServerParams();
+        $remoteAddr = (string)($server['REMOTE_ADDR'] ?? '');
+
+        $xff = $request->hasHeader('X-Forwarded-For')
+            ? $request->getHeaderLine('X-Forwarded-For')
+            : (string)($server['HTTP_X_FORWARDED_FOR'] ?? '');
+        if ($xff !== '') {
+            $first = trim(explode(',', $xff)[0]);
+            if (filter_var($first, FILTER_VALIDATE_IP) !== false
+                && !preg_match(self::PRIVATE_IP_PATTERN, $first)) {
+                return $first;
             }
         }
-        return $ip;
+
+        $clientIp = $request->hasHeader('Client-Ip')
+            ? $request->getHeaderLine('Client-Ip')
+            : (string)($server['HTTP_CLIENT_IP'] ?? '');
+        if (filter_var($clientIp, FILTER_VALIDATE_IP) !== false) {
+            return $clientIp;
+        }
+
+        return $remoteAddr;
     }
 }

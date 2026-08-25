@@ -50,7 +50,6 @@ abstract class ControlAbstract extends BaseAbstract
             return $this->resp($output->withCode(21017));
         }
         $data = [];
-        $data['formhash'] = Str::formhash($this->session());
         $data['csrfToken'] = $this->request->getAttribute('csrfToken');
         $data['errorCode'] = $this->getFlash('errorCode');
         $data['errorMsg'] = $this->getFlash('errorMsg');

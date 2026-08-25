@@ -71,7 +71,7 @@ class Image extends BaseAbstract
             }
             $watermark_file = CSPUBLIC . $this->config['markimg'];
             $watermarkinfo = @getimagesize($watermark_file);
-            $watermark_logo = @imagecreatefrompng($watermark_file);
+            $watermark_logo = $imagecreatefunc == 'imagecreatefromjpeg' ? @imagecreatefromjpeg($watermark_file) : @imagecreatefrompng($watermark_file);
             if (!$watermark_logo) {
                 return false;
             }

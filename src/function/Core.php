@@ -36,33 +36,8 @@ function getConfig()
             $settings = require_once CSROOT . 'config/settings.php';
             $cfg = array_merge($cfg, $settings);
         }
-
         //防止最后不加/导致ueditor等加载出错
         $cfg['cfg']['basehost'] = rtrim($cfg['cfg']['basehost'], '/') . '/';
-
-        if (strpos(aval($_SERVER, 'HTTP_ACCEPT_ENCODING'), 'gzip') === false
-            || !function_exists('ob_gzhandler')) {
-            $cfg['settings']['output']['gzip'] = false;
-        }
-        $cfg['cfg']['clienttype'] = function (){
-            $agent = aval($_SERVER, 'HTTP_USER_AGENT');
-            $referer = aval($_SERVER, 'HTTP_REFERER');
-            $clienttype = 0;
-            if (!empty($referer) && strpos($referer, 'servicewechat.com')) {
-                $clienttype = 2;//微信小程序
-            } elseif (preg_match('/MicroMessenger/i', $agent)) {
-                $clienttype = 3;//微信WAP
-            } elseif (preg_match('/NetFront|iPhone|MIDP-2.0|Opera Mini|UCWEB|Android|Windows CE/i', $agent)) {
-                $clienttype = 1;//WAP
-            }
-            return $clienttype;
-        };
-        $cfg['cfg']['referer'] = function (){
-            return aval($_SERVER, 'HTTP_REFERER');
-        };
-        $cfg['cfg']['scriptname'] = function (){
-            return trim(aval($_SERVER, 'SCRIPT_NAME'),'/');
-        };
     }
     return $cfg;
 }
@@ -79,18 +54,4 @@ function versionCheck($ver, $operator = '<=')
         return !defined('VERSION') || defined('VERSION') && version_compare(VERSION, $ver, $operator);
     }
     return defined('VERSION') && version_compare(VERSION, $ver, $operator);
-}
-
-/**
- * 生成小图
- * @param $pic
- * @param int $width
- * @param int $height
- * @param array $more
- * @return mixed|string
- */
-function copyImage($pic, $width = 1000, $height = 1000, $more = [])
-{
-    global $app;
-    return $app->getContainer()->get(UploadInterface::class)->copyImage($pic, $width, $height, $more);
 }

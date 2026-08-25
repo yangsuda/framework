@@ -20,12 +20,16 @@ class Ueditor extends BaseAbstract
 
     private array $config;//后台配置参数
     private OutputInterface $output;
+    private Request $req;
+    private Image $image;
 
-    public function __construct(App $app)
+    public function __construct(App $app, OutputInterface $output, Request $req, Image $image)
     {
         parent::__construct($app);
         $this->config = $this->container->get('cfg');
-        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->output = $output;
+        $this->req = $req;
+        $this->image = $image;
     }
 
     public function config(): OutputInterface
@@ -49,7 +53,7 @@ class Ueditor extends BaseAbstract
     {
         $uconfig = $this->config()->getData();
         if ($fieldName == 'scrawlFieldName') {
-            $uploadData = 'data:image/jpeg;base64,' . $_POST[$uconfig[$fieldName]];
+            $uploadData = 'data:image/jpeg;base64,' . $this->req->input($uconfig[$fieldName]);
         } else {
             $file = $this->request->getUploadedFiles();
             $uploadData = $file[$uconfig[$fieldName]] ?? null;
@@ -65,10 +69,10 @@ class Ueditor extends BaseAbstract
         } else {
             $data = $res->getData();
             if (!empty($data)) {
-                $this->i(Image::class)->imageResize(CSPUBLIC . $data['fileurl']);
+                $this->image->imageResize(CSPUBLIC . $data['fileurl']);
                 //加水印或缩小图片
                 if ($water === true) {
-                    $this->i(Image::class)->waterImg(CSPUBLIC . $data['fileurl']);
+                    $this->image->waterImg(CSPUBLIC . $data['fileurl']);
                 }
 
                 $result['state'] = 'SUCCESS';

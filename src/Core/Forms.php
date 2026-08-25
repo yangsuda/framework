@@ -14,6 +14,7 @@ use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Crypt;
 use SlimCMS\Helper\File;
+use SlimCMS\Helper\Http;
 use SlimCMS\Helper\Ipdata;
 use SlimCMS\Helper\Str;
 use SlimCMS\Helper\Time;
@@ -31,14 +32,16 @@ class Forms extends BaseAbstract
     protected $setting;//站点初始化参数
     protected array $config;//后台配置参数
     protected OutputInterface $output;
+    protected UploadInterface $uploader;
 
-    public function __construct(App $app, Redis $redis)
+    public function __construct(App $app, Redis $redis, UploadInterface $uploader)
     {
         parent::__construct($app);
         $this->redis = $redis;
         $this->setting = $this->container->get('settings');
         $this->config = $this->container->get('cfg');
         $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->uploader = $uploader;
     }
 
     /**
@@ -51,7 +54,7 @@ class Forms extends BaseAbstract
     {
         static $vals = [];
         if (empty($vals[$fid])) {
-            $form = $this->t('forms')->withWhere($fid)->fetch();
+            $form = $this->t('forms')->withWhere(['id' => $fid])->fetch();
             if (empty($form)) {
                 return $this->output->withCode(22006);
             }
@@ -194,7 +197,7 @@ class Forms extends BaseAbstract
                     }
                 }
             }
-            $data = $this->t($form['table'])->withWhere($id)->fetch($fields);
+            $data = $this->t($form['table'])->withWhere(['id' => $id])->fetch($fields);
             if (empty($data)) {
                 return $this->output->withCode(21001);
             }
@@ -566,13 +569,13 @@ class Forms extends BaseAbstract
         }
 
         if (!empty($row['id'])) {
-            $this->t($form['table'])->withWhere($row['id'])->update($data);
+            $this->t($form['table'])->withWhere(['id' => $row['id']])->update($data);
             $data['id'] = $row['id'];
             $data['mngtype'] = 'edit';
             $this->redis->del($this->cacheKey('dataView', $fid, $row['id']));
         } else {
             empty($data['createtime']) && $data['createtime'] = TIMESTAMP;
-            empty($data['ip']) && $data['ip'] = Ipdata::getip();
+            empty($data['ip']) && $data['ip'] = Ipdata::getip($this->request);
             $data['id'] = $this->t($form['table'])->insert($data, true);
             $data['mngtype'] = 'add';
             $row = $data;
@@ -757,7 +760,7 @@ class Forms extends BaseAbstract
                             if (aval($v, 'precisesearch') == 1) {
                                 $where[$v['identifier']] = $val;
                             } else {
-                                $where[] = $this->t()->field($v['identifier'], $val, 'like');
+                                $where[] = [$v['identifier'] => ['like', $val]];
                             }
                         }
                     }
@@ -830,17 +833,6 @@ class Forms extends BaseAbstract
         }
         $list = $this->_enumSubids($egroup, $evalue);
         return $this->output->withCode(200)->withData(['ids' => $list]);
-    }
-
-    /**
-     * 上传类
-     * @return UploadInterface
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
-     */
-    private function upload(): UploadInterface
-    {
-        return $this->container->get(UploadInterface::class);
     }
 
     /**
@@ -1129,18 +1121,17 @@ class Forms extends BaseAbstract
                     $v['_' . $identifier] = aval($rules, $v[$identifier]);
                     break;
                 case 'img':
-                    $width = aval($this->config, 'imgWidth', 800);
-                    $height = aval($this->config, 'imgHeight', 800);
-                    $v['_' . $identifier] = copyImage($v[$identifier], $width, $height);
+                    $width = (int)aval($this->config, 'imgWidth', 800);
+                    $height = (int)aval($this->config, 'imgHeight', 800);
+                    $v['_' . $identifier] = $this->uploader->copyImage($v[$identifier], $width, $height);
+                    $v['_' . $identifier . '_thumbnail'] = $this->uploader->copyImage($v[$identifier], 160, 160);
                     break;
                 case 'imgs':
-                    $width = aval($this->config, 'imgWidth', 800);
-                    $height = aval($this->config, 'imgHeight', 800);
                     $img = !empty($v[$identifier]) ? json_decode($v[$identifier], true) : [];
                     if (is_array($img)) {
                         foreach ($img as $k1 => $v1) {
-                            $v1['originalImg'] = $v1['img'];
-                            $v1['img'] = copyImage($v1['img'], $width, $height);
+                            $v1['originalImg'] = $this->uploader->copyImage($v1['img']);
+                            $v1['img'] = $this->uploader->copyImage($v1['img'], 160, 160);
                             $img[$k1] = $v1;
                         }
                     }
@@ -1288,12 +1279,11 @@ class Forms extends BaseAbstract
                                 $imgurls[$_k] = $_v;
                             }
                         }
-                        $upload = $this->upload();
-                        if ($cfg['clienttype'] > 0) {
+                        if (Http::clientType($this->request) > 0) {
                             for ($i = 0; $i < 10; $i++) {
                                 $picUrl = $this->request()->input($identifier . '_' . $i, 'img');
                                 if ($picUrl) {
-                                    $info = $upload->metaInfo($picUrl, 'url,width')->getData();
+                                    $info = $this->uploader->metaInfo($picUrl, 'url,width')->getData();
                                     $key = md5($picUrl);
                                     $imgurls[$key]['img'] = $picUrl;
                                     $imgurls[$key]['text'] = '';
@@ -1302,7 +1292,7 @@ class Forms extends BaseAbstract
                                 }
                             }
                         } else {
-                            $res = $upload->getWebupload();
+                            $res = $this->uploader->getWebupload();
                             if ($res->getCode() == 200) {
                                 $imgurls += (array)$res->getData();
                             }
@@ -1329,7 +1319,7 @@ class Forms extends BaseAbstract
                                 if (empty($data[$identifier])) {
                                     unset($data[$identifier]);
                                 } else {
-                                    $this->upload()->uploadDel($olddata[$identifier]);
+                                    $this->uploader->uploadDel($olddata[$identifier]);
                                 }
                             }
                         }
@@ -1342,7 +1332,7 @@ class Forms extends BaseAbstract
                         $uploads = $this->request->getUploadedFiles();
                         if (!empty($uploads[$identifier])) {
                             foreach ($uploads[$identifier] as $k1 => $v1) {
-                                $res = $this->upload()->upload($v1, 'addon');
+                                $res = $this->uploader->upload($v1, 'addon');
                                 if ($res->getCode() == 200) {
                                     $addons[] = [
                                         'url' => $res->getData()['fileurl'] ?: '',
@@ -1390,7 +1380,6 @@ class Forms extends BaseAbstract
             if (empty($data[$v['identifier']])) {
                 continue;
             }
-            $upload = $this->upload();
             switch ($v['datatype']) {
                 case 'htmltext':
                     //取出文章附件；
@@ -1399,21 +1388,25 @@ class Forms extends BaseAbstract
                     //移出重复附件；
                     $delname = array_unique($delname['1']);
                     foreach ($delname as $var) {
-                        $upload->uploadDel($var);
+                        $this->uploader->uploadDel($var);
                     }
                     break;
                 case 'imgs':
-                    foreach (json_decode($data[$v['identifier']], true) as $p) {
-                        $upload->uploadDel($p['img']);
+                    if (!empty($data[$v['identifier']]) && Str::isJson($data[$v['identifier']])) {
+                        foreach (json_decode($data[$v['identifier']], true) as $p) {
+                            $this->uploader->uploadDel($p['img']);
+                        }
                     }
                     break;
                 case 'addons':
-                    foreach (json_decode($data[$v['identifier']], true) as $p) {
-                        $upload->uploadDel($p['url']);
+                    if (!empty($data[$v['identifier']]) && Str::isJson($data[$v['identifier']])) {
+                        foreach (json_decode($data[$v['identifier']], true) as $p) {
+                            $this->uploader->uploadDel($p['url']);
+                        }
                     }
                     break;
                 default:
-                    $upload->uploadDel($data[$v['identifier']]);
+                    $this->uploader->uploadDel($data[$v['identifier']]);
                     break;
             }
         }
@@ -1482,7 +1475,7 @@ class Forms extends BaseAbstract
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'htmltext':
-                    if ($this->config['clienttype'] > 0) {
+                    if (Http::clientType($this->request) > 0) {
                         //换行转换处理
                         $v['default'] = str_replace(array('&lt;br /&gt;', '&lt;br&gt;'), "\n", $v['default']);
                         $v['default'] = stripslashes($v['default']);
@@ -1539,9 +1532,12 @@ class Forms extends BaseAbstract
                     $bigfile_info = $this->session()->get('bigfile_info');
                     if (!empty($bigfile_info) && is_array($bigfile_info)) {
                         foreach ($bigfile_info as $s_v) {
-                            $this->upload()->uploadDel($s_v);
+                            $this->uploader->uploadDel($s_v);
                         }
                     }
+                    $v['copyImage'] = function ($pic, int $width = 2000, int $height = 2000) {
+                        return $this->uploader->copyImage($pic, $width, $height);
+                    };
                     $this->session()->delete('bigfile_info');
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
@@ -1551,6 +1547,9 @@ class Forms extends BaseAbstract
                     $v['isLoadh5upload'] = $isLoadh5upload;
                     $v['fid'] = $fid;
                     $v['row'] = $row;
+                    $v['copyImage'] = function (int $width = 2000, int $height = 2000) use ($v) {
+                        return $this->uploader->copyImage($v['default'], $width, $height);
+                    };
                     $v['field'] = $this->output->withData($v)->withTemplate($template)->analysisTemplate(true);
                     break;
                 case 'serialize':
@@ -1794,6 +1793,48 @@ class Forms extends BaseAbstract
                     throw new TextException(21000, $msg . '值不正确');
                 }
             }
+        }
+        return $data;
+    }
+
+    /**
+     * 序列化图集
+     * @param $imgs
+     * @return string
+     */
+    public function serializeImgs($imgs): string
+    {
+        if (empty($imgs)) {
+            return '';
+        }
+        $imgurls = [];
+        foreach ($imgs as $v) {
+            if (!empty($v['url'])) {
+                $key = md5($v['url']);
+                $imgurls[$key]['img'] = Str::htmlspecialchars($v['url']);
+                $imgurls[$key]['text'] = !empty($v['text']) ? Str::htmlspecialchars($v['text']) : '';
+            }
+        }
+        return $imgurls ? json_encode($imgurls) : '';
+    }
+
+    /**
+     * 反序列化图集
+     * @param string $imgs
+     * @param int $width
+     * @param int $height
+     * @return array
+     */
+    public function unserializeImgs(string $imgs, int $width = 1000, int $height = 1000): array
+    {
+        if (empty($imgs)) {
+            return [];
+        }
+        $data = array_values(json_decode($imgs, true));
+        foreach ($data as &$v1) {
+            $ext = pathinfo($v1['img'], PATHINFO_EXTENSION);
+            $v1['originImg'] = $v1['img'];
+            $v1['img'] = $this->uploader->copyImage($v1['img'], $width, $height);
         }
         return $data;
     }

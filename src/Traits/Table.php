@@ -17,6 +17,8 @@ trait Table
         }
         if (empty($objs[$name . $extendName])) {
             $objs[$name . $extendName] = $this->i($classname)->setTableName($name, $extendName);
+        }else{
+            $objs[$name . $extendName]->setRequest($this->request);
         }
         return $objs[$name . $extendName];
     }

@@ -55,12 +55,6 @@ class Table extends BaseAbstract
     protected $whereParams = [];
 
     /**
-     * 查询条件是否纯数字,>0为对应数字
-     * @var bool
-     */
-    protected $whereIsNumber = 0;
-
-    /**
      * 联表查SQL
      * @var string
      */
@@ -220,16 +214,12 @@ class Table extends BaseAbstract
     public function fetch(string $fields = '*', int $cacheTime = 0)
     {
         if ($this->redis->isAvailable() && !$this->join) {
-            if ($this->whereIsNumber) {
-                $indexid = $this->whereIsNumber;
-            } else {
-                $key = $this->cacheKey(__FUNCTION__) . $this->md5key();
-                $indexid = $cacheTime ? $this->redis->get($key) : '';
-                if (empty($indexid)) {
-                    $sql = $this->selectSQL('id');
-                    $indexid = $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
-                    $cacheTime && $this->redis->set($key, $indexid, $cacheTime);
-                }
+            $key = $this->cacheKey(__FUNCTION__) . $this->md5key();
+            $indexid = $cacheTime ? $this->redis->get($key) : '';
+            if (empty($indexid)) {
+                $sql = $this->selectSQL('id');
+                $indexid = $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
+                $cacheTime && $this->redis->set($key, $indexid, $cacheTime);
             }
             if (empty($indexid)) {
                 return null;
@@ -237,7 +227,7 @@ class Table extends BaseAbstract
             $cachekey = $this->cacheKey($indexid);
             $data = $this->redis->get($cachekey);
             if (empty($data)) {
-                $data = $this->db->fetch('SELECT * FROM ' . $this->getTableName() . ' main WHERE id=' . $indexid);
+                $data = $this->db->fetch('SELECT * FROM ' . $this->getTableName() . ' main WHERE id=?', [(int)$indexid]);
                 $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
             }
         } else {
@@ -276,6 +266,17 @@ class Table extends BaseAbstract
     }
 
     /**
+     * 生成缓存KEY
+     * @param $key
+     * @param mixed ...$param
+     * @return string
+     */
+    protected function cacheKey($key, ...$param): string
+    {
+        return get_called_class() . ':' . $this->getTableName() . ':' . $key . ':' . Str::md5key($param);
+    }
+
+    /**
      * 列表数据
      * @param string $fields
      * @param string $indexField
@@ -294,7 +295,7 @@ class Table extends BaseAbstract
                 $list = $this->db->fetchList($sql, $indexField, $this->whereParams); // [SQL安全改造] 透传绑定参数
                 if ($this->redis->isAvailable()) {
                     foreach ($list as $k => $v) {
-                        $data = !empty($v['id']) ? $this->withWhere($v['id'])->fetch($fields) : [];
+                        $data = !empty($v['id']) ? $this->withWhere(['id' => $v['id']])->fetch($fields) : [];
                         if (!strpos($fields, ',') && $fields != '*' && $data) {
                             $fields = str_replace('main.', '', $fields);
                             $data = [$fields => $data];
@@ -337,7 +338,7 @@ class Table extends BaseAbstract
             foreach ($list as $k => $v) {
                 //如果开启缓存，读取缓存中数据
                 if ($cacheTime) {
-                    $arr[] = $this->withWhere($v['id'])->fetch($field);
+                    $arr[] = $this->withWhere(['id' => $v['id']])->fetch($field);
                 } else {
                     $arr[] = $v[$field];
                 }
@@ -539,15 +540,12 @@ class Table extends BaseAbstract
      */
     public function withWhere($val): Table
     {
-        $this->whereIsNumber = 0;
-        $this->whereParams = []; // [SQL安全改造] 每次重建条件时重置绑定参数，防止残留
+        $clone = clone $this;
+        $clone->whereParams = []; // [SQL安全改造] 每次重建条件时重置绑定参数，防止残留
         if (empty($val)) {
             $where = '';
         } elseif (is_array($val)) {
-            $where = $this->implode($val, 'and');
-        } elseif (is_numeric($val)) {
-            $this->whereIsNumber = $val;
-            $where = $this->field('id', $val);
+            $where = $clone->implode($val, 'and');
         } else {
             $val = (string)$val;
             // [SQL安全改造] 字符串条件收紧：阻断注释/分号注入（保留常规SQL条件写法）
@@ -556,7 +554,6 @@ class Table extends BaseAbstract
             }
             $where = str_replace(' where ', '', $val);
         }
-        $clone = clone $this;
         $clone->where = $where ? ' where ' . $where : '';
         return $clone;
     }
@@ -652,7 +649,7 @@ class Table extends BaseAbstract
         return $field;
     }
 
-    public function field($field, $val, $glue = '=')
+    private function field($field, $val, $glue = '=')
     {
         $field = $this->quoteField($field);
         if (empty($val) && is_array($val)) {
@@ -824,6 +821,9 @@ class Table extends BaseAbstract
         $condition[] = $this->where;
         $condition[] = $this->whereParams; // [SQL安全改造] 绑定参数参与缓存KEY，防止不同参数命中同一缓存
         $condition[] = $this->join;
+        $condition[] = $this->orderby;
+        $condition[] = $this->limit;
+        $condition[] = $this->groupby;
         return Str::md5key($condition);
     }
 }

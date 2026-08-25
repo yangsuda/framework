@@ -9,28 +9,8 @@ use SlimCMS\Interfaces\OutputInterface;
 
 trait Form
 {
-    public function formVerify(string $formhash, string $ccode = null): self
+    public function formVerify( string $ccode = null): self
     {
-        $output = $this->container->get(OutputInterface::class)($this->app);
-        $config = $this->container->get('cfg');
-        $server = $this->request->getServerParams();
-        $referer = '';
-        if (!empty($server['HTTP_REFERER'])) {
-            $parse = parse_url(aval($server, 'HTTP_REFERER'));
-            $referer = $parse['host'];
-        }
-        $parse = parse_url($config['basehost']);
-        $host = $parse['host'];
-
-        if ($server['REQUEST_METHOD'] == 'POST' &&
-            $formhash == $this->session()->get('formHash') &&
-            empty($server['HTTP_X_FLASH_VERSION']) &&
-            $host == $referer) {
-            $this->session()->delete('formHash');
-            $this->output = $this->output->withCode(200);
-        } else {
-            $this->output = $this->output->withCode(24024);
-        }
         //如启用验证码，对验证码验证
         if (isset($ccode) && $this->session()->get('VerifyCode') != strtolower($ccode)) {
             $this->session()->delete('VerifyCode');

@@ -7,45 +7,50 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
+use SlimCMS\Helper\Http;
 use SlimCMS\Interfaces\OutputInterface;
 use SlimCMS\Interfaces\TemplateInterface;
 
 class Output implements OutputInterface
 {
-    private $app;
+    private App $app;
     /**
      * @var int
      */
-    private $code = 200;
+    private int $code = 200;
 
     /**
      * @var array|object|null
      */
-    private $data = [];
+    private array $data = [];
 
     /**
      * @var array|object|null
      */
-    private $msg = '操作成功';
+    private string $msg = '操作成功';
 
-    private $referer;
+    private string $referer;
 
-    private $template = 'prompt';
+    private string $template = 'prompt';
 
     /**
      * 额外提示信息
      * @var array
      */
-    private $extraPrompt = [];
+    private array $extraPrompt = [];
 
     /**
      * 容器
      * @var \DI\Container|mixed
      */
-    public $container;
+    public ContainerInterface $container;
 
-    private $attribute = [];
+    private array $attribute = [];
+
+    private ServerRequestInterface $request;
 
     /**
      * {@inheritdoc}
@@ -53,9 +58,9 @@ class Output implements OutputInterface
     public function __invoke(App $app)
     {
         $this->app = $app;
-        $this->container = $app->getContainer()->get('DI\Container');
-        $cfg = $this->container->get('cfg');
-        $this->referer = $cfg['referer'];
+        $this->container = $app->getContainer();
+        $this->request = $this->container->get(ServerRequestInterface::class);
+        $this->referer = $this->request->getServerParams()['HTTP_REFERER'] ?? '';
         return $this;
     }
 
@@ -206,6 +211,7 @@ class Output implements OutputInterface
             $referer = $this->referer;
             $data = $this->data;
             $cfg = $this->container->get('cfg');
+            $cfg['clienttype'] = Http::clientType($this->request);
             include($this->container->get(TemplateInterface::class)::loadTemplate($this->template, $force));
             $content = ob_get_contents();
             ob_end_clean();

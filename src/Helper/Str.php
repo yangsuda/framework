@@ -33,7 +33,7 @@ class Str
 
     public static function random(int $length, int $numeric = 0)
     {
-        $seed = base_convert(md5(microtime() . $_SERVER['DOCUMENT_ROOT']), 16, $numeric ? 10 : 35);
+        $seed = base_convert(md5(microtime() . random_bytes(16)), 16, $numeric ? 10 : 35);
         $seed = $numeric ? (str_replace('0', '', $seed) . '012340567890') : ($seed . 'zZ' . strtoupper($seed));
         if ($numeric) {
             $hash = '';
@@ -407,57 +407,12 @@ class Str
         return substr($mobile, 0, $front) . '***' . substr($mobile, $after);
     }
 
-    /**
-     * 序列化图集
-     * @param $imgs
-     * @return string
-     */
-    public static function serializeImgs($imgs): string
-    {
-        if (empty($imgs)) {
-            return '';
+    public static function isJson($string) {
+        if (!is_string($string)) {
+            return false;
         }
-        $imgurls = [];
-        foreach ($imgs as $v) {
-            if (!empty($v['url'])) {
-                $key = md5($v['url']);
-                $imgurls[$key]['img'] = Str::htmlspecialchars($v['url']);
-                $imgurls[$key]['text'] = !empty($v['text']) ? Str::htmlspecialchars($v['text']) : '';
-            }
-        }
-        return $imgurls ? json_encode($imgurls) : '';
-    }
 
-    /**
-     * 反序列化图集
-     * @param string $imgs
-     * @param int $width
-     * @param int $height
-     * @return array
-     */
-    public static function unserializeImgs(string $imgs, int $width = 1000, int $height = 1000): array
-    {
-        if (empty($imgs)) {
-            return [];
-        }
-        $data = array_values(json_decode($imgs, true));
-        foreach ($data as &$v1) {
-            $ext = pathinfo($v1['img'], PATHINFO_EXTENSION);
-            $v1['originImg'] = $v1['img'];
-            $v1['img'] = copyImage($v1['img'], $width, $height);
-        }
-        return $data;
-    }
-
-    /**
-     * 获取表单检验KEY
-     * @return bool|string
-     */
-    public static function formHash(Session $session): string
-    {
-        $timestamp = substr((string)TIMESTAMP, 0, -1) . '0' . session_id();
-        $formHash = substr(md5($timestamp), 8, 8);
-        $session->set('formHash', $formHash);
-        return $formHash;
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }

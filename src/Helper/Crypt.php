@@ -21,15 +21,19 @@ class Crypt
             return '';
         }
         if (is_array($str)) {
-            $str = serialize($str);
+            $str = json_encode($str);
         }
         $config = getConfig();
         $keys = &$config['settings']['keys'];
         $key = hash('sha256', $keys['key']);
-        $iv = substr(hash('sha256', $keys['iv']), 0, 16);
-        $str = (string)openssl_encrypt((string)$str, 'AES-256-CBC', $key, 0, $iv);
-        $str = str_replace('+', '.', $str);
-        return $str;
+        // 每次加密随机生成 IV，杜绝 IV 复用引发的明文相等泄露与 Padding Oracle 风险
+        $iv = random_bytes(16);
+        $ct = openssl_encrypt((string)$str, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        if ($ct === false) {
+            return '';
+        }
+        // IV 随密文一起存储：base64(IV + ciphertext)
+        return base64_encode($iv . $ct);
     }
 
     /**
@@ -42,21 +46,33 @@ class Crypt
         if (empty($str)) {
             return '';
         }
-        $str = str_replace('.', '+', $str);
-        $str = urldecode(str_replace('%25', '%', urlencode($str)));
         $config = getConfig();
         $keys = &$config['settings']['keys'];
         $key = hash('sha256', $keys['key']);
-        $iv = substr(hash('sha256', $keys['iv']), 0, 16);
-        $data = openssl_decrypt($str, 'AES-256-CBC', $key, 0, $iv);
-        $result = '';
-        if (!empty($data) && preg_match("/^[a]:[0-9]+:{(.*)}$/", $data)) {
-            $result = unserialize($data);
+
+        // 新格式：base64(IV + ciphertext)，IV 随机且随密文一起存储
+        $raw = base64_decode($str, true);
+        if ($raw === false || strlen($raw) < 16) {
+            return '';
         }
-        if (!is_array($result)) {
-            $result = $data;
+        $iv = substr($raw, 0, 16);
+        $ct = substr($raw, 16);
+        $data = openssl_decrypt($ct, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $data === false ? '' : self::unpackPlaintext($data);
+    }
+
+    /**
+     * 解密明文整理：JSON 字符串还原为数组，其余原样返回
+     */
+    private static function unpackPlaintext(string $data)
+    {
+        if (!empty($data) && Str::isJson($data)) {
+            $arr = json_decode($data, true);
+            if (is_array($arr)) {
+                return $arr;
+            }
         }
-        return $result;
+        return $data;
     }
 
     /**

@@ -9,6 +9,7 @@ namespace SlimCMS\Core;
 
 use Psr\Container\ContainerInterface;
 use SlimCMS\Error\TextException;
+use SlimCMS\Helper\Str;
 
 class Redis
 {
@@ -90,10 +91,7 @@ class Redis
             return null;
         }
         $data = $this->redis->get($key);
-        if (is_numeric($data)) {
-            return $data;
-        }
-        return $data ? unserialize($data) : $data;
+        return $data && Str::isJson($data) ? json_decode($data, true) : $data;
     }
 
     public function set($key, $data, $ttl = 12960000)
@@ -103,8 +101,8 @@ class Redis
             return null;
         }
         if (!empty($data)) {
-            if (!is_numeric($data)) {
-                $data = serialize($data);
+            if (is_array($data)) {
+                $data = json_encode($data);
             }
             $this->redis->set($key, $data, $ttl);
             return true;
@@ -125,8 +123,8 @@ class Redis
             return null;
         }
         if (!empty($data)) {
-            if (!is_numeric($data)) {
-                $data = serialize($data);
+            if (is_array($data)) {
+                $data = json_encode($data);
             }
             $res = $this->redis->setnx($key, $data);
             if ($res && $ttl) {
@@ -1180,7 +1178,7 @@ class Redis
     {
         $queueKey = 'messageQueue';
         $this->cacheKey($queueKey);
-        $value = serialize($value);
+        $value = is_array($value) ? json_encode($value) : $value;
         $this->rpush($queueKey, $value, $ttl);
         return true;
     }
@@ -1196,9 +1194,21 @@ class Redis
         $this->cacheKey($queueKey);
         $data = $this->lpop($queueKey);
         if (!empty($data)) {
-            $data = unserialize($data);
+            $data = Str::isJson($data) ? json_decode($data, true) : $data;
             return $callback($data);
         }
         return false;
+    }
+
+    /**
+     * 获取redis实例
+     * @return \Redis|null
+     */
+    public function getRedis(): ?\Redis
+    {
+        if (empty($this->redis)) {
+            return null;
+        }
+        return $this->redis;
     }
 }

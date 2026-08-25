@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace SlimCMS\Helper;
 
+use Psr\Http\Message\ServerRequestInterface;
+
 class Http
 {
     public static function curlGet(string $url, array $headers = [], array $setopt = [])
@@ -73,5 +75,27 @@ class Http
         fclose($sock);
         preg_match('/^Location: (.+?)$/im', $response, $matches);
         return trim($matches[1]);
+    }
+
+    /**
+     * 客户端类型识别
+     * 0=PC 1=WAP 2=微信小程序 3=微信WAP
+     */
+    public static function clientType(ServerRequestInterface $request): int
+    {
+        $serverParams = $request->getServerParams();
+        $agent = (string)($serverParams['HTTP_USER_AGENT'] ?? '');
+        $referer = (string)($serverParams['HTTP_REFERER'] ?? '');
+
+        if ($referer !== '' && str_contains($referer, 'servicewechat.com')) {
+            return 2;
+        }
+        if (preg_match('/MicroMessenger/i', $agent)) {
+            return 3;
+        }
+        if (preg_match('/NetFront|iPhone|MIDP-2.0|Opera Mini|UCWEB|Android|Windows CE/i', $agent)) {
+            return 1;
+        }
+        return 0;
     }
 }

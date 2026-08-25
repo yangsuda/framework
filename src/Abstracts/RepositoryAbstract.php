@@ -10,7 +10,9 @@ namespace SlimCMS\Abstracts;
 use Respect\Validation\Exceptions\ValidationException;
 use Slim\App;
 use SlimCMS\Core\Forms;
+use SlimCMS\Core\Redis;
 use SlimCMS\Error\TextException;
+use SlimCMS\Helper\FileCache;
 use SlimCMS\Interfaces\OutputInterface;
 
 abstract class RepositoryAbstract extends BaseAbstract
@@ -37,24 +39,71 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected array $config;//后台配置参数
     protected OutputInterface $output;
     protected Forms $forms;
+    protected Redis $redis;
 
-    public function __construct(App $app, Forms $forms)
+    public function __construct(App $app, Forms $forms, Redis $redis)
     {
         parent::__construct($app);
         $this->setting = $this->container->get('settings');
         $this->config = $this->container->get('cfg');
         $this->output = $this->container->get(OutputInterface::class)($app);
         $this->forms = $forms;
+        $this->redis = $redis;
         $this->initialize();
     }
 
     protected function initialize()
     {
         $this->tableName = preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
-        $this->formId = (int)$this->t('forms')->withWhere(['table' => $this->tableName])->fetch('id');
+        $list = $this->tableMap();
+        $this->formId = aval($list, $this->tableName);
         if (empty($this->formId)) {
             throw new TextException(21039);
         }
+    }
+
+    /**
+     * 获取表名映射
+     * @return array|mixed|null
+     */
+    private function tableMap()
+    {
+        $cacheKey = __FUNCTION__;
+        $list = $this->getCache($cacheKey);
+        if (empty($list)) {
+            $data = $this->t('forms')->fetchList('id,table');
+            $list = array_column($data, 'id', 'table');
+            $this->setCache($cacheKey, $list);
+        }
+        return $list;
+    }
+
+    /**
+     * 获取缓存
+     * @param string $key
+     * @return mixed|null
+     */
+    protected function getCache(string $key)
+    {
+        if ($this->redis->isAvailable()) {
+            return $this->redis->get($key);
+        }
+        return FileCache::get($key);
+    }
+
+    /**
+     * 设置缓存
+     * @param string $key
+     * @param $value
+     * @param int $ttl
+     * @return bool|null
+     */
+    protected function setCache(string $key, $value, int $ttl = 300)
+    {
+        if ($this->redis->isAvailable()) {
+            return $this->redis->set($key, $value, $ttl);
+        }
+        return FileCache::set($key, $value, $ttl);
     }
 
     /**
@@ -501,7 +550,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id) || empty($value)) {
             throw new TextException(21010);
         }
-        return $this->t($this->tableName)->withWhere($id)->update($value);
+        return $this->t($this->tableName)->withWhere(['id' => $id])->update($value);
     }
 
     /**
@@ -590,7 +639,7 @@ abstract class RepositoryAbstract extends BaseAbstract
 
     public function pageList(string $fields = '*', int $page = 1, int $pagesize = 30, int $cacheTime = 0, string $indexField = ''): array
     {
-        if (empty($field)) {
+        if (empty($fields)) {
             throw new TextException(21010);
         }
         $data = $this->t($this->tableName)

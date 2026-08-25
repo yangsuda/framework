@@ -18,11 +18,15 @@ class Request extends BaseAbstract
 {
 
     private array $config;//后台配置参数
+    private UploadInterface $upload;
+    private Image $image;
 
-    public function __construct(App $app)
+    public function __construct(App $app, Image $image, UploadInterface $upload)
     {
         parent::__construct($app);
         $this->config = $this->container->get('cfg');
+        $this->upload = $upload;
+        $this->image = $image;
     }
 
     /**
@@ -77,7 +81,7 @@ class Request extends BaseAbstract
                 }
                 if (preg_match("/$val/i", $word)) {
                     //过滤掉后台参数设置
-                    if ($this->request->getAttribute('adminContext') === false) {
+                    if ($this->request->getAttribute('adminContext') !== true) {
                         throw new TextException(21051, ['msg' => $val]);
                     }
                 }
@@ -182,16 +186,15 @@ class Request extends BaseAbstract
                     break;
                 case 'media':
                 case 'addon':
-                    $upload = $this->i(UploadInterface::class);
-                    $res = is_string($val) ? $upload->h5($val) : $upload->upload($this->request->getUploadedFiles()[$k], $v);
+                    $res = is_string($val) ? $this->upload->h5($val) : $this->upload->upload($this->request->getUploadedFiles()[$k], $v);
                     if ($res->getCode() != 200 && $res->getCode() != 23001) {
                         throw new TextException($res->getCode());
                     }
                     $fileurl = $res->getData()['fileurl'] ?? '';
                     if ($fileurl && !empty($this->config['waterMark'])) {
                         //加水印或缩小图片
-                        $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl);
-                        $this->i(Image::class)->waterImg(CSPUBLIC . $fileurl);
+                        $this->image->imageResize(CSPUBLIC . $fileurl);
+                        $this->image->waterImg(CSPUBLIC . $fileurl);
                     }
                     $data[$k] = $fileurl;
                     break;
@@ -211,21 +214,20 @@ class Request extends BaseAbstract
                         if (strpos($v, ',')) {
                             list(, $width, $height) = explode(',', $v);
                         }
-                        $upload = $this->i(UploadInterface::class);
                         if (is_string($val)) {
-                            $res = $upload->h5($val);
+                            $res = $this->upload->h5($val);
                         } else {
-                            $res = $upload->upload($this->request->getUploadedFiles()[$k], 'image');
+                            $res = $this->upload->upload($this->request->getUploadedFiles()[$k], 'image');
                         }
                         if ($res->getCode() != 200 && $res->getCode() != 23001) {
                             throw new TextException($res->getCode());
                         }
                         $fileurl = aval($res->getData(), 'fileurl') ?: '';
                         if ($fileurl && $width) {
-                            $this->i(Image::class)->imageResize(CSPUBLIC . $fileurl, $width, $height);
+                            $this->image->imageResize(CSPUBLIC . $fileurl, $width, $height);
                         }
                         $data[$k] = $fileurl;
-                    } elseif (preg_match('/^isset/i', $v) && isset($_GET[$k])) {
+                    } elseif (preg_match('/^isset/i', $v) && ($get = $this->request->getQueryParams()) && isset($get[$k])) {
                         $data[$k] = Str::htmlspecialchars($val);
                         if (strpos($v, ',')) {
                             list($v, $val1, $val2) = explode(',', $v);

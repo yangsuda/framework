@@ -42,8 +42,9 @@ class Database implements DatabaseInterface
                 $db = &$this->setting['db'];
                 $options = aval($db, 'pconnect') ? [\PDO::ATTR_PERSISTENT => true] : [];
                 $options[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION; // [SQL安全改造] 开启异常模式，统一错误处理
+                $sqlMode = aval($db, 'sql_mode') ?: 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION';
                 $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET character_set_connection=' . aval($db, 'dbcharset') .
-                    ', character_set_results=' . aval($db, 'dbcharset') . ', character_set_client=binary, sql_mode=\'\'';
+                    ', character_set_results=' . aval($db, 'dbcharset') . ', character_set_client=binary, sql_mode=\'' . $sqlMode . '\'';
                 $connecttype = aval($db, 'connecttype') == ':' ? ':' : ';port=';
                 $dsn = 'mysql:host=' . aval($db, 'dbhost') . $connecttype . aval($db, 'dbport') . ';dbname=' . aval($db, 'dbname');
                 return new PDO($dsn, aval($db, 'dbuser'), aval($db, 'dbpw'), $options);
@@ -87,8 +88,7 @@ class Database implements DatabaseInterface
                 File::log('SQL')->info($realSql);
             }
         } catch (PDOException $e) {
-            $msg = $e->getMessage() . " " . $sql;
-            throw new TextException(21055, $msg, 'pdo');
+            throw new TextException(21055, $e->getMessage(), 'pdo');
         }
         return $query;
     }
@@ -98,37 +98,47 @@ class Database implements DatabaseInterface
      */
     private function interpolateQuery(string $sql, array $params = [])
     {
-        $keys = array();
-        $values = $params;
-
-        // 处理命名参数 :name 或 ? 占位符
-        foreach ($params as $key => $value) {
-            if (is_string($key)) {
-                $keys[] = '/:' . $key . '/';
-            } else {
-                $keys[] = '/\?/';
-            }
-
-            // 转义字符串
-            if (is_string($value)) {
-                $values[$key] = "'" . addslashes($value) . "'";
-            } elseif (is_null($value)) {
-                $values[$key] = 'NULL';
-            } elseif (is_bool($value)) {
-                $values[$key] = $value ? '1' : '0';
-            }
+        if (empty($params)) {
+            return $sql;
         }
 
-        // 替换占位符
-        if (strpos($sql, ':') !== false) {
-            // 命名参数
-            $realSql = preg_replace($keys, $values, $sql, 1);
-        } else {
-            // ? 占位符
-            $realSql = preg_replace($keys, $values, $sql, 1);
+        // 命名参数 :name：用 strtr 整体替换，规避正则元字符与 limit 截断问题
+        if (is_string(key($params))) {
+            $replaced = [];
+            foreach ($params as $key => $value) {
+                $replaced[':' . $key] = $this->quoteForLog($value);
+            }
+            return strtr($sql, $replaced);
         }
 
+        // ? 占位符：按出现顺序逐个替换
+        $segments = explode('?', $sql);
+        if (count($segments) - 1 !== count($params)) {
+            return $sql;
+        }
+        $realSql = $segments[0];
+        for ($i = 0, $n = count($params); $i < $n; $i++) {
+            $realSql .= $this->quoteForLog($params[$i]) . $segments[$i + 1];
+        }
         return $realSql;
+    }
+
+    /**
+     * 为调试日志生成字面值：走 PDO 驱动层 quote() 转义，与连接字符集一致，避免 addslashes 多字节绕过
+     */
+    private function quoteForLog($value): string
+    {
+        if (is_null($value)) {
+            return 'NULL';
+        }
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+        if (is_int($value) || is_float($value)) {
+            return (string)$value;
+        }
+        $quoted = $this->link->quote((string)$value);
+        return $quoted === false ? "'" . addslashes((string)$value) . "'" : $quoted;
     }
 
     /**

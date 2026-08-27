@@ -30,7 +30,6 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected $groupBy = '';//分组排序
     protected $respExtraRowFields = '';//行额外数据
     protected $respExtraFields = '';//列表额外数据
-    protected $limit;
     protected $auth;
     protected $query = [];//查询参数
     private $tableName = '';
@@ -40,6 +39,8 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected OutputInterface $output;
     protected Forms $forms;
     protected Redis $redis;
+    protected int $page = 1;
+    protected int $pageSize = 0;
 
     public function __construct(App $app, Forms $forms, Redis $redis)
     {
@@ -415,16 +416,16 @@ abstract class RepositoryAbstract extends BaseAbstract
         return $this->respExtraFields;
     }
 
-    public function withLimit($limit): self
+    public function withLimit(int $pageSize = 30, int $page = 1): self
     {
+        if ($page < 1 || $pageSize < 1) {
+            return $this;
+        }
         $clone = clone $this;
-        $clone->limit = $limit;
+        $start = ($page - 1) * $pageSize;
+        $clone->page = $page;
+        $clone->pageSize = $pageSize;
         return $clone;
-    }
-
-    public function getLimit()
-    {
-        return $this->limit;
     }
 
     public function withAuth(array $auth): self
@@ -629,7 +630,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
-            ->withLimit($this->limit)
+            ->withLimit($this->pageSize, $this->page)
             ->fetchList($field, $indexField, $cacheTime);
         if (!empty($this->respExtraRowFields)) {
             $this->listRowHandle($list);
@@ -637,7 +638,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         return $list;
     }
 
-    public function pageList(string $fields = '*', int $page = 1, int $pagesize = 30, int $cacheTime = 0, string $indexField = ''): array
+    public function pageList(string $fields = '*', int $cacheTime = 0, string $indexField = ''): array
     {
         if (empty($fields)) {
             throw new TextException(21010);
@@ -647,7 +648,8 @@ abstract class RepositoryAbstract extends BaseAbstract
             ->withGroupby($this->groupBy)
             ->withOrderby($this->order, $this->by)
             ->withJoin($this->joins)
-            ->pageList($page, $this->transFields($fields), $pagesize, $cacheTime, $indexField);
+            ->withLimit($this->pageSize, $this->page)
+            ->pageList($this->transFields($fields), $cacheTime, $indexField);
         if (!empty($this->respExtraRowFields)) {
             $this->listRowHandle($data['list']);
         }

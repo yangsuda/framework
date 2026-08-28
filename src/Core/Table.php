@@ -84,6 +84,9 @@ class Table extends BaseAbstract
 
     protected $setting;//站点初始化参数
 
+    protected int $page = 1;
+    protected int $pageSize = 30;
+
     public function __construct(App $app, Redis $redis)
     {
         parent::__construct($app);
@@ -112,10 +115,11 @@ class Table extends BaseAbstract
      */
     public function setTableName(string $tableName, string $extendName = null): self
     {
-        $this->tableName = $this->tablepre . $tableName;
-        $this->extendName = $extendName;
-        $extendName && $this->subtable($extendName);
-        return $this;
+        $clone = clone $this;
+        $clone->tableName = $this->tablepre . $tableName;
+        $clone->extendName = $extendName;
+        $extendName && $clone->subtable($extendName);
+        return $clone;
     }
 
     public function getTableName(): string
@@ -184,7 +188,8 @@ class Table extends BaseAbstract
         }
         if (empty($count)) {
             $fields = $fields ?: '*';
-            $sql = $this->selectSQL('count(' . $fields . ')');
+            $sql = $sql = 'SELECT count(' . $fields . ') FROM ' . $this->getTableName() . ' main ' .
+                $this->join . $this->where . $this->groupby . $this->orderby;
             if ($this->groupby) {
                 $sql = 'select count(*) from (' . $sql . ') as tmp';
             }
@@ -221,48 +226,49 @@ class Table extends BaseAbstract
                 $indexid = $this->db->fetchColumn($sql, 0, $this->whereParams); // [SQL安全改造] 透传绑定参数
                 $cacheTime && $this->redis->set($key, $indexid, $cacheTime);
             }
-            if (empty($indexid)) {
-                return null;
-            }
-            $cachekey = $this->cacheKey($indexid);
-            $data = $this->redis->get($cachekey);
-            if (empty($data)) {
-                $data = $this->db->fetch('SELECT * FROM ' . $this->getTableName() . ' main WHERE id=?', [(int)$indexid]);
-                $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
-            }
-        } else {
-            $data = [];
-            if (!empty($this->where)) {
-                $sql = $this->selectSQL('*');
-                $data = $this->db->fetch($sql, $this->whereParams); // [SQL安全改造] 透传绑定参数
-            }
+            $data = $indexid ? $this->fetchById((int)$indexid, $fields) : null;
+            return isset($data[$fields]) ? $data[$fields] : $data;
         }
-
-        if ($fields == '*') {
-            return $data;
-        }
-        if (preg_match('/,/', $fields)) {
-            $fields = explode(',', $fields);
-            $row = [];
-            foreach ($fields as $v) {
-                $v = str_replace('main.', '', $v);
-                if (preg_match('/ as /i', $v)) {
-                    list($v, $v1) = explode(' as ', $v);
-                    if (isset($data[$v])) {
-                        $row[trim($v1)] = trim($data[$v]);
-                    }
-                } else {
-                    if (isset($data[$v])) {
-                        $row[$v] = $data[$v];
-                    }
-                }
-            }
-            return $row;
+        $data = [];
+        if (!empty($this->where)) {
+            $sql = $this->selectSQL($fields);
+            $data = $this->db->fetch($sql, $this->whereParams); // [SQL安全改造] 透传绑定参数
         }
         $fields = str_replace('main.', '', $fields);
         if (isset($data[$fields])) {
             return $data[$fields];
         }
+        return $data;
+    }
+
+    /**
+     * 获取某条记录
+     * @param int $id
+     * @param string $fields
+     * @return array
+     */
+    private function fetchById(int $id, string $fields): array
+    {
+        if (empty($id) || empty($fields)) {
+            return [];
+        }
+        $cachekey = $this->cacheKey($id);
+        $data = $this->redis->isAvailable() ? $this->redis->get($cachekey) : [];
+        if (empty($data)) {
+            $data = $this->db->fetch('SELECT * FROM ' . $this->getTableName() . ' WHERE id=?', [$id]);
+            $this->fetchTTL && $this->redis->set($cachekey, $data, $this->fetchTTL);
+        }
+        if ($fields == '*') {
+            return $data;
+        }
+        $fields = explode(',', str_replace('main.', '', $fields));
+        $row = [];
+        foreach ($fields as $v) {
+            if (isset($data[$v])) {
+                $row[$v] = $data[$v];
+            }
+        }
+        return $row;
     }
 
     /**
@@ -294,13 +300,8 @@ class Table extends BaseAbstract
                 $sql = $this->selectSQL($field1);
                 $list = $this->db->fetchList($sql, $indexField, $this->whereParams); // [SQL安全改造] 透传绑定参数
                 if ($this->redis->isAvailable()) {
-                    foreach ($list as $k => $v) {
-                        $data = !empty($v['id']) ? $this->withWhere(['id' => $v['id']])->fetch($fields) : [];
-                        if (!strpos($fields, ',') && $fields != '*' && $data) {
-                            $fields = str_replace('main.', '', $fields);
-                            $data = [$fields => $data];
-                        }
-                        $list[$k] = $data ?: $v;
+                    foreach ($list as &$v) {
+                        !empty($v['id']) && $v = $this->fetchById((int)$v['id'], $fields);
                     }
                 }
             }
@@ -330,34 +331,8 @@ class Table extends BaseAbstract
      */
     public function onefieldList(string $field = 'id', int $cacheTime = 0): array
     {
-        $func = function ($field, $cacheTime) {
-            $field1 = $cacheTime ? 'id' : $field;
-            $sql = $this->selectSQL($field1);
-            $list = $this->db->fetchList($sql, '', $this->whereParams); // [SQL安全改造] 透传绑定参数
-            $arr = [];
-            foreach ($list as $k => $v) {
-                //如果开启缓存，读取缓存中数据
-                if ($cacheTime) {
-                    $arr[] = $this->withWhere(['id' => $v['id']])->fetch($field);
-                } else {
-                    $arr[] = $v[$field];
-                }
-            }
-            return $arr;
-        };
-        if ($this->redis->isAvailable()) {
-            if ($this->join) {
-                $cacheTime = 0;
-            }
-            $cacheKey = $this->cacheKey(__FUNCTION__) . $this->md5key(func_get_args());
-            $list = $cacheTime ? $this->redis->get($cacheKey) : [];
-            if (empty($list)) {
-                $list = $func($field, $cacheTime);
-                $cacheTime && $this->redis->set($cacheKey, $list, $cacheTime);
-            }
-            return $list;
-        }
-        return $func($field, $cacheTime);
+        $list = $this->fetchList($field);
+        return array_column($list, $field);
     }
 
     /**
@@ -376,24 +351,23 @@ class Table extends BaseAbstract
     }
 
     /**
-     * 设置读取数据数量
-     * @param $limit
-     * @return Table
+     * 设置分页
+     * @param int $pageSize
+     * @param int $page
+     * @return $this
      */
-    public function withLimit($limit): Table
+    public function withLimit(int $pageSize = 30, int $page = 1): Table
     {
-        if (!empty($limit)) {
-            $clone = clone $this;
-            $limit = trim((string)$limit);
-            // [SQL安全改造] 允许 "limit N" / "N" / "N,M" 三种形态，最终只保留纯数字部分
-            $limit = preg_replace('/^limit\s+/i', '', $limit);
-            if (!preg_match('/^\d+(,\d+)?$/', $limit)) {
-                throw new TextException(21058, '', 'SQL');
-            }
-            $clone->limit = ' limit ' . $limit;
-            return $clone;
+        if ($pageSize < 1) {
+            return $this;
         }
-        return $this;
+        $clone = clone $this;
+        $page = max(1, $page);
+        $start = ($page - 1) * $pageSize;
+        $clone->page = $page;
+        $clone->pageSize = $pageSize;
+        $clone->limit = ' limit ' . $start . ',' . $pageSize;
+        return $clone;
     }
 
     /**
@@ -538,23 +512,11 @@ class Table extends BaseAbstract
      * @return Table
      * @throws TextException
      */
-    public function withWhere($val): Table
+    public function withWhere(array $val): Table
     {
         $clone = clone $this;
         $clone->whereParams = []; // [SQL安全改造] 每次重建条件时重置绑定参数，防止残留
-        if (empty($val)) {
-            $where = '';
-        } elseif (is_array($val)) {
-            $where = $clone->implode($val, 'and');
-        } else {
-            $val = (string)$val;
-            // [SQL安全改造] 字符串条件收紧：阻断注释/分号注入（保留常规SQL条件写法）
-            if (preg_match('/;|\/\*|#|--/i', $val)) {
-                throw new TextException(21058, '', 'SQL');
-            }
-            $where = str_replace(' where ', '', $val);
-        }
-        $clone->where = $where ? ' where ' . $where : '';
+        $clone->where = !empty($val) ? ' where ' . $clone->implode($val, 'and') : '';
         return $clone;
     }
 
@@ -786,30 +748,25 @@ class Table extends BaseAbstract
 
     /**
      * 返回分页列表数据
-     * @param int $page
      * @param string $fields
-     * @param int $pagesize
      * @param int $cacheTime
      * @param string $indexField
      * @return array
      */
-    public function pageList(int $page = 1, string $fields = '*', int $pagesize = 30, int $cacheTime = 0, string $indexField = ''): array
+    public function pageList(string $fields = '*', int $cacheTime = 0, string $indexField = ''): array
     {
-        $page = max(1, $page);
         $fields = $fields ?: '*';
-        $pagesize = $pagesize ?: 30;
         $count = $this->count('*', $cacheTime);
-        $maxpages = (int)ceil($count / $pagesize);
-        $page = $page > $maxpages ? $maxpages : $page;
-        $start = ($page - 1) * $pagesize;
-        $this->limit = ' limit ' . $start . ',' . $pagesize;
-
+        $maxpages = (int)ceil($count / $this->pageSize);
+        $page = $this->page > $maxpages ? $maxpages : $this->page;
+        $pageSize = $this->pageSize ?: 30;
+        $clone = $this->withLimit($pageSize, $page);
         if (empty($count)) {
             $list = [];
         } else {
-            $list = $this->fetchList($fields, $indexField, $cacheTime);
+            $list = $clone->fetchList($fields, $indexField, $cacheTime);
         }
-        return ['list' => $list, 'count' => $count, 'maxpages' => $maxpages, 'page' => $page, 'pagesize' => $pagesize];
+        return ['list' => $list, 'count' => $count, 'maxpages' => $maxpages, 'page' => $page, 'pagesize' => $pageSize];
     }
 
 

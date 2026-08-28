@@ -353,7 +353,7 @@ class Forms extends BaseAbstract
             if (empty($param['fields'])) {
                 $fields = $this->formFields()
                     ->withWhere(['formid' => $param['fid'], 'available' => 1, 'inlistcp' => 1])
-                    ->onefieldList('identifier', 60);
+                    ->onefieldList('identifier');
                 $fields[] = 'createtime';
                 $fields[] = 'ischeck';
                 $fields[] = 'id';
@@ -393,7 +393,8 @@ class Forms extends BaseAbstract
                 ->withWhere($param['where'])
                 ->withGroupby($groupby)
                 ->withOrderby($order, $by)
-                ->pageList($page, $fields, $pagesize, 0, $indexField);
+                ->withLimit($pagesize, $page)
+                ->pageList($fields, 0, $indexField);
             $fields = $this->fieldList(['formid' => $param['fid'], 'available' => 1]);
             foreach ($data['list'] as &$v) {
                 isset($v['id']) && $v['id'] = (int)$v['id'];
@@ -671,7 +672,7 @@ class Forms extends BaseAbstract
      * @return array|bool|mixed|string|null
      * @throws \SlimCMS\Error\TextException
      */
-    public function fieldList($where = '', $fields = '*', $limit = '', $order = 'displayorder desc,id')
+    public function fieldList($where = '', $fields = '*', $limit = 200, $order = 'displayorder desc,id')
     {
         $cachekey = $this->cacheKey(__FUNCTION__, func_get_args());
         $list = $this->redis->get($cachekey);
@@ -1636,9 +1637,11 @@ class Forms extends BaseAbstract
                     return $rules;
                 }
                 $field = str_replace('_', '', $result['value'] . ',' . $result['name']);
+                $page = $pageSize = 0;
+                !empty($result['limit']) && list($page, $pageSize) = explode(',', $result['limit']);
                 $list = $this->t($result['table'])
                     ->withWhere($result['condition'])
-                    ->withLimit($result['limit'])
+                    ->withLimit((int)$pageSize, (int)$page)
                     ->withOrderby($result['order'], $result['way'])
                     ->fetchList($field);
                 $fid = $this->t('forms')->withWhere(['table' => $result['table']])->fetch('id');

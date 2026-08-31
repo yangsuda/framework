@@ -12,7 +12,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use SlimCMS\Core\Session;
-use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\OutputInterface;
 
@@ -56,9 +55,9 @@ abstract class BaseAbstract
         return get_called_class() . ':' . $key . ':' . Str::md5key($param);
     }
 
-    public function i($class)
+    public function i($class, array $extra = [])
     {
-        return $this->container->make($class, ['app' => $this->app])->setRequest($this->request);
+        return $this->container->make($class, array_merge(['app' => $this->app], $extra))->setRequest($this->request);
     }
 
     /**
@@ -69,7 +68,9 @@ abstract class BaseAbstract
     public function r(string $className): ?RepositoryAbstract
     {
         if (!class_exists($className)) {
-            throw new TextException(503, "Repository class not found");
+            // 表单数据表可能未生成对应 Repository 类，按类名推断表名回退到通用仓库
+            $name = preg_replace('/repository$/', '', strtolower(substr(strrchr($className, '\\'), 1)));
+            return $this->i(GenericRepository::class, ['tableName' => $name]);
         }
         return $this->i($className);
     }

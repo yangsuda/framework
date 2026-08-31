@@ -9,7 +9,8 @@ namespace SlimCMS\Abstracts;
 
 use Respect\Validation\Exceptions\ValidationException;
 use Slim\App;
-use SlimCMS\Core\Forms;
+use SlimCMS\Core\Form\FormQueryServiceInterface;
+use SlimCMS\Core\Form\FormWriteServiceInterface;
 use SlimCMS\Core\Redis;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\FileCache;
@@ -33,29 +34,35 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected $auth;
     protected $query = [];//查询参数
     private $tableName = '';
+    /** @var string 显式指定表名（用于通用仓库兜底，为空时按类名推断） */
+    protected string $forceTableName = '';
     private $formId = 0;
     protected $setting;//站点初始化参数
     protected array $config;//后台配置参数
     protected OutputInterface $output;
-    protected Forms $forms;
+    protected FormWriteServiceInterface $formWrite;
+    protected FormQueryServiceInterface $formQuery;
     protected Redis $redis;
     protected int $page = 1;
     protected int $pageSize = 0;
 
-    public function __construct(App $app, Forms $forms, Redis $redis)
+    public function __construct(App $app, FormWriteServiceInterface $formWrite, FormQueryServiceInterface $formQuery, Redis $redis)
     {
         parent::__construct($app);
         $this->setting = $this->container->get('settings');
         $this->config = $this->container->get('cfg');
         $this->output = $this->container->get(OutputInterface::class)($app);
-        $this->forms = $forms;
+        $this->formWrite = $formWrite;
+        $this->formQuery = $formQuery;
         $this->redis = $redis;
         $this->initialize();
     }
 
     protected function initialize()
     {
-        $this->tableName = preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
+        $this->tableName = $this->forceTableName !== ''
+            ? $this->forceTableName
+            : preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
         $list = $this->tableMap();
         $this->formId = aval($list, $this->tableName);
         if (empty($this->formId)) {
@@ -171,7 +178,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        return $this->forms->dataSave($this->formId, [], $data);
+        return $this->formWrite->save($this->formId, [], $data);
     }
 
     /**
@@ -189,7 +196,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        $res = $this->forms->dataView($this->formId, $id);
+        $res = $this->formQuery->view($this->formId, $id);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -198,7 +205,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if ($res->getCode() != 200) {
             return $res;
         }
-        return $this->forms->dataSave($this->formId, $val, $data);
+        return $this->formWrite->save($this->formId, $val, $data);
     }
 
     /**
@@ -224,7 +231,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id)) {
             return $this->output->withCode(21003);
         }
-        return $this->forms->dataDel($this->formId, [$id]);
+        return $this->formWrite->delete($this->formId, [$id]);
     }
 
     /**
@@ -240,7 +247,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id) || empty($fields)) {
             return $this->output->withCode(21002);
         }
-        $res = $this->forms->dataView($this->formId, $id, $fields);
+        $res = $this->formQuery->view($this->formId, $id, $fields);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -273,6 +280,16 @@ abstract class RepositoryAbstract extends BaseAbstract
                 $clone->where[$this->transFields($k)] = $v;
             }
             $clone->joins = $req->getJoins();
+        } else {
+            // 无 Req 类的表（如未生成仓库类的动态表单表）按原始键值构建条件，仅接受字符串键防注入
+            if ($append === false) {
+                $clone->where = [];
+            }
+            foreach ($param as $k => $v) {
+                if (is_string($k) && $k !== '') {
+                    $clone->where[$this->transFields($k)] = $v;
+                }
+            }
         }
         $clone->query = $param;
         return $clone;
@@ -465,7 +482,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             'groupby' => $this->groupBy,
         ];
         $params['where'] = $this->where;
-        $res = $this->forms->dataList($params);
+        $res = $this->formQuery->list($params);
         if ($res->getCode() != 200) {
             throw new TextException($res->getCode(), $res->getMsg());
         }
@@ -665,7 +682,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public function validCheck(array $data, int $id = 0): array
     {
-        return $this->forms->validCheck($this->formId, $data, $id);
+        return $this->formWrite->validCheck($this->formId, $data, $id);
     }
 
     /**

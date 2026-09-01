@@ -146,10 +146,10 @@ class RouteAction
             $controller = $className ? 'app\\Controller\\' . $action . pathinfo($path, PATHINFO_DIRNAME) . '\\' . ucfirst($className) . 'Controller' : '';
         }
         if (!class_exists($controller)) {
-            throw new TextException(503, "Controller class not found");
+            throw new TextException(404, "Controller class not found");
         }
         if (!method_exists($controller, $method) || !(new \ReflectionMethod($controller, $method))->isPublic()) {
-            throw new TextException(503, "Method {$method} not found");
+            throw new TextException(404, "Method {$method} not found");
         }
         return [$controller, $method];
     }

@@ -47,17 +47,4 @@ abstract class RespAbstract extends BaseAbstract
             }
         }
     }
-
-    /**
-     * @template T of RepositoryAbstract
-     * @param class-string<T> $className
-     * @return T|null
-     */
-    public function r(string $className): ?RepositoryAbstract
-    {
-        if (!class_exists($className)) {
-            throw new TextException(503, "Repository class not found");
-        }
-        return $this->i($className);
-    }
 }

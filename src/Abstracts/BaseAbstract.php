@@ -14,6 +14,7 @@ use Slim\App;
 use SlimCMS\Core\Session;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\OutputInterface;
+use SlimCMS\Interfaces\RepositoryFactoryInterface;
 
 abstract class BaseAbstract
 {
@@ -65,14 +66,10 @@ abstract class BaseAbstract
      * @param class-string<T> $className
      * @return T|null
      */
-    public function r(string $className): ?RepositoryAbstract
+    public function r(string $table): ?RepositoryAbstract
     {
-        if (!class_exists($className)) {
-            // 表单数据表可能未生成对应 Repository 类，按类名推断表名回退到通用仓库
-            $name = preg_replace('/repository$/', '', strtolower(substr(strrchr($className, '\\'), 1)));
-            return $this->i(GenericRepository::class, ['tableName' => $name]);
-        }
-        return $this->i($className);
+        // 兼容层：解析机制已收拢到 RepositoryFactory，存量调用点可渐进迁移
+        return $this->container->get(RepositoryFactoryInterface::class)->forTable($table);
     }
 
     /**

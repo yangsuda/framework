@@ -45,6 +45,12 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected Redis $redis;
     protected int $page = 1;
     protected int $pageSize = 0;
+    /**
+     * 实体包装类：子类设置后，fetch/fetchList/list 默认把数据行包装为该 Entity 实例
+     * 未设置时返回 stdClass，业务侧 ->field 访问方式保持兼容
+     * @var class-string<EntityAbstract>|null
+     */
+    protected ?string $entityClass = null;
 
     public function __construct(App $app, FormWriteServiceInterface $formWrite, FormQueryServiceInterface $formQuery, Redis $redis)
     {
@@ -458,13 +464,20 @@ abstract class RepositoryAbstract extends BaseAbstract
     }
 
     /**
-     * 列表
-     * @param string $fields 字段
-     * @param int $page 页码
-     * @param int $pagesize 每页数量
-     * @return array
+     * 分页列表：list 键为 Entity 或 stdClass 数组（取决于 $entityClass）
      */
     public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
+    {
+        $val = $this->listRaw($fields, $page, $pagesize);
+        $val['list'] = $this->wrapEntityList($val['list']);
+        return $val;
+    }
+
+    /**
+     * 分页列表原始数据（list 键为原始数组）
+     * 子类如需定制查询逻辑请重写此方法而非 list
+     */
+    public function listRaw(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
     {
         $params = [
             'fid' => $this->formId,
@@ -612,7 +625,20 @@ abstract class RepositoryAbstract extends BaseAbstract
     }
 
 
-    public function fetch(string $field, int $cacheTime = 0)
+    /**
+     * 单行查询：返回 Entity 或 stdClass（取决于 $entityClass），统一支持 ->field 访问
+     */
+    public function fetch(string $field, int $cacheTime = 0): ?object
+    {
+        $data = $this->fetchRaw($field, $cacheTime);
+        return $data ? $this->wrapEntity($data) : null;
+    }
+
+    /**
+     * 单行查询原始数组形式（未经 Entity 包装）
+     * 子类如需定制查询逻辑请重写此方法而非 fetch
+     */
+    public function fetchRaw(string $field, int $cacheTime = 0): ?array
     {
         if (empty($this->where) || (empty($field) && empty($this->joinFields))) {
             throw new TextException(21010);
@@ -636,7 +662,19 @@ abstract class RepositoryAbstract extends BaseAbstract
         return $row;
     }
 
+    /**
+     * 列表查询：返回 Entity 或 stdClass 数组（取决于 $entityClass）
+     */
     public function fetchList(string $field, string $indexField = '', int $cacheTime = 0): array
+    {
+        $list = $this->fetchListRaw($field, $indexField, $cacheTime);
+        return $this->wrapEntityList($list);
+    }
+
+    /**
+     * 列表查询原始数组形式（未经 Entity 包装）
+     */
+    public function fetchListRaw(string $field, string $indexField = '', int $cacheTime = 0): array
     {
         if (empty($field)) {
             throw new TextException(21010);
@@ -653,6 +691,28 @@ abstract class RepositoryAbstract extends BaseAbstract
             $this->listRowHandle($list);
         }
         return $list;
+    }
+
+    /**
+     * 数据行包装为 Entity：$entityClass 非空用专属 Entity，否则用 GenericEntity 兜底
+     * 两种情况均返回 EntityAbstract 子类实例，业务侧 toArray/setRelation 等方法始终可用
+     */
+    protected function wrapEntity(array $data): object
+    {
+        return $this->entityClass
+            ? ($this->entityClass)::fromArray($data)
+            : GenericEntity::fromArray($data);
+    }
+
+    /**
+     * 数据行列表包装为 Entity 数组（保留原始索引）
+     */
+    protected function wrapEntityList(array $list): array
+    {
+        if ($this->entityClass) {
+            return array_map(fn($item) => ($this->entityClass)::fromArray($item), $list);
+        }
+        return array_map(fn($item) => GenericEntity::fromArray($item), $list);
     }
 
     public function pageList(string $fields = '*', int $cacheTime = 0, string $indexField = ''): array

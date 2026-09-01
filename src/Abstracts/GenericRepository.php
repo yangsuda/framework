@@ -4,6 +4,8 @@
  *
  * 用于表单数据表未生成对应 Repository 类的场景（如回收站还原、任意表单字段清理），
  * 通过 tableName 参数显式指定表名，API 与常规仓库完全一致。
+ * 默认 $entityClass 为 null，fetch/fetchList/list 返回 GenericEntity，
+ * 业务侧可用 ->field、toArray()、setRelation() 等完整 Entity API。
  * @author zhucy
  */
 
@@ -29,14 +31,5 @@ class GenericRepository extends RepositoryAbstract
             $this->forceTableName = $tableName;
         }
         parent::__construct($app, $formWrite, $formQuery, $redis);
-    }
-
-    /**
-     * 单条查询统一返回对象，与实体仓库的 ->field 访问方式保持一致
-     */
-    public function fetch(string $field, int $cacheTime = 0): ?object
-    {
-        $data = parent::fetch($field, $cacheTime);
-        return !empty($data) ? (object)$data : null;
     }
 }

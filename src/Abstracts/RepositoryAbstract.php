@@ -9,7 +9,8 @@ namespace SlimCMS\Abstracts;
 
 use Respect\Validation\Exceptions\ValidationException;
 use Slim\App;
-use SlimCMS\Core\Forms;
+use SlimCMS\Core\Form\FormQueryServiceInterface;
+use SlimCMS\Core\Form\FormWriteServiceInterface;
 use SlimCMS\Core\Redis;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\FileCache;
@@ -33,29 +34,41 @@ abstract class RepositoryAbstract extends BaseAbstract
     protected $auth;
     protected $query = [];//查询参数
     private $tableName = '';
+    /** @var string 显式指定表名（用于通用仓库兜底，为空时按类名推断） */
+    protected string $forceTableName = '';
     private $formId = 0;
     protected $setting;//站点初始化参数
     protected array $config;//后台配置参数
     protected OutputInterface $output;
-    protected Forms $forms;
+    protected FormWriteServiceInterface $formWrite;
+    protected FormQueryServiceInterface $formQuery;
     protected Redis $redis;
     protected int $page = 1;
     protected int $pageSize = 0;
+    /**
+     * 实体包装类：子类设置后，fetch/fetchList/list 默认把数据行包装为该 Entity 实例
+     * 未设置时返回 stdClass，业务侧 ->field 访问方式保持兼容
+     * @var class-string<EntityAbstract>|null
+     */
+    protected ?string $entityClass = null;
 
-    public function __construct(App $app, Forms $forms, Redis $redis)
+    public function __construct(App $app, FormWriteServiceInterface $formWrite, FormQueryServiceInterface $formQuery, Redis $redis)
     {
         parent::__construct($app);
         $this->setting = $this->container->get('settings');
         $this->config = $this->container->get('cfg');
         $this->output = $this->container->get(OutputInterface::class)($app);
-        $this->forms = $forms;
+        $this->formWrite = $formWrite;
+        $this->formQuery = $formQuery;
         $this->redis = $redis;
         $this->initialize();
     }
 
     protected function initialize()
     {
-        $this->tableName = preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
+        $this->tableName = $this->forceTableName !== ''
+            ? $this->forceTableName
+            : preg_replace('/repository$/', '', strtolower(substr(strrchr(get_called_class(), '\\'), 1)));
         $list = $this->tableMap();
         $this->formId = aval($list, $this->tableName);
         if (empty($this->formId)) {
@@ -171,7 +184,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        return $this->forms->dataSave($this->formId, [], $data);
+        return $this->formWrite->save($this->formId, [], $data);
     }
 
     /**
@@ -189,7 +202,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($data)) {
             return $this->output->withCode(21020);
         }
-        $res = $this->forms->dataView($this->formId, $id);
+        $res = $this->formQuery->view($this->formId, $id);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -198,7 +211,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if ($res->getCode() != 200) {
             return $res;
         }
-        return $this->forms->dataSave($this->formId, $val, $data);
+        return $this->formWrite->save($this->formId, $val, $data);
     }
 
     /**
@@ -224,7 +237,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id)) {
             return $this->output->withCode(21003);
         }
-        return $this->forms->dataDel($this->formId, [$id]);
+        return $this->formWrite->delete($this->formId, [$id]);
     }
 
     /**
@@ -240,7 +253,7 @@ abstract class RepositoryAbstract extends BaseAbstract
         if (empty($id) || empty($fields)) {
             return $this->output->withCode(21002);
         }
-        $res = $this->forms->dataView($this->formId, $id, $fields);
+        $res = $this->formQuery->view($this->formId, $id, $fields);
         if ($res->getCode() != 200) {
             return $res;
         }
@@ -273,6 +286,16 @@ abstract class RepositoryAbstract extends BaseAbstract
                 $clone->where[$this->transFields($k)] = $v;
             }
             $clone->joins = $req->getJoins();
+        } else {
+            // 无 Req 类的表（如未生成仓库类的动态表单表）按原始键值构建条件，仅接受字符串键防注入
+            if ($append === false) {
+                $clone->where = [];
+            }
+            foreach ($param as $k => $v) {
+                if (is_string($k) && $k !== '') {
+                    $clone->where[$this->transFields($k)] = $v;
+                }
+            }
         }
         $clone->query = $param;
         return $clone;
@@ -441,13 +464,20 @@ abstract class RepositoryAbstract extends BaseAbstract
     }
 
     /**
-     * 列表
-     * @param string $fields 字段
-     * @param int $page 页码
-     * @param int $pagesize 每页数量
-     * @return array
+     * 分页列表：list 键为 Entity 或 stdClass 数组（取决于 $entityClass）
      */
     public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
+    {
+        $val = $this->listRaw($fields, $page, $pagesize);
+        $val['list'] = $this->wrapEntityList($val['list']);
+        return $val;
+    }
+
+    /**
+     * 分页列表原始数据（list 键为原始数组）
+     * 子类如需定制查询逻辑请重写此方法而非 list
+     */
+    public function listRaw(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
     {
         $params = [
             'fid' => $this->formId,
@@ -465,7 +495,7 @@ abstract class RepositoryAbstract extends BaseAbstract
             'groupby' => $this->groupBy,
         ];
         $params['where'] = $this->where;
-        $res = $this->forms->dataList($params);
+        $res = $this->formQuery->list($params);
         if ($res->getCode() != 200) {
             throw new TextException($res->getCode(), $res->getMsg());
         }
@@ -595,7 +625,20 @@ abstract class RepositoryAbstract extends BaseAbstract
     }
 
 
-    public function fetch(string $field, int $cacheTime = 0)
+    /**
+     * 单行查询：返回 Entity 或 stdClass（取决于 $entityClass），统一支持 ->field 访问
+     */
+    public function fetch(string $field, int $cacheTime = 0): ?object
+    {
+        $data = $this->fetchRaw($field, $cacheTime);
+        return $data ? $this->wrapEntity($data) : null;
+    }
+
+    /**
+     * 单行查询原始数组形式（未经 Entity 包装）
+     * 子类如需定制查询逻辑请重写此方法而非 fetch
+     */
+    public function fetchRaw(string $field, int $cacheTime = 0): ?array
     {
         if (empty($this->where) || (empty($field) && empty($this->joinFields))) {
             throw new TextException(21010);
@@ -619,7 +662,19 @@ abstract class RepositoryAbstract extends BaseAbstract
         return $row;
     }
 
+    /**
+     * 列表查询：返回 Entity 或 stdClass 数组（取决于 $entityClass）
+     */
     public function fetchList(string $field, string $indexField = '', int $cacheTime = 0): array
+    {
+        $list = $this->fetchListRaw($field, $indexField, $cacheTime);
+        return $this->wrapEntityList($list);
+    }
+
+    /**
+     * 列表查询原始数组形式（未经 Entity 包装）
+     */
+    public function fetchListRaw(string $field, string $indexField = '', int $cacheTime = 0): array
     {
         if (empty($field)) {
             throw new TextException(21010);
@@ -636,6 +691,28 @@ abstract class RepositoryAbstract extends BaseAbstract
             $this->listRowHandle($list);
         }
         return $list;
+    }
+
+    /**
+     * 数据行包装为 Entity：$entityClass 非空用专属 Entity，否则用 GenericEntity 兜底
+     * 两种情况均返回 EntityAbstract 子类实例，业务侧 toArray/setRelation 等方法始终可用
+     */
+    protected function wrapEntity(array $data): object
+    {
+        return $this->entityClass
+            ? ($this->entityClass)::fromArray($data)
+            : GenericEntity::fromArray($data);
+    }
+
+    /**
+     * 数据行列表包装为 Entity 数组（保留原始索引）
+     */
+    protected function wrapEntityList(array $list): array
+    {
+        if ($this->entityClass) {
+            return array_map(fn($item) => ($this->entityClass)::fromArray($item), $list);
+        }
+        return array_map(fn($item) => GenericEntity::fromArray($item), $list);
     }
 
     public function pageList(string $fields = '*', int $cacheTime = 0, string $indexField = ''): array
@@ -665,7 +742,7 @@ abstract class RepositoryAbstract extends BaseAbstract
      */
     public function validCheck(array $data, int $id = 0): array
     {
-        return $this->forms->validCheck($this->formId, $data, $id);
+        return $this->formWrite->validCheck($this->formId, $data, $id);
     }
 
     /**

@@ -7,6 +7,13 @@ namespace SlimCMS\Traits;
 use SlimCMS\Helper\Captcha;
 use SlimCMS\Interfaces\OutputInterface;
 
+/**
+ * 表单验证码校验 trait
+ *
+ * @deprecated 已被 SlimCMS\Core\Form\FormServiceBus::formVerify() 取代。
+ *             新代码请直接注入 FormServiceBus，不要 use 本 trait。
+ *             本 trait 保留仅为兼容性目的，将在下一大版本移除。
+ */
 trait Form
 {
     public function formVerify( string $ccode = null): self

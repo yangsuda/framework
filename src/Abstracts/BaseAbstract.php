@@ -12,9 +12,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use SlimCMS\Core\Session;
-use SlimCMS\Error\TextException;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\OutputInterface;
+use SlimCMS\Interfaces\RepositoryFactoryInterface;
 
 abstract class BaseAbstract
 {
@@ -56,9 +56,9 @@ abstract class BaseAbstract
         return get_called_class() . ':' . $key . ':' . Str::md5key($param);
     }
 
-    public function i($class)
+    public function i($class, array $extra = [])
     {
-        return $this->container->make($class, ['app' => $this->app])->setRequest($this->request);
+        return $this->container->make($class, array_merge(['app' => $this->app], $extra))->setRequest($this->request);
     }
 
     /**
@@ -66,12 +66,10 @@ abstract class BaseAbstract
      * @param class-string<T> $className
      * @return T|null
      */
-    public function r(string $className): ?RepositoryAbstract
+    public function r(string $table): ?RepositoryAbstract
     {
-        if (!class_exists($className)) {
-            throw new TextException(503, "Repository class not found");
-        }
-        return $this->i($className);
+        // 兼容层：解析机制已收拢到 RepositoryFactory，存量调用点可渐进迁移
+        return $this->container->get(RepositoryFactoryInterface::class)->forTable($table);
     }
 
     /**

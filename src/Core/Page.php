@@ -73,7 +73,7 @@ class Page extends BaseAbstract
             }
             $multipage .= ($to < $pages ? '<li class="paginate_button page-item"><a href="' . $this->url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">... ' . $realpages . '</a></li>' : '') .
                 ($curpage < $pages ? '<li class="paginate_button page-item next"><a href="' . $this->url($mpurl . 'page=' . ($curpage + 1)) . $a_name . '" page="' . ($curpage + 1) . '" class="page-link">下一页</a></li><li class="paginate_button page-item next"><a href="' . $this->url($mpurl . 'page=' . $pages) . $a_name . '" page="' . $pages . '" class="page-link">末页</a></li>' : '') .
-                ($autogoto && $pages > $page && $curpage>4 ? ' <li class="paginate_button page-item previous"><input style="border-radius:0rem;" placeholder="快速跳转" type="text" name="custompage" size="7" class="form-control fa-1x p-1" id="custompage" onkeydown="if(event.keyCode==13) {var page=this.value;window.location=\'' . $this->url($mpurl . 'page=\'+page+\'') . '\';}" /></li>' : '');
+                ($autogoto && $pages > $page && $curpage>4 ? ' <li class="paginate_button page-item previous"><input style="border-radius:0rem;" placeholder="快速跳转" type="text" name="custompage" size="7" class="form-control fa-1x p-1" id="custompage" onkeydown="if(event.keyCode==13) {var page=parseInt(this.value,10);if(page>0){window.location=\'' . $this->url($mpurl . 'page=__PAGE__') . '\'.replace(\'__PAGE__\', page);}}" /></li>' : '');
 
             $multipage .= ($shownum ? '<li class="paginate_button page-item previous disabled"><a  class="page-link">共' . $pages . '页 | 共' . $num . '条</a></li>': '');
             if($shownum){

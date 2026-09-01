@@ -11,13 +11,16 @@ namespace SlimCMS\Core;
 
 use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
+use SlimCMS\Core\Form\TableHookInterface;
+use SlimCMS\Core\Form\TableHookTrait;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\FileCache;
 use SlimCMS\Helper\Str;
 use SlimCMS\Interfaces\DatabaseInterface;
 
-class Table extends BaseAbstract
+class Table extends BaseAbstract implements TableHookInterface
 {
+    use TableHookTrait;
     /**
      * 表名
      * @var string
@@ -546,6 +549,9 @@ class Table extends BaseAbstract
 
     protected function quote($str, $noarray = false)
     {
+        if (is_null($str)) {
+            return 'NULL';
+        }
         if (is_string($str)) {
             // [SQL安全改造] 自增/自减表达式格式已校验，直接嵌入SQL不占位（如 #@#hits+1 → hits+1）
             if (preg_match('/^(#@#){1}[A-Za-z]{2,}([\w])*(\+|\-)([\d.]{1,20})$/i', $str)) {
@@ -705,6 +711,11 @@ class Table extends BaseAbstract
         $sql = $comma = '';
         $glue = ' ' . trim($glue) . ' ';
         foreach ($array as $k => $v) {
+            // null 值跳过，让 MySQL 使用列默认值
+            // 避免整型 NOT NULL 列收到 '' (1366) 或 NULL (1048)
+            if ($v === null) {
+                continue;
+            }
             if (is_array($v)) {
                 $v = json_encode($v);
             }

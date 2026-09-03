@@ -390,7 +390,7 @@ class Str
      * @param $mobile
      * @return bool
      */
-    public static function isMobile($mobile): bool
+    public static function isPhone($mobile): bool
     {
         return preg_match('/^1[23456789][\d]{9}$/', $mobile) || preg_match('/^0[\d]{10,11}$/', $mobile);
     }
@@ -402,7 +402,7 @@ class Str
      * @param int $after
      * @return string
      */
-    public static function filterMobile($mobile, int $front = 3, int $after = -4): string
+    public static function filterPhone($mobile, int $front = 3, int $after = -4): string
     {
         return substr($mobile, 0, $front) . '***' . substr($mobile, $after);
     }

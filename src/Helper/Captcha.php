@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SlimCMS\Helper;
 
 use SlimCMS\Core\Session;
+use SlimCMS\Error\TextException;
 
 /**
  * PSR-7 兼容的图形验证码生成器
@@ -110,6 +111,22 @@ class Captcha
                 self::$font,
                 $code[$i]
             );
+        }
+    }
+
+    /**
+     * 校验
+     * @param Session $session
+     * @param string|null $ccode
+     * @return void
+     * @throws TextException
+     */
+    public static function verify(Session $session, string $ccode = null)
+    {
+        //如启用验证码，对验证码验证
+        if (isset($ccode) && $session->get('VerifyCode') != strtolower($ccode)) {
+            $session->delete('VerifyCode');
+            throw new TextException(24023);
         }
     }
 }

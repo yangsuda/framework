@@ -20,7 +20,6 @@ use SlimCMS\Interfaces\OutputInterface;
  */
 final class FormServiceBus
 {
-
     private FormQueryServiceInterface $query;
     private FormWriteServiceInterface $write;
     private FormViewRendererInterface $renderer;
@@ -52,22 +51,6 @@ final class FormServiceBus
         $this->orderValidator = $orderValidator;
         $this->output = $output;
         $this->container = $container;
-    }
-
-    /**
-     * 起始输出契约（formVerify 后链式调用）
-     *
-     * 兼容旧 Forms 的调用风格：$this->forms()->formVerify($ccode)->dataSave(...)
-     * formVerify 修改 output 状态后返回 $this。
-     */
-    public function formVerify(string $ccode = null): self
-    {
-        $session = $this->container->get(\SlimCMS\Core\Session::class);
-        if (isset($ccode) && $session->get('VerifyCode') != strtolower($ccode)) {
-            $session->delete('VerifyCode');
-            $this->output = $this->output->withCode(24023);
-        }
-        return $this;
     }
 
     /**

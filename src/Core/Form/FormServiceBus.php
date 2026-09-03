@@ -20,8 +20,6 @@ use SlimCMS\Interfaces\OutputInterface;
  */
 final class FormServiceBus
 {
-    use \SlimCMS\Traits\Form;
-
     private FormQueryServiceInterface $query;
     private FormWriteServiceInterface $write;
     private FormViewRendererInterface $renderer;

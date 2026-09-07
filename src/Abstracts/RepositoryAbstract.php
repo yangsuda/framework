@@ -659,7 +659,7 @@ abstract class RepositoryAbstract extends BaseAbstract
                 $row = $row[0];
             }
         }
-        return $row;
+        return $row ?: null;
     }
 
     /**

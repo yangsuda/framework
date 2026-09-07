@@ -45,6 +45,13 @@ class ShutdownHandler
     {
         $error = error_get_last();
         if ($error) {
+            // 只对真正的致命错误(脚本异常终止)作出响应；
+            // deprecation/warning/notice 即使残留在 error_get_last() 中也不应被误判为 500
+            $fatalTypes = E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING
+                | E_COMPILE_ERROR | E_COMPILE_WARNING | E_USER_ERROR | E_RECOVERABLE_ERROR;
+            if (($error['type'] & $fatalTypes) === 0) {
+                return;
+            }
             $errorFile = $error['file'];
             $errorLine = $error['line'];
             $errorMessage = $error['message'];

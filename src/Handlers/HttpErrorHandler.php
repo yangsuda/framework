@@ -48,11 +48,11 @@ class HttpErrorHandler extends ErrorHandler
 
         $exception = $this->exception;
         $func = function ($encodedOutput) {
+            $err = json_decode($encodedOutput, true);
             $response = $this->responseFactory->createResponse();
             if ($this->contentType !== null && array_key_exists($this->contentType, $this->errorRenderers)) {
                 $response = $response->withHeader('Content-type', $this->contentType);
-                if($this->contentType=='text/html'){
-                    $err = json_decode($encodedOutput, true);
+                if ($this->contentType == 'text/html') {
                     $encodedOutput = <<<EOT
 <!DOCTYPE html>
 <html lang="zh">
@@ -93,17 +93,18 @@ class HttpErrorHandler extends ErrorHandler
     </div>
 </body>
 </html>
-EOT;
-;
+EOT;;
                 }
+                $response->getBody()->write($encodedOutput);
             } else {
                 $response = $response->withHeader('Content-type', $this->defaultErrorRendererContentType);
+                $response->getBody()->write(json_encode($err, JSON_UNESCAPED_UNICODE));
             }
-            $response->getBody()->write($encodedOutput);
+
             return $response;
         };
         if ($exception instanceof TextException) {
-            $encodedOutput = json_encode($exception->getResult(), JSON_PRETTY_PRINT);
+            $encodedOutput = json_encode($exception->getResult(), JSON_UNESCAPED_UNICODE);
             return $func($encodedOutput);
         }
         if (CORE_DEBUG === true) {

@@ -17,14 +17,4 @@ abstract class ServiceAbstract extends BaseAbstract
         parent::__construct($app);
         $this->output = $this->container->get(OutputInterface::class)($app);
     }
-
-    /**
-     * 获取仓库类名
-     * @param string $name
-     * @return string
-     */
-    protected function getRepositoryClassName(string $name): string
-    {
-        return '\app\Repository\\' . ucfirst($name) . 'Repository';
-    }
 }

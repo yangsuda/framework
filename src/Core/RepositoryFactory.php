@@ -2,7 +2,6 @@
 /**
  * 仓储工厂实现
  *
- * 解析规则与原 BaseAbstract::r() / ServiceAbstract::getRepositoryClassName() 保持一致，
  * 机制收拢于此，业务类只依赖 RepositoryFactoryInterface。
  * 注：构造使用传统赋值写法，避免 PHP-DI 6.4 对 PHP8 构造器属性提升的 autowire 反射兼容问题。
  * @author zhucy

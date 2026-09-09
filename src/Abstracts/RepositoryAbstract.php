@@ -80,11 +80,11 @@ abstract class RepositoryAbstract extends BaseAbstract
      * 获取表名映射
      * @return array|mixed|null
      */
-    private function tableMap()
+    public function tableMap(bool $force = false)
     {
         $cacheKey = __FUNCTION__;
         $list = $this->getCache($cacheKey);
-        if (empty($list)) {
+        if (empty($list) || $force === true) {
             $data = $this->t('forms')->fetchList('id,table');
             $list = array_column($data, 'id', 'table');
             $this->setCache($cacheKey, $list);
@@ -466,9 +466,9 @@ abstract class RepositoryAbstract extends BaseAbstract
     /**
      * 分页列表：list 键为 Entity 或 stdClass 数组（取决于 $entityClass）
      */
-    public function list(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
+    public function list(string $fields = 'id,createtime'): array
     {
-        $val = $this->listRaw($fields, $page, $pagesize);
+        $val = $this->listRaw($fields);
         $val['list'] = $this->wrapEntityList($val['list']);
         return $val;
     }
@@ -477,12 +477,12 @@ abstract class RepositoryAbstract extends BaseAbstract
      * 分页列表原始数据（list 键为原始数组）
      * 子类如需定制查询逻辑请重写此方法而非 list
      */
-    public function listRaw(string $fields = 'id,createtime', int $page = 1, int $pagesize = 30): array
+    public function listRaw(string $fields = 'id,createtime'): array
     {
         $params = [
             'fid' => $this->formId,
-            'page' => $page,
-            'pagesize' => $pagesize,
+            'page' => $this->page,
+            'pagesize' => $this->pageSize,
             'fields' => $this->transFields($fields),
             'order' => $this->order,
             'by' => $this->by,
@@ -507,8 +507,8 @@ abstract class RepositoryAbstract extends BaseAbstract
             'list' => aval($data, 'list'),
             'count' => aval($data, 'count'),
             'maxpages' => aval($data, 'maxpages', 0),
-            'page' => $page,
-            'pagesize' => $pagesize
+            'page' => $this->page,
+            'pagesize' => $this->pageSize
         ];
         if (!empty($this->respExtraFields)) {
             $this->listHandle($data);

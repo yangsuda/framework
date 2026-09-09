@@ -21,6 +21,7 @@ use SlimCMS\Interfaces\DatabaseInterface;
 class Table extends BaseAbstract implements TableHookInterface
 {
     use TableHookTrait;
+
     /**
      * 表名
      * @var string
@@ -234,6 +235,7 @@ class Table extends BaseAbstract implements TableHookInterface
         }
         $data = [];
         if (!empty($this->where)) {
+            $fields != '*' && $fields = implode(',', $this->quoteField(explode(',', $fields)));
             $sql = $this->selectSQL($fields);
             $data = $this->db->fetch($sql, $this->whereParams); // [SQL安全改造] 透传绑定参数
         }

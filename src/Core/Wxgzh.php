@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
+use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Error\TextException;
 use SlimCMS\Helper\File;
@@ -22,12 +23,13 @@ class Wxgzh extends BaseAbstract
     private Redis $redis;
     private OutputInterface $output;
 
-    public function __construct(App $app, Redis $redis)
+    public function __construct(App $app, Redis $redis, OutputInterface $output)
     {
         parent::__construct($app);
         $this->redis = $redis;
-        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->output = $output;
     }
+
     /**
      * 获取access_token
      * @param OutputInterface $output
@@ -131,7 +133,7 @@ class Wxgzh extends BaseAbstract
                 return $res;
             }
         }
-        if (empty($data['touser']) || empty($data['template_id'])|| empty($data['data'])) {
+        if (empty($data['touser']) || empty($data['template_id']) || empty($data['data'])) {
             return $this->output->withCode(21003);
         }
         $val = [];
@@ -188,7 +190,7 @@ class Wxgzh extends BaseAbstract
         if (!$this->accessToken) {
             $res = $this->getAccessToken($output);
             if ($res->getCode() != 200) {
-                throw new TextException($res->getCode(), ['msg'=>$res->getMsg()], 'wxgzh');
+                throw new TextException($res->getCode(), ['msg' => $res->getMsg()], 'wxgzh');
             }
         }
         $url = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' . $this->accessToken . '&type=jsapi';

@@ -123,14 +123,15 @@ abstract class ControlAbstract extends BaseAbstract
     /**
      * 自动判断输出方式
      * @param OutputInterface|null $output
+     * @param string $template
      * @return ResponseInterface
      */
-    protected function resp(OutputInterface $output = null): ResponseInterface
+    protected function resp(OutputInterface $output = null, string $template = ''): ResponseInterface
     {
         $contentType = $this->determineContentType();
         $contentType = $contentType ?: 'application/json';
         if ($contentType == 'text/html') {
-            return $this->view($output);
+            return $this->view($output, $template);
         }
         $response = $this->response->withHeader('Content-type', $contentType);
         $encodedOutput = json_encode($output, JSON_PRETTY_PRINT);

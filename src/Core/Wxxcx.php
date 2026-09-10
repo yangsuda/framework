@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace SlimCMS\Core;
 
-
+use Slim\App;
 use SlimCMS\Abstracts\BaseAbstract;
 use SlimCMS\Helper\File;
 use SlimCMS\Helper\Http;
@@ -22,11 +22,11 @@ class Wxxcx extends BaseAbstract
     private Redis $redis;
     private OutputInterface $output;
 
-    public function __construct(App $app, Redis $redis)
+    public function __construct(App $app, Redis $redis, OutputInterface $output)
     {
         parent::__construct($app);
         $this->redis = $redis;
-        $this->output = $this->container->get(OutputInterface::class)($app);
+        $this->output = $output;
     }
 
     /**

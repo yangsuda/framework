@@ -115,7 +115,7 @@ abstract class ControlAbstract extends BaseAbstract
     protected function json(OutputInterface $output = null): ResponseInterface
     {
         $response = $this->response->withHeader('Content-type', 'application/json');
-        $encodedOutput = json_encode($output, JSON_PRETTY_PRINT);
+        $encodedOutput = json_encode($output, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
         $response->getBody()->write($encodedOutput);
         return $response;
     }
@@ -133,9 +133,11 @@ abstract class ControlAbstract extends BaseAbstract
         if ($contentType == 'text/html') {
             return $this->view($output, $template);
         }
+        if ($contentType == 'application/json') {
+            return $this->json($output);
+        }
         $response = $this->response->withHeader('Content-type', $contentType);
-        $encodedOutput = json_encode($output, JSON_PRETTY_PRINT);
-        $response->getBody()->write($encodedOutput);
+        $response->getBody()->write($output);
         return $response;
     }
 

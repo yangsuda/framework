@@ -60,41 +60,84 @@ class Upload extends BaseAbstract implements UploadInterface
      */
     public function h5(string $str): OutputInterface
     {
-        if (preg_match('/^data:\s*([^\/]+)\/([^\/]+);base64,/', $str, $matches)) {
-            $str = preg_replace('/^data:image\/\w+;base64,/', '', $str);
-            $data = base64_decode($str);
-            if (empty($data)) {
-                return $this->output->withCode(27013);
-            }
-
-            //防止伪装成图片的木马上传
-            $checkWords = aval($this->setting, 'security/uploadCheckWords');
-            if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
-                return $this->output->withCode(23005);
-            }
-
-            $dirname = $this->getSaveDir('tmp');
-            $file = uniqid() . '.' . $matches[2];
-            $tmpPath = CSPUBLIC . $dirname;
-            File::mkdir($tmpPath);
-            $fileUrl = $tmpPath . $file;
-            $success = file_put_contents($fileUrl, $data);
-            if (!$success) {
-                return $this->output->withCode(23014);
-            }
-
-            if (in_array($matches[2], explode('|', $this->config['mediatype']))) {
-                $types = 'media';
-            } elseif (in_array($matches[2], explode('|', $this->config['imgtype']))) {
-                $types = 'image';
-            } else {
-                $types = 'addon';
-            }
-            $mimeType = $matches[1] . '/' . $matches[2]; // 提取 MIME 类型
-            $uploadFile = new UploadedFile($fileUrl, $file, $mimeType, filesize($fileUrl));
-            return $this->upload($uploadFile, $types);
+        if (!preg_match('/^data:\s*([^\/]+)\/([^\/]+);base64,/', $str, $matches)) {
+            return $this->output->withCode(27013);
         }
-        return $this->output->withCode(27013);
+
+        // [安全修复] data URI 中的扩展名完全由客户端控制，必须先过白名单校验，禁止"先落盘后拦截"
+        $ext = strtolower($matches[2]);
+        if ($ext === '' || !in_array($ext, $this->allowExtensions(), true)) {
+            return $this->output->withCode(23004);
+        }
+
+        $data = base64_decode(substr($str, strlen($matches[0])));
+        if (empty($data)) {
+            return $this->output->withCode(27013);
+        }
+
+        //防止伪装成图片的木马上传
+        $checkWords = aval($this->setting, 'security/uploadCheckWords');
+        if (!empty($checkWords) && preg_match('/(' . $checkWords . ')/i', $data)) {
+            return $this->output->withCode(23005);
+        }
+
+        if (in_array($ext, $this->extList('mediatype'), true)) {
+            $types = 'media';
+        } elseif (in_array($ext, $this->extList('imgtype'), true)) {
+            $types = 'image';
+        } else {
+            $types = 'addon';
+        }
+
+        // [安全修复] 临时文件落在 Web 根目录之外（data/ 目录，Nginx 配置已 deny），
+        // 校验通过前不可被 URL 访问，彻底消除"写入与删除之间的可访问窗口"
+        $tmpDir = CSDATA . 'tmp/';
+        File::mkdir($tmpDir);
+        $tmpPath = tempnam($tmpDir, 'h5_');
+        if ($tmpPath === false || file_put_contents($tmpPath, $data) === false) {
+            is_string($tmpPath) && @unlink($tmpPath);
+            return $this->output->withCode(23014);
+        }
+
+        $mimeType = $matches[1] . '/' . $matches[2]; // 提取 MIME 类型
+        $uploadFile = new UploadedFile($tmpPath, uniqid() . '.' . $ext, $mimeType, strlen($data));
+        $result = $this->upload($uploadFile, $types);
+
+        //兜底清理：失败路径 upload() 内部会 unlink，成功路径 moveTo 已移走，此处防御性补删
+        $this->removeTmpFile($uploadFile);
+        return $result;
+    }
+
+    /**
+     * 解析后台配置中 | 分隔的扩展名白名单
+     */
+    private function extList(string $key): array
+    {
+        $raw = strtolower((string)aval($this->config, $key, ''));
+        return array_values(array_filter(explode('|', $raw)));
+    }
+
+    /**
+     * 全部允许上传的扩展名白名单（图片 + 媒体 + 附件）
+     */
+    private function allowExtensions(): array
+    {
+        return array_unique(array_merge(
+            $this->extList('imgtype'),
+            $this->extList('mediatype'),
+            $this->extList('softtype')
+        ));
+    }
+
+    /**
+     * [安全修复] 清理临时文件（php://temp 等非实体路径跳过）
+     */
+    private function removeTmpFile(UploadedFile $post): void
+    {
+        $path = $post->getFilePath();
+        if (is_string($path) && $path !== 'php://temp' && is_file($path)) {
+            @unlink($path);
+        }
     }
 
     /**
@@ -103,6 +146,8 @@ class Upload extends BaseAbstract implements UploadInterface
     public function upload(UploadedFile $post, string $type = 'image', string $dir = null): OutputInterface
     {
         if ($post->getSize() < 1) {
+            // [安全修复] 空文件提前返回前必须清理临时文件，避免残留
+            $this->removeTmpFile($post);
             return $this->output->withCode(23001);
         }
 
@@ -128,7 +173,8 @@ class Upload extends BaseAbstract implements UploadInterface
         $code = '';
         switch ($type) {
             case 'image':
-                if (strpos($this->config['imgtype'], $ext) === false) {
+                // [安全修复] strpos 子串匹配改白名单精确匹配（'jp' 之类不会误命中 'jpg'）
+                if (!in_array($ext, $this->extList('imgtype'), true)) {
                     $code = 23006;
                     break;
                 }
@@ -146,14 +192,12 @@ class Upload extends BaseAbstract implements UploadInterface
                 }
                 break;
             case 'media':
-                if (strpos($this->config['mediatype'], $ext) === false) {
+                if (!in_array($ext, $this->extList('mediatype'), true)) {
                     $code = 23008;
                 }
                 break;
             case 'addon':
-                $subject = $this->config['imgtype'] . '|' . $this->config['mediatype'] . '|' . $this->config['softtype'];
-                $allAllowType = str_replace('||', '|', $subject);
-                if (strpos($allAllowType, $ext) === false) {
+                if (!in_array($ext, $this->allowExtensions(), true)) {
                     $code = 23009;
                 }
                 break;
@@ -413,9 +457,7 @@ class Upload extends BaseAbstract implements UploadInterface
             return $this->output->withCode(23004);
         }
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        $subject = $this->config['imgtype'] . '|' . $this->config['mediatype'] . '|' . $this->config['softtype'];
-        $allAllowType = str_replace('||', '|', $subject);
-        if (strpos($allAllowType, $ext) === false) {
+        if (!in_array($ext, $this->allowExtensions(), true)) {
             return $this->output->withCode(23009);
         }
 

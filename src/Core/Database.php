@@ -29,7 +29,11 @@ class Database implements DatabaseInterface
         if (in_array($error[1], [2006, 2013])) {
             $this->link = $this->connect();
         }
-        $this->link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        if (defined('PDO\Mysql::ATTR_USE_BUFFERED_QUERY')) {
+            $this->link->setAttribute(PDO\Mysql::ATTR_USE_BUFFERED_QUERY, true);
+        } else {
+            $this->link->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        }
     }
 
     /**
@@ -43,8 +47,13 @@ class Database implements DatabaseInterface
                 $options = aval($db, 'pconnect') ? [\PDO::ATTR_PERSISTENT => true] : [];
                 $options[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION; // [SQL安全改造] 开启异常模式，统一错误处理
                 $sqlMode = aval($db, 'sql_mode') ?: 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION';
-                $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET character_set_connection=' . aval($db, 'dbcharset') .
+                $attrInitCommand = 'SET character_set_connection=' . aval($db, 'dbcharset') .
                     ', character_set_results=' . aval($db, 'dbcharset') . ', character_set_client=binary, sql_mode=\'' . $sqlMode . '\'';
+                if (defined('PDO\Mysql::ATTR_INIT_COMMAND')) {
+                    $options[PDO\Mysql::ATTR_INIT_COMMAND] = $attrInitCommand;
+                } else {
+                    $options[PDO::MYSQL_ATTR_INIT_COMMAND] = $attrInitCommand;
+                }
                 $connecttype = aval($db, 'connecttype') == ':' ? ':' : ';port=';
                 $dsn = 'mysql:host=' . aval($db, 'dbhost') . $connecttype . aval($db, 'dbport') . ';dbname=' . aval($db, 'dbname');
                 return new PDO($dsn, aval($db, 'dbuser'), aval($db, 'dbpw'), $options);

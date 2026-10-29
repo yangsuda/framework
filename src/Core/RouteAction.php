@@ -48,42 +48,42 @@ class RouteAction
     // 门面方式路由注册（类 ThinkPHP 风格）
     // ================================================================
 
-    public static function get(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function get(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->get($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function post(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function post(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->post($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function put(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function put(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->put($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function delete(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function delete(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->delete($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function patch(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function patch(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->patch($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function any(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function any(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->any($pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function gp(string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function gp(string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->map(['GET', 'POST'], $pattern, is_callable($action) ? $action : self::action($action));
     }
 
-    public static function map(array $methods, string $pattern, string|callable $action = null): \Slim\Interfaces\RouteInterface
+    public static function map(array $methods, string $pattern, string|callable|null $action = null): \Slim\Interfaces\RouteInterface
     {
         return self::getCollector()->map($methods, $pattern, is_callable($action) ? $action : self::action($action));
     }
@@ -115,7 +115,7 @@ class RouteAction
      *
      * @param string $action 格式：'Admin\LoginController@login'
      */
-    public static function action(string $action = null): callable
+    public static function action(?string $action = null): callable
     {
         return function (ServerRequestInterface $request, ResponseInterface $response, array $args = []) use ($action) {
             [$controller, $method] = self::parseAction($request, $action, $args);
@@ -127,7 +127,7 @@ class RouteAction
     /**
      * 解析动作字符串
      */
-    private static function parseAction(ServerRequestInterface $request, string $action = null, array $args = []): array
+    private static function parseAction(ServerRequestInterface $request, ?string $action = null, array $args = []): array
     {
         if (!empty($action) && strpos($action, '@') !== false) {
             [$controller, $method] = explode('@', $action, 2);

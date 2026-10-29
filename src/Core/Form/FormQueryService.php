@@ -329,7 +329,7 @@ final class FormQueryService implements FormQueryServiceInterface
             }
 
             $rules = !empty($v['rules']) ? json_decode($v['rules'], true) : [];
-            if (is_array($rules) && !empty($rules[$val])) {
+            if (!empty($rules) && !empty($rules[(string)$val])) {
                 $tags[] = [$v['identifier'], $rules[$val]];
             } elseif (!empty($rules) && !is_array($val) && preg_match('/,/', (string)$val)) {
                 $tags[] = [$v['identifier'], str_replace(',', '-', $val) . ($v['units'] ?? '')];

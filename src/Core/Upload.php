@@ -39,7 +39,7 @@ class Upload extends BaseAbstract implements UploadInterface
      * @param string|null $dirrule
      * @return string
      */
-    protected function getSaveDir(string $dirrule = null): string
+    protected function getSaveDir(?string $dirrule = null): string
     {
         $dir = !empty($this->setting['attachment']['dirname']) ? trim($this->setting['attachment']['dirname'], '/') : 'uploads';
         if (!isset($dirrule)) {
@@ -143,7 +143,7 @@ class Upload extends BaseAbstract implements UploadInterface
     /**
      * @inheritDoc
      */
-    public function upload(UploadedFile $post, string $type = 'image', string $dir = null): OutputInterface
+    public function upload(UploadedFile $post, string $type = 'image', ?string $dir = null): OutputInterface
     {
         if ($post->getSize() < 1) {
             // [安全修复] 空文件提前返回前必须清理临时文件，避免残留
@@ -394,7 +394,7 @@ class Upload extends BaseAbstract implements UploadInterface
     /**
      * @inheritDoc
      */
-    public function copyImage(string $pic = null, int $width = 2000, int $height = 2000, $more = []): string
+    public function copyImage(?string $pic = null, int $width = 2000, int $height = 2000, $more = []): string
     {
         $nopic = aval($more, 'nopic', 'resources/global/images/nopic/nopic.jpg');
         if (empty($pic)) {

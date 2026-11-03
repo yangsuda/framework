@@ -6,7 +6,7 @@ namespace SlimCMS\Traits;
 
 trait Table
 {
-    public function t(string $name = '', string $extendName = null): \SlimCMS\Core\Table
+    public function t(string $name = '', ?string $extendName = null): \SlimCMS\Core\Table
     {
         static $objs = [];
         $name = $name ?: 'forms';

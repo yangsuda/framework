@@ -119,7 +119,7 @@ class Captcha
      * @return void
      * @throws TextException
      */
-    public static function verify(Session $session, string $ccode = null)
+    public static function verify(Session $session, ?string $ccode = null)
     {
         //如启用验证码，对验证码验证
         if (isset($ccode) && $session->get('VerifyCode') != strtolower($ccode)) {

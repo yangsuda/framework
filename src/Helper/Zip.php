@@ -80,7 +80,7 @@ class Zip
      * @param string $path 解压到目录
      * @return bool
      */
-    public static function unpack(string $file, string $path = null): bool
+    public static function unpack(string $file, ?string $path = null): bool
     {
         if (empty($file)) {
             return false;

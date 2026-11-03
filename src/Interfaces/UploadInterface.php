@@ -25,7 +25,7 @@ interface UploadInterface
      * @param string|null $dir
      * @return OutputInterface
      */
-    public function upload(UploadedFile $post, string $type = 'image', string $dir = null): OutputInterface;
+    public function upload(UploadedFile $post, string $type = 'image', ?string $dir = null): OutputInterface;
 
     /**
      * webupload上传

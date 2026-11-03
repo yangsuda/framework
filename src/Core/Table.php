@@ -117,7 +117,7 @@ class Table extends BaseAbstract implements TableHookInterface
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public function setTableName(string $tableName, string $extendName = null): self
+    public function setTableName(string $tableName, ?string $extendName = null): self
     {
         $clone = clone $this;
         $clone->tableName = $this->tablepre . $tableName;

@@ -42,7 +42,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param array $result
      * @return array|\Psr\Http\Message\ResponseInterface
      */
-    protected function view(OutputInterface $output = null, string $template = ''): ResponseInterface
+    protected function view(?OutputInterface $output = null, string $template = ''): ResponseInterface
     {
         $output = $output ?? $this->output;
         $template = $template ?: $this->p;
@@ -68,7 +68,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param array $result
      * @return array|\Psr\Http\Message\ResponseInterface
      */
-    protected function directTo(OutputInterface $output = null)
+    protected function directTo(?OutputInterface $output = null)
     {
         $this->setFlash('errorCode', $output->getCode());
         $this->setFlash('errorMsg', $output->getMsg());
@@ -112,7 +112,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param OutputInterface|null $output
      * @return ResponseInterface
      */
-    protected function json(OutputInterface $output = null): ResponseInterface
+    protected function json(?OutputInterface $output = null): ResponseInterface
     {
         $response = $this->response->withHeader('Content-type', 'application/json');
         $encodedOutput = json_encode($output, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
@@ -126,7 +126,7 @@ abstract class ControlAbstract extends BaseAbstract
      * @param string $template
      * @return ResponseInterface
      */
-    protected function resp(OutputInterface $output = null, string $template = ''): ResponseInterface
+    protected function resp(?OutputInterface $output = null, string $template = ''): ResponseInterface
     {
         $contentType = $this->determineContentType();
         $contentType = $contentType ?: 'application/json';

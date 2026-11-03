@@ -248,10 +248,10 @@ abstract class EntityAbstract implements JsonSerializable
     /**
      * 判断字段是否存在
      *
-     * @param string $name
+     * @param string|null $name
      * @return bool
      */
-    public function has(string $name = null): bool
+    public function has(?string $name = null): bool
     {
         return $name ? isset($this->attributes[$name]) : isset($this->attributes);
     }

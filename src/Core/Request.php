@@ -181,7 +181,7 @@ class Request extends BaseAbstract
                     $data[$k] = preg_replace('/[^\d\-: ]/i', '', $val);
                     break;
                 case 'json':
-                    $val && $val = json_decode($val, true);
+                    $val && $val = is_string($val) ? json_decode($val, true) : [];
                     $data[$k] = $val ? array_map('\SlimCMS\Helper\Str::htmlspecialchars', (array)$val) : $val;
                     break;
                 case 'media':

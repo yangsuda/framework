@@ -39,8 +39,10 @@ final class FormSchemaService implements FormSchemaServiceInterface
 
     public function __construct(
         private ContainerInterface $container,
-        private Redis $redis,
-    ) {}
+        private Redis              $redis,
+    )
+    {
+    }
 
     public function getForm(int $fid): FormDTO
     {
@@ -180,7 +182,7 @@ final class FormSchemaService implements FormSchemaServiceInterface
             'table' => $table,
             'value' => $result['value'] ?? '',
             'name' => $result['name'] ?? '',
-            'condition' => $result['condition'] ?? '',
+            'condition' => $result['condition'] ?? [],
             'limit' => $result['limit'] ?? '',
             'order' => (string)$order,
             'way' => (string)$way,

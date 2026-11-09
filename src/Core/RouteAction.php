@@ -136,21 +136,38 @@ class RouteAction
                 $controller = 'app\\Controller\\' . $controller;
             }
         } else {
-            $route = str_replace('/', '\\', trim($request->getAttribute('__route__')->getPattern(), '/'));
+            // 1. 取路由 pattern，统一分隔符为正斜杠，去掉首尾斜杠
+            $route = trim($request->getAttribute('__route__')->getPattern(), '/');
+            $route = str_replace('\\', '/', $route);
+
+            // 2. 替换路由参数占位符
             foreach ($args as $k => $v) {
-                $route = str_replace('{' . $k . '}', $v, $route);
+                $route = str_replace('{' . $k . '}', (string) $v, $route);
             }
-            $method = pathinfo($route, PATHINFO_BASENAME);
-            $path = pathinfo($route, PATHINFO_DIRNAME);
-            $className = pathinfo($path, PATHINFO_BASENAME);
-            $controller = $className ? 'app\\Controller\\' . $action . pathinfo($path, PATHINFO_DIRNAME) . '\\' . ucfirst($className) . 'Controller' : '';
+
+            // 3. 按 / 切分，过滤空段，得到稳定的数组（跨平台一致）
+            $segments = array_values(array_filter(explode('/', $route), 'strlen'));
+
+            // 4. 最后一段是方法名，倒数第二段是控制器名，其余是命名空间路径
+            $method    = $segments ? array_pop($segments) : '';
+            $className = $segments ? ucfirst(array_pop($segments)) : '';
+
+            // 5. 拼接完整类名（命名空间段用 \ 连接）
+            if ($className !== '') {
+                $namespace = $segments ? implode('\\', $segments) . '\\' : '';
+                $controller = 'app\\Controller\\' . ($action ?? '') . $namespace . $className . 'Controller';
+            } else {
+                $controller = '';
+            }
         }
-        if (!class_exists($controller)) {
+
+        if ($controller === '' || !class_exists($controller)) {
             throw new TextException(404, "Controller class not found");
         }
         if (!method_exists($controller, $method) || !(new \ReflectionMethod($controller, $method))->isPublic()) {
             throw new TextException(404, "Method {$method} not found");
         }
+
         return [$controller, $method];
     }
 }

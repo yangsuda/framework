@@ -39,13 +39,14 @@ final class FormQueryService implements FormQueryServiceInterface
     private $output;
 
     public function __construct(
-        ContainerInterface $container,
-        Redis $redis,
+        ContainerInterface         $container,
+        Redis                      $redis,
         FormSchemaServiceInterface $schema,
-        TableHookDispatcher $hookDispatcher,
-        OrderValidator $orderValidator,
-        OutputInterface $output,
-    ) {
+        TableHookDispatcher        $hookDispatcher,
+        OrderValidator             $orderValidator,
+        OutputInterface            $output,
+    )
+    {
         $this->container = $container;
         $this->redis = $redis;
         $this->schema = $schema;
@@ -300,7 +301,7 @@ final class FormQueryService implements FormQueryServiceInterface
                 }
             } elseif (in_array($v['datatype'], ['text', 'multitext', 'htmltext'])) {
                 if (!empty($val)) {
-                    if (!empty($v['precisesearch'])) {
+                    if (!empty($v['precisesearch']) && $v['precisesearch'] == 1) {
                         $where[$v['identifier']] = $val;
                     } else {
                         $where[] = [$v['identifier'] => ['like', $val]];
@@ -319,7 +320,7 @@ final class FormQueryService implements FormQueryServiceInterface
                     if (preg_match('/,/', (string)$val)) {
                         $where[$v['identifier']] = explode(',', $val);
                     } else {
-                        if (!empty($v['precisesearch'])) {
+                        if (!empty($v['precisesearch']) && $v['precisesearch'] == 1) {
                             $where[$v['identifier']] = $val;
                         } else {
                             $where[] = [$v['identifier'] => ['like', $val]];
